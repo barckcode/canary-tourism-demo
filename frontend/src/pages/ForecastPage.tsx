@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
 import ForecastChart, {
@@ -7,6 +7,9 @@ import ForecastChart, {
   type TimeSeriesPoint as ChartTimePoint,
   type ForecastPoint as ChartForecastPoint,
 } from "../components/forecast/ForecastChart";
+import ScenarioChart, {
+  ScenarioImpactStats,
+} from "../components/forecast/ScenarioChart";
 import YoYHeatmap from "../components/forecast/YoYHeatmap";
 import {
   useTimeSeries,
@@ -31,7 +34,7 @@ export default function ForecastPage() {
   // Real API data (will fail gracefully if backend not running)
   const { data: tsData } = useTimeSeries("turistas");
   const { data: predData } = usePredictions();
-  const { runScenario, loading: scenarioLoading } = useScenarios();
+  const { data: scenarioData, runScenario, loading: scenarioLoading, error: scenarioError } = useScenarios();
 
   // Scenario sliders state
   const [scenarioValues, setScenarioValues] = useState({
@@ -141,6 +144,14 @@ export default function ForecastPage() {
               >
                 {scenarioLoading ? "Running..." : "Run Scenario"}
               </button>
+              {scenarioError && (
+                <div className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
+                  <p className="text-sm text-red-400">
+                    <span className="font-medium">Scenario error:</span>{" "}
+                    {scenarioError}
+                  </p>
+                </div>
+              )}
             </div>
           </Panel>
         </motion.div>
@@ -181,6 +192,34 @@ export default function ForecastPage() {
           </Panel>
         </motion.div>
       </div>
+
+      {/* Scenario Results */}
+      <AnimatePresence>
+        {scenarioData && (
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            exit={{ opacity: 0, y: -8, transition: { duration: 0.3 } }}
+          >
+            <Panel
+              title="Scenario Comparison"
+              subtitle="Baseline vs scenario forecast — shaded areas show positive (green) and negative (red) impact"
+            >
+              <ChartContainer height={340}>
+                {({ width, height }) => (
+                  <ScenarioChart
+                    data={scenarioData}
+                    width={width}
+                    height={height}
+                  />
+                )}
+              </ChartContainer>
+              <ScenarioImpactStats data={scenarioData} />
+            </Panel>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Heatmap */}
       <motion.div variants={fadeUp}>

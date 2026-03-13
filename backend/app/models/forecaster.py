@@ -139,7 +139,8 @@ class Forecaster:
             )
 
         # Use SARIMA CIs scaled by ensemble/sarima ratio for CI bands
-        ratio = np.where(sarima_mean != 0, ensemble / sarima_mean, 1.0)
+        epsilon = 1e-10
+        ratio = np.where(np.abs(sarima_mean) > epsilon, ensemble / sarima_mean, 1.0)
         ci_lower_80 = sarima_ci_80[:, 0] * ratio
         ci_upper_80 = sarima_ci_80[:, 1] * ratio
         ci_lower_95 = sarima_ci_95[:, 0] * ratio

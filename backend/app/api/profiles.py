@@ -12,6 +12,16 @@ from app.db.models import Microdata, Profile
 router = APIRouter()
 
 
+def safe_json_loads(s, default=None):
+    """Safely parse a JSON string, returning default on failure."""
+    if default is None:
+        default = []
+    try:
+        return json.loads(s) if s else default
+    except (json.JSONDecodeError, ValueError):
+        return default
+
+
 @router.get("")
 def get_profiles(db: Session = Depends(get_db)):
     """Return all tourist profile clusters."""
@@ -25,12 +35,8 @@ def get_profiles(db: Session = Depends(get_db)):
                 "avg_age": p.avg_age,
                 "avg_spend": p.avg_spend,
                 "avg_nights": p.avg_nights,
-                "top_nationalities": json.loads(p.top_nationalities)
-                if p.top_nationalities
-                else [],
-                "top_accommodations": json.loads(p.top_accommodations)
-                if p.top_accommodations
-                else [],
+                "top_nationalities": safe_json_loads(p.top_nationalities),
+                "top_accommodations": safe_json_loads(p.top_accommodations),
             }
             for p in profiles
         ]
@@ -107,9 +113,7 @@ def get_profile_detail(
     if not profile:
         raise HTTPException(status_code=404, detail="Cluster not found")
 
-    characteristics = {}
-    if profile.characteristics:
-        characteristics = json.loads(profile.characteristics)
+    characteristics = safe_json_loads(profile.characteristics, default={})
 
     return {
         "id": profile.cluster_id,
@@ -118,17 +122,9 @@ def get_profile_detail(
         "avg_age": profile.avg_age,
         "avg_spend": profile.avg_spend,
         "avg_nights": profile.avg_nights,
-        "top_nationalities": json.loads(profile.top_nationalities)
-        if profile.top_nationalities
-        else [],
-        "top_accommodations": json.loads(profile.top_accommodations)
-        if profile.top_accommodations
-        else [],
-        "top_activities": json.loads(profile.top_activities)
-        if profile.top_activities
-        else [],
-        "top_motivations": json.loads(profile.top_motivations)
-        if profile.top_motivations
-        else [],
+        "top_nationalities": safe_json_loads(profile.top_nationalities),
+        "top_accommodations": safe_json_loads(profile.top_accommodations),
+        "top_activities": safe_json_loads(profile.top_activities),
+        "top_motivations": safe_json_loads(profile.top_motivations),
         "characteristics": characteristics,
     }

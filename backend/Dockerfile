@@ -5,10 +5,14 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN useradd -m -u 1000 appuser
+
 COPY . .
 
-# Create data directories
-RUN mkdir -p /app/data/models
+# Create data directories and set ownership
+RUN mkdir -p /app/data/models && chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8000
 

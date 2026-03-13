@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "./client";
 
 interface UseQueryResult<T> {
@@ -15,31 +15,60 @@ export function useQuery<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Serialize deps to a stable string to prevent infinite loops
+  // from unstable object/array references
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const depsKey = JSON.stringify(deps);
 
   const fetchData = useCallback(() => {
-    let cancelled = false;
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     fetcher()
       .then((result) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setData(result);
           setError(null);
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message);
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       });
+
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, deps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depsKey]);
 
   useEffect(() => {
-    return fetchData();
+    const cleanup = fetchData();
+    return cleanup;
   }, [fetchData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return { data, loading, error, refetch: fetchData };
 }

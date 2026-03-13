@@ -86,8 +86,8 @@ def _build_features(df: pd.DataFrame) -> pd.DataFrame:
     features["rolling_3m"] = df["arrivals"].rolling(3).mean()
     features["rolling_12m"] = df["arrivals"].rolling(12).mean()
 
-    # Foreign ratio
-    features["foreign_ratio"] = df["foreign"] / df["arrivals"]
+    # Foreign ratio (safe division to avoid division by zero)
+    features["foreign_ratio"] = np.where(df["arrivals"] != 0, df["foreign"] / df["arrivals"], 0.5)
 
     # Lagged accommodation metrics
     for col_name in ACCOM_INDICATORS.values():
@@ -253,16 +253,17 @@ class ScenarioEngine:
                 new_row[col_name] = ext_df[col_name].iloc[-1]
             ext_df.loc[period_str] = new_row
 
+        avg_baseline = np.mean([b["value"] for b in baseline])
+        avg_scenario = np.mean([s["value"] for s in scenario])
+        avg_change_pct = (
+            round((avg_scenario - avg_baseline) / avg_baseline * 100, 2)
+            if avg_baseline != 0
+            else 0.0
+        )
         impact = {
-            "avg_baseline": round(np.mean([b["value"] for b in baseline])),
-            "avg_scenario": round(np.mean([s["value"] for s in scenario])),
-            "avg_change_pct": round(
-                (np.mean([s["value"] for s in scenario])
-                 - np.mean([b["value"] for b in baseline]))
-                / np.mean([b["value"] for b in baseline])
-                * 100,
-                2,
-            ),
+            "avg_baseline": round(avg_baseline),
+            "avg_scenario": round(avg_scenario),
+            "avg_change_pct": avg_change_pct,
         }
 
         return {

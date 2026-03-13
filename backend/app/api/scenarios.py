@@ -22,9 +22,9 @@ def _get_engine(db: Session) -> ScenarioEngine:
 
 
 class ScenarioRequest(BaseModel):
-    occupancy_change_pct: float = 0.0
-    adr_change_pct: float = 0.0
-    foreign_ratio_change_pct: float = 0.0
+    occupancy_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
+    adr_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
+    foreign_ratio_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
     horizon: int = Field(12, ge=1, le=60)
 
 

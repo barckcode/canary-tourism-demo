@@ -1,6 +1,6 @@
 """Dashboard KPI and summary endpoints."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
@@ -107,6 +107,12 @@ def get_kpis(db: Session = Depends(get_db)):
     last_fetched = db.query(func.max(TimeSeries.fetched_at)).scalar()
     kpis["last_updated"] = last_fetched
 
+    if not kpis or "latest_arrivals" not in kpis:
+        raise HTTPException(
+            status_code=404,
+            detail="No KPI data available. The database may not have been populated yet.",
+        )
+
     return kpis
 
 
@@ -161,6 +167,12 @@ def get_summary(db: Session = Depends(get_db)):
         {"period": r.period, "value": r.value_predicted}
         for r in forecasts
     ]
+
+    if not arrivals_trend:
+        raise HTTPException(
+            status_code=404,
+            detail="No arrivals trend data available. The database may not have been populated yet.",
+        )
 
     return {
         "arrivals_trend_24m": arrivals_trend,

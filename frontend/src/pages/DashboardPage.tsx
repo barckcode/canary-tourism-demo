@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import AnimatedNumber from "../components/shared/AnimatedNumber";
+import SparklineChart from "../components/shared/SparklineChart";
 import TimeSlider from "../components/timeline/TimeSlider";
 import TenerifeMap from "../components/map/TenerifeMap";
-import { useDashboardKPIs } from "../api/hooks";
+import { useDashboardKPIs, useDashboardSummary } from "../api/hooks";
 
 const kpiConfig = [
   {
@@ -50,6 +51,7 @@ const fadeUp = {
 
 export default function DashboardPage() {
   const { data: kpis, loading } = useDashboardKPIs();
+  const { data: summary } = useDashboardSummary();
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
@@ -108,9 +110,17 @@ export default function DashboardPage() {
 
         <motion.div variants={fadeUp} className="space-y-4">
           <Panel title="Arrivals Trend" subtitle="Last 24 months">
-            <div className="h-[140px] flex items-center justify-center text-gray-600">
-              <p className="text-sm">Sparkline — Coming Soon</p>
-            </div>
+            {summary?.arrivals_trend_24m ? (
+              <SparklineChart
+                data={summary.arrivals_trend_24m}
+                forecast={summary.forecast}
+                height={140}
+              />
+            ) : (
+              <div className="h-[140px] flex items-center justify-center">
+                <div className="h-[100px] w-full bg-gray-800/50 rounded animate-pulse" />
+              </div>
+            )}
           </Panel>
 
           <Panel title="Top Markets">
