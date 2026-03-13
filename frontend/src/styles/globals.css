@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(17 24 39);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(55 65 81);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(75 85 99);
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-gray-900/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl shadow-xl;
+  }
+
+  .kpi-value {
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  .kpi-label {
+    @apply text-xs uppercase tracking-wider text-gray-500 mt-1;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-ocean-400 to-tropical-400;
+  }
+}

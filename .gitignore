@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Database files
+backend/data/tourism.db
+backend/data/tourism.db-shm
+backend/data/tourism.db-wal
+
+# Model artifacts
+backend/data/models/*.pkl
+
+# Frontend build
+frontend/dist/
+
+# Testing
+.pytest_cache/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+
+# Logs
+*.log

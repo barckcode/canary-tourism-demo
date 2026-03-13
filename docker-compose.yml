@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend-data:/app/data
+      - ./tenerife-tourism-data:/raw-data:ro
+    environment:
+      - TOURISM_RAW_DATA_DIR=/raw-data
+      - TOURISM_DEBUG=false
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:

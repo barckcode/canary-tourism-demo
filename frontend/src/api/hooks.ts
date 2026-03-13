@@ -1,0 +1,300 @@
+import { useEffect, useState, useCallback } from "react";
+import { api } from "./client";
+
+interface UseQueryResult<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
+}
+
+export function useQuery<T>(
+  fetcher: () => Promise<T>,
+  deps: unknown[] = []
+): UseQueryResult<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetcher()
+      .then((result) => {
+        if (!cancelled) {
+          setData(result);
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, deps);
+
+  useEffect(() => {
+    return fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+
+// ── Dashboard ──
+
+export interface DashboardKPIs {
+  latest_arrivals: number;
+  latest_period: string;
+  yoy_change: number;
+  occupancy_rate: number;
+  adr: number;
+  revpar: number;
+  avg_stay: number;
+  last_updated: string;
+}
+
+export function useDashboardKPIs() {
+  return useQuery<DashboardKPIs>(
+    () => api.dashboard.kpis() as Promise<DashboardKPIs>
+  );
+}
+
+export interface DashboardSummary {
+  arrivals_trend_24m: { period: string; value: number }[];
+  occupancy_trend_12m: { period: string; value: number }[];
+  forecast: { period: string; value: number }[];
+}
+
+export function useDashboardSummary() {
+  return useQuery<DashboardSummary>(
+    () => api.dashboard.summary() as Promise<DashboardSummary>
+  );
+}
+
+// ── Time Series ──
+
+export interface TimeSeriesPoint {
+  period: string;
+  value: number;
+}
+
+export interface TimeSeriesResponse {
+  data: TimeSeriesPoint[];
+  metadata: {
+    indicator: string;
+    geo: string;
+    measure: string;
+    total_points: number;
+  };
+}
+
+export function useTimeSeries(
+  indicator: string,
+  geo = "ES709",
+  from?: string,
+  to?: string
+) {
+  const params: Record<string, string> = { indicator, geo };
+  if (from) params.from = from;
+  if (to) params.to = to;
+  return useQuery<TimeSeriesResponse>(
+    () => api.timeseries.get(params) as Promise<TimeSeriesResponse>,
+    [indicator, geo, from, to]
+  );
+}
+
+export interface IndicatorInfo {
+  id: string;
+  source: string;
+  available_from: string;
+  available_to: string;
+  total_points: number;
+}
+
+export function useIndicators() {
+  return useQuery<IndicatorInfo[]>(
+    () => api.timeseries.indicators() as Promise<IndicatorInfo[]>
+  );
+}
+
+// ── Predictions ──
+
+export interface ForecastPoint {
+  period: string;
+  value: number;
+  ci_lower_80: number;
+  ci_upper_80: number;
+  ci_lower_95: number;
+  ci_upper_95: number;
+}
+
+export interface PredictionResponse {
+  forecast: ForecastPoint[];
+  model_info: {
+    name: string;
+    total_periods: number;
+  };
+}
+
+export function usePredictions(
+  indicator = "turistas",
+  geo = "ES709",
+  horizon = 12,
+  model = "ensemble"
+) {
+  return useQuery<PredictionResponse>(
+    () =>
+      api.predictions.get({
+        indicator,
+        geo,
+        horizon: String(horizon),
+        model,
+      }) as Promise<PredictionResponse>,
+    [indicator, geo, horizon, model]
+  );
+}
+
+export interface PredictionCompareResponse {
+  models: Record<string, ForecastPoint[]>;
+}
+
+export function usePredictionCompare(
+  indicator = "turistas",
+  geo = "ES709",
+  horizon = 12
+) {
+  return useQuery<PredictionCompareResponse>(
+    () =>
+      api.predictions.compare({
+        indicator,
+        geo,
+        horizon: String(horizon),
+      }) as Promise<PredictionCompareResponse>,
+    [indicator, geo, horizon]
+  );
+}
+
+// ── Profiles ──
+
+export interface NationalityEntry {
+  nationality: string;
+  percentage: number;
+}
+
+export interface AccommodationEntry {
+  type: string;
+  percentage: number;
+}
+
+export interface ActivityEntry {
+  activity: string;
+  percentage: number;
+}
+
+export interface MotivationEntry {
+  motivation: string;
+  percentage: number;
+}
+
+export interface ClusterProfile {
+  id: number;
+  name: string;
+  size_pct: number;
+  avg_age: number;
+  avg_spend: number;
+  avg_nights: number;
+  top_nationalities: NationalityEntry[];
+  top_accommodations: AccommodationEntry[];
+}
+
+export interface ClusterDetail extends ClusterProfile {
+  top_activities: ActivityEntry[];
+  top_motivations: MotivationEntry[];
+  characteristics: Record<string, string>;
+}
+
+export interface ProfilesResponse {
+  clusters: ClusterProfile[];
+}
+
+export function useProfiles() {
+  return useQuery<ProfilesResponse>(
+    () => api.profiles.list() as Promise<ProfilesResponse>
+  );
+}
+
+export function useProfileDetail(clusterId: number | null) {
+  return useQuery<ClusterDetail | null>(
+    () =>
+      clusterId !== null
+        ? (api.profiles.detail(clusterId) as Promise<ClusterDetail>)
+        : Promise.resolve(null),
+    [clusterId]
+  );
+}
+
+export interface NationalityProfile {
+  nationality: string;
+  count: number;
+  avg_spend: number;
+  avg_nights: number;
+}
+
+export function useNationalityProfiles() {
+  return useQuery<NationalityProfile[]>(
+    () => api.profiles.nationalities() as Promise<NationalityProfile[]>
+  );
+}
+
+export interface FlowData {
+  nodes: { id: string; label: string }[];
+  links: { source: string; target: string; value: number }[];
+}
+
+export function useFlowData() {
+  return useQuery<FlowData>(
+    () => api.profiles.flows() as Promise<FlowData>
+  );
+}
+
+// ── Scenarios ──
+
+export interface ScenarioInput {
+  occupancy_change_pct: number;
+  adr_change_pct: number;
+  foreign_ratio_change_pct: number;
+  horizon?: number;
+}
+
+export interface ScenarioResponse {
+  baseline_forecast: ForecastPoint[];
+  scenario_forecast: ForecastPoint[];
+  impact_summary: Record<string, number>;
+}
+
+export function useScenarios() {
+  const [data, setData] = useState<ScenarioResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const runScenario = useCallback(async (input: ScenarioInput) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = (await api.scenarios.run(
+        input as unknown as Record<string, number>
+      )) as ScenarioResponse;
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { data, loading, error, runScenario };
+}
