@@ -35,7 +35,7 @@ body {
   }
 
   .kpi-label {
-    @apply text-xs uppercase tracking-wider text-gray-500 mt-1;
+    @apply text-xs uppercase tracking-wider text-gray-400 mt-1;
   }
 
   .gradient-text {

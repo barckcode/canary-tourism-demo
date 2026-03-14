@@ -132,8 +132,8 @@ export default function ForecastPage() {
     >
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold gradient-text">Prediction Engine</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold gradient-text">Prediction Engine</h1>
+          <p className="text-sm text-gray-400 mt-1">
             AI-powered tourism demand forecasting
           </p>
         </div>

@@ -167,7 +167,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
         className="flex items-center justify-center"
         style={{ width, height }}
       >
-        <div className="text-gray-500 text-sm animate-pulse">
+        <div className="text-gray-400 text-sm animate-pulse">
           Loading heatmap data...
         </div>
       </div>
@@ -185,7 +185,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
           <p className="text-red-400 text-sm font-medium">
             Failed to load heatmap data
           </p>
-          <p className="text-gray-500 text-xs mt-1">{error}</p>
+          <p className="text-gray-400 text-xs mt-1">{error}</p>
         </div>
       </div>
     );
@@ -202,7 +202,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
           <p className="text-gray-400 text-sm font-medium">
             Not enough data for YoY comparison
           </p>
-          <p className="text-gray-500 text-xs mt-1">
+          <p className="text-gray-400 text-xs mt-1">
             At least two years of monthly data are required to calculate
             year-over-year changes.
           </p>

@@ -126,8 +126,8 @@ export default function AboutPage() {
     >
       {/* Header */}
       <motion.div variants={fadeUp} className="text-center pt-4">
-        <h2 className="text-3xl font-bold gradient-text">About This Project</h2>
-        <p className="text-sm text-gray-500 mt-2">
+        <h1 className="text-3xl font-bold gradient-text">About This Project</h1>
+        <p className="text-sm text-gray-400 mt-2">
           An autonomous AI experiment
         </p>
       </motion.div>
@@ -218,14 +218,14 @@ export default function AboutPage() {
                     <span className={`text-sm font-bold ${color}`}>
                       {acronym}
                     </span>
-                    <span className="text-xs text-gray-500">{name}</span>
+                    <span className="text-xs text-gray-400">{name}</span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">{description}</p>
                 </div>
               )
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-5 border-t border-gray-800/50 pt-4">
+          <p className="text-xs text-gray-400 mt-5 border-t border-gray-800/50 pt-4">
             Data is updated automatically: weekly (ISTAC/INE), bi-monthly (EGT
             microdata).
           </p>
@@ -235,7 +235,7 @@ export default function AboutPage() {
       {/* Footer links */}
       <motion.div variants={fadeUp}>
         <div className="flex items-center justify-center gap-6 py-4 text-sm">
-          <span className="text-gray-500">
+          <span className="text-gray-400">
             Built with{" "}
             <a
               href="https://agentcrew.sh/"
@@ -247,7 +247,7 @@ export default function AboutPage() {
             </a>
           </span>
           <span className="text-gray-700">|</span>
-          <span className="text-gray-500">
+          <span className="text-gray-400">
             Source code on{" "}
             <a
               href="https://github.com/barckcode/canary-tourism-demo"

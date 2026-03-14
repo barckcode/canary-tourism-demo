@@ -70,7 +70,7 @@ export function ScenarioImpactStats({
   return (
     <div className="grid grid-cols-3 gap-4 mt-4">
       <div className="bg-white/5 backdrop-blur rounded-lg p-4 text-center">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
           Avg Change
         </p>
         <p
@@ -87,7 +87,7 @@ export function ScenarioImpactStats({
         </p>
       </div>
       <div className="bg-white/5 backdrop-blur rounded-lg p-4 text-center">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
           Direction
         </p>
         <p
@@ -107,7 +107,7 @@ export function ScenarioImpactStats({
         </p>
       </div>
       <div className="bg-white/5 backdrop-blur rounded-lg p-4 text-center">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
           Max Impact
         </p>
         <p className="text-xl font-bold text-volcanic-400 font-mono">

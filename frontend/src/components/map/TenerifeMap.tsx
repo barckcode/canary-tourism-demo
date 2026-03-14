@@ -158,7 +158,7 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
         ].map(({ label, color }) => (
           <div key={label} className="flex items-center gap-2">
             <div className={`w-3 h-2 rounded-sm ${color}`} />
-            <span className="text-gray-500">{label}</span>
+            <span className="text-gray-400">{label}</span>
           </div>
         ))}
       </div>

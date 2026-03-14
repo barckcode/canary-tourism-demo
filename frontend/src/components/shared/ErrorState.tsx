@@ -44,7 +44,7 @@ export default function ErrorState({
         <h3 className="text-sm font-semibold text-gray-200 mb-1">
           Something went wrong
         </h3>
-        <p className="text-xs text-gray-500 max-w-xs">{message}</p>
+        <p className="text-xs text-gray-400 max-w-xs">{message}</p>
       </div>
 
       {onRetry && (

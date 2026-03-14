@@ -50,8 +50,8 @@ export default function DataExplorerPage() {
     >
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold gradient-text">Data Explorer</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold gradient-text">Data Explorer</h1>
+          <p className="text-sm text-gray-400 mt-1">
             Browse raw time series and indicators
           </p>
         </div>
@@ -78,7 +78,7 @@ export default function DataExplorerPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-500 border-b border-gray-700/50">
+                <tr className="text-left text-gray-400 border-b border-gray-700/50">
                   <th className="pb-3 font-medium">Indicator</th>
                   <th className="pb-3 font-medium">Source</th>
                   <th className="pb-3 font-medium">Range</th>

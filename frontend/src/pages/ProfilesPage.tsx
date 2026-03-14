@@ -121,8 +121,8 @@ export default function ProfilesPage() {
     >
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold gradient-text">Tourist Profiles</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold gradient-text">Tourist Profiles</h1>
+          <p className="text-sm text-gray-400 mt-1">
             Behavioral segmentation from survey microdata
           </p>
         </div>
@@ -176,7 +176,7 @@ export default function ProfilesPage() {
                   key={label}
                   className="flex justify-between items-center py-1.5 border-b border-gray-800/30 last:border-0"
                 >
-                  <span className="text-sm text-gray-500">{label}</span>
+                  <span className="text-sm text-gray-400">{label}</span>
                   <span className="text-sm text-gray-200 font-medium">
                     {value}
                   </span>
@@ -215,7 +215,7 @@ export default function ProfilesPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-500 py-4 text-center">No spending data available for this cluster</p>
+                <p className="text-sm text-gray-400 py-4 text-center">No spending data available for this cluster</p>
               )}
             </div>
           </Panel>

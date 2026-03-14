@@ -73,10 +73,10 @@ function SidebarContent({
             animate={{ opacity: 1 }}
             className="overflow-hidden"
           >
-            <h1 className="text-sm font-semibold text-white whitespace-nowrap leading-tight">
+            <div className="text-sm font-semibold text-white whitespace-nowrap leading-tight">
               Tenerife Tourism
-            </h1>
-            <p className="text-[10px] text-gray-500 whitespace-nowrap">
+            </div>
+            <p className="text-[10px] text-gray-400 whitespace-nowrap">
               Intelligence Platform
             </p>
           </motion.div>
@@ -91,6 +91,7 @@ function SidebarContent({
             to={to}
             end={to === "/"}
             onClick={onNavigate}
+            aria-label={label}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
                 isActive
@@ -253,7 +254,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-3 mx-2 mb-4 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800/50 transition-colors"
+          className="p-3 mx-2 mb-4 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <svg
@@ -275,7 +276,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Main */}
       <main id="main-content" className="flex-1 overflow-auto flex flex-col pt-14 md:pt-0">
         <div className="flex-1 p-4 md:p-6">{children}</div>
-        <footer className="px-4 md:px-6 py-4 border-t border-gray-800/50 flex items-center justify-between text-xs text-gray-500">
+        <footer className="px-4 md:px-6 py-4 border-t border-gray-800/50 flex items-center justify-between text-xs text-gray-400">
           <a
             href="https://github.com/barckcode/canary-tourism-demo"
             target="_blank"

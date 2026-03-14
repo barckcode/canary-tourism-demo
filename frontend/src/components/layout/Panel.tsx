@@ -31,7 +31,7 @@ export default function Panel({
             </h2>
           )}
           {subtitle && (
-            <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
           )}
         </div>
       )}

@@ -71,8 +71,8 @@ export default function DashboardPage() {
       {/* Header */}
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold gradient-text">Dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold gradient-text">Dashboard</h1>
+          <p className="text-sm text-gray-400 mt-1">
             Tenerife tourism overview
           </p>
         </div>
@@ -189,14 +189,14 @@ export default function DashboardPage() {
                           className="h-full bg-ocean-500 rounded-full"
                         />
                       </div>
-                      <span className="text-xs text-gray-500 w-8 text-right">
+                      <span className="text-xs text-gray-400 w-8 text-right">
                         {pct}%
                       </span>
                     </div>
                   </div>
                 ))
               ) : (
-                <span className="text-sm text-gray-500">No market data available</span>
+                <span className="text-sm text-gray-400">No market data available</span>
               )}
             </div>
           </Panel>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <span className="text-sm text-gray-500">No seasonal data available</span>
+              <span className="text-sm text-gray-400">No seasonal data available</span>
             )}
           </Panel>
         </motion.div>
