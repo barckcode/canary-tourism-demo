@@ -44,6 +44,7 @@ export const api = {
     detail: (id: number) => fetchJSON(`/profiles/${id}`),
     nationalities: () => fetchJSON("/profiles/nationalities"),
     flows: () => fetchJSON("/profiles/flows"),
+    spending: () => fetchJSON("/profiles/spending"),
   },
   scenarios: {
     run: (body: Record<string, number>) =>

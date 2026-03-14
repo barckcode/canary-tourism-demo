@@ -64,21 +64,26 @@ ACCOMMODATION_LABELS = {
 def get_profiles(request: Request, db: Session = Depends(get_db)):
     """Return all tourist profile clusters."""
     profiles = db.query(Profile).order_by(Profile.cluster_id).all()
-    return {
-        "clusters": [
-            {
-                "id": p.cluster_id,
-                "name": p.cluster_name,
-                "size_pct": p.size_pct,
-                "avg_age": p.avg_age,
-                "avg_spend": p.avg_spend,
-                "avg_nights": p.avg_nights,
-                "top_nationalities": safe_json_loads(p.top_nationalities),
-                "top_accommodations": safe_json_loads(p.top_accommodations),
-            }
-            for p in profiles
-        ]
-    }
+    clusters = []
+    for p in profiles:
+        characteristics = safe_json_loads(p.characteristics, default={})
+        if isinstance(characteristics, list):
+            characteristics = {}
+        clusters.append({
+            "id": p.cluster_id,
+            "name": p.cluster_name,
+            "size_pct": p.size_pct,
+            "avg_age": p.avg_age,
+            "avg_spend": p.avg_spend,
+            "avg_nights": p.avg_nights,
+            "top_nationalities": safe_json_loads(p.top_nationalities),
+            "top_accommodations": safe_json_loads(p.top_accommodations),
+            "top_activities": safe_json_loads(p.top_activities),
+            "top_motivations": safe_json_loads(p.top_motivations),
+            "avg_satisfaction": characteristics.get("avg_satisfaction"),
+            "spending_breakdown": characteristics.get("spending_breakdown", {}),
+        })
+    return {"clusters": clusters}
 
 
 @router.get("/nationalities")
@@ -170,6 +175,79 @@ def get_flows(request: Request, db: Session = Depends(get_db)):
     return {"nodes": nodes, "links": links}
 
 
+@router.get("/spending")
+@limiter.limit("60/minute")
+def get_spending_by_cluster(request: Request, db: Session = Depends(get_db)):
+    """Return real spending breakdown per cluster computed from microdata.
+
+    Aggregates spending category columns (DESGLOSE_*) from the raw_json
+    of each microdata record, grouped by assigned cluster_id.
+    """
+    rows = (
+        db.query(Microdata.cluster_id, Microdata.raw_json)
+        .filter(Microdata.cluster_id.isnot(None), Microdata.raw_json.isnot(None))
+        .all()
+    )
+
+    if not rows:
+        return {"spending_by_cluster": {}}
+
+    SPENDING_COLS = [
+        "DESGLOSE_RESTAURANT",
+        "DESGLOSE_EXCURS_ORGANIZ",
+        "DESGLOSE_ALQ_VEHIC",
+        "DESGLOSE_ALIM_SUPER",
+        "DESGLOSE_DEPORTES",
+        "DESGLOSE_PARQUES_OCIO",
+        "DESGLOSE_SOUVENIRS",
+        "DESGLOSE_EXTRA_ALOJ",
+    ]
+
+    from collections import defaultdict
+
+    cluster_sums: dict[int, dict[str, list[float]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+
+    for cid, raw in rows:
+        try:
+            data = json.loads(raw) if raw else {}
+        except (json.JSONDecodeError, ValueError):
+            continue
+
+        for col in SPENDING_COLS:
+            val = data.get(col)
+            if val is not None and val not in ("_Z", "_U", "_N", ""):
+                try:
+                    cluster_sums[cid][col].append(float(val))
+                except (ValueError, TypeError):
+                    continue
+
+    result: dict[int, list[dict]] = {}
+    for cid in sorted(cluster_sums.keys()):
+        categories = []
+        total_avg = 0.0
+        for col in SPENDING_COLS:
+            vals = cluster_sums[cid].get(col, [])
+            avg = sum(vals) / len(vals) if vals else 0.0
+            total_avg += avg
+            name = col.replace("DESGLOSE_", "").replace("_", " ").title()
+            categories.append({"category": name, "amount": round(avg, 2)})
+
+        # Calculate percentages
+        for cat in categories:
+            cat["pct"] = (
+                round(cat["amount"] / total_avg * 100, 1) if total_avg > 0 else 0
+            )
+
+        # Sort by amount descending and filter out zero-amount categories
+        categories = [c for c in categories if c["amount"] > 0]
+        categories.sort(key=lambda x: x["amount"], reverse=True)
+        result[cid] = categories
+
+    return {"spending_by_cluster": result}
+
+
 @router.get("/{cluster_id}")
 @limiter.limit("60/minute")
 def get_profile_detail(
@@ -185,6 +263,8 @@ def get_profile_detail(
         raise HTTPException(status_code=404, detail="Cluster not found")
 
     characteristics = safe_json_loads(profile.characteristics, default={})
+    if isinstance(characteristics, list):
+        characteristics = {}
 
     return {
         "id": profile.cluster_id,
@@ -197,5 +277,7 @@ def get_profile_detail(
         "top_accommodations": safe_json_loads(profile.top_accommodations),
         "top_activities": safe_json_loads(profile.top_activities),
         "top_motivations": safe_json_loads(profile.top_motivations),
+        "avg_satisfaction": characteristics.get("avg_satisfaction"),
+        "spending_breakdown": characteristics.get("spending_breakdown", {}),
         "characteristics": characteristics,
     }

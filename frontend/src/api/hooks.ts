@@ -289,6 +289,12 @@ export interface MotivationEntry {
   percentage: number;
 }
 
+export interface SpendingCategory {
+  category: string;
+  amount: number;
+  pct: number;
+}
+
 export interface ClusterProfile {
   id: number;
   name: string;
@@ -298,12 +304,14 @@ export interface ClusterProfile {
   avg_nights: number;
   top_nationalities: NationalityEntry[];
   top_accommodations: AccommodationEntry[];
+  top_activities: string[];
+  top_motivations: string[];
+  avg_satisfaction: number | null;
+  spending_breakdown: Record<string, number>;
 }
 
 export interface ClusterDetail extends ClusterProfile {
-  top_activities: ActivityEntry[];
-  top_motivations: MotivationEntry[];
-  characteristics: Record<string, string>;
+  characteristics: Record<string, unknown>;
 }
 
 export interface ProfilesResponse {
@@ -347,6 +355,16 @@ export interface FlowData {
 export function useFlowData() {
   return useQuery<FlowData>(
     () => api.profiles.flows() as Promise<FlowData>
+  );
+}
+
+export interface SpendingByClusterResponse {
+  spending_by_cluster: Record<string, SpendingCategory[]>;
+}
+
+export function useSpendingByCluster() {
+  return useQuery<SpendingByClusterResponse>(
+    () => api.profiles.spending() as Promise<SpendingByClusterResponse>
   );
 }
 

@@ -8,7 +8,7 @@ import ClusterViz, {
   type ClusterData,
 } from "../components/profiles/ClusterViz";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
-import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData } from "../api/hooks";
+import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData, useSpendingByCluster } from "../api/hooks";
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -20,81 +20,6 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-const segmentDetails: Record<
-  number,
-  { label: string; value: string }[]
-> = {
-  0: [
-    { label: "Profile", value: "Budget Young" },
-    { label: "Age Range", value: "18-32" },
-    { label: "Avg Spend", value: "\u20AC350" },
-    { label: "Avg Stay", value: "5 nights" },
-    { label: "Accommodation", value: "Apartment" },
-    { label: "Purpose", value: "Leisure / Nightlife" },
-  ],
-  1: [
-    { label: "Profile", value: "High Spender" },
-    { label: "Age Range", value: "45-60" },
-    { label: "Avg Spend", value: "\u20AC1,200" },
-    { label: "Avg Stay", value: "8 nights" },
-    { label: "Accommodation", value: "4-star Hotel" },
-    { label: "Purpose", value: "Family Vacation" },
-  ],
-  2: [
-    { label: "Profile", value: "Budget Older" },
-    { label: "Age Range", value: "60-75" },
-    { label: "Avg Spend", value: "\u20AC400" },
-    { label: "Avg Stay", value: "7 nights" },
-    { label: "Accommodation", value: "3-star Hotel" },
-    { label: "Purpose", value: "Relaxation" },
-  ],
-  3: [
-    { label: "Profile", value: "Premium VIP" },
-    { label: "Age Range", value: "35-55" },
-    { label: "Avg Spend", value: "\u20AC2,500" },
-    { label: "Avg Stay", value: "14 nights" },
-    { label: "Accommodation", value: "Villa / 5-star" },
-    { label: "Purpose", value: "Luxury Retreat" },
-  ],
-};
-
-const spendingByCluster: Record<
-  number,
-  { category: string; amount: number; pct: number }[]
-> = {
-  0: [
-    { category: "Accommodation", amount: 100, pct: 29 },
-    { category: "Restaurants", amount: 80, pct: 23 },
-    { category: "Nightlife", amount: 70, pct: 20 },
-    { category: "Shopping", amount: 50, pct: 14 },
-    { category: "Transport", amount: 30, pct: 9 },
-    { category: "Other", amount: 20, pct: 6 },
-  ],
-  1: [
-    { category: "Accommodation", amount: 420, pct: 35 },
-    { category: "Restaurants", amount: 280, pct: 23 },
-    { category: "Excursions", amount: 180, pct: 15 },
-    { category: "Shopping", amount: 120, pct: 10 },
-    { category: "Transport", amount: 90, pct: 8 },
-    { category: "Other", amount: 60, pct: 5 },
-  ],
-  2: [
-    { category: "Accommodation", amount: 140, pct: 35 },
-    { category: "Restaurants", amount: 90, pct: 23 },
-    { category: "Excursions", amount: 60, pct: 15 },
-    { category: "Shopping", amount: 50, pct: 13 },
-    { category: "Health/Spa", amount: 35, pct: 9 },
-    { category: "Other", amount: 25, pct: 6 },
-  ],
-  3: [
-    { category: "Accommodation", amount: 900, pct: 36 },
-    { category: "Restaurants", amount: 500, pct: 20 },
-    { category: "Excursions", amount: 400, pct: 16 },
-    { category: "Sports/Golf", amount: 300, pct: 12 },
-    { category: "Shopping", amount: 250, pct: 10 },
-    { category: "Other", amount: 150, pct: 6 },
-  ],
-};
 
 const CLUSTER_COLORS = ["#0087b9", "#f69b1a", "#28c066", "#a855f7"];
 
@@ -106,6 +31,7 @@ export default function ProfilesPage() {
   const { data: detailData } = useProfileDetail(selectedCluster?.id ?? null);
   const { data: nationalityData } = useNationalityProfiles();
   const { data: flowData } = useFlowData();
+  const { data: spendingData } = useSpendingByCluster();
 
   // Top 8 nationalities sorted by count
   const topNationalities = useMemo(() => {
@@ -157,18 +83,43 @@ export default function ProfilesPage() {
     ]);
   }, [profilesData]);
 
-  const activeId = selectedCluster?.id ?? 1;
+  const activeId = selectedCluster?.id ?? 0;
+
+  // Build details from the selected cluster's profile data (list endpoint has all fields now)
+  const activeCluster = profilesData?.clusters?.find((c) => c.id === activeId);
   const details = detailData
     ? [
         { label: "Profile", value: detailData.name },
         { label: "Avg Age", value: String(Math.round(detailData.avg_age)) },
         { label: "Avg Spend", value: `\u20AC${Math.round(detailData.avg_spend).toLocaleString()}` },
         { label: "Avg Stay", value: `${detailData.avg_nights.toFixed(1)} nights` },
-        { label: "Top Market", value: detailData.top_nationalities?.[0]?.nationality || "—" },
-        { label: "Top Accom.", value: detailData.top_accommodations?.[0]?.type || "—" },
+        { label: "Satisfaction", value: detailData.avg_satisfaction != null ? `${detailData.avg_satisfaction.toFixed(1)}/10` : "\u2014" },
+        { label: "Top Market", value: detailData.top_nationalities?.[0]?.nationality || "\u2014" },
       ]
-    : segmentDetails[activeId];
-  const spending = spendingByCluster[activeId];
+    : activeCluster
+      ? [
+          { label: "Profile", value: activeCluster.name },
+          { label: "Avg Age", value: String(Math.round(activeCluster.avg_age)) },
+          { label: "Avg Spend", value: `\u20AC${Math.round(activeCluster.avg_spend).toLocaleString()}` },
+          { label: "Avg Stay", value: `${activeCluster.avg_nights.toFixed(1)} nights` },
+          { label: "Satisfaction", value: activeCluster.avg_satisfaction != null ? `${activeCluster.avg_satisfaction.toFixed(1)}/10` : "\u2014" },
+          { label: "Top Market", value: activeCluster.top_nationalities?.[0]?.nationality || "\u2014" },
+        ]
+      : [
+          { label: "Profile", value: "\u2014" },
+          { label: "Avg Age", value: "\u2014" },
+          { label: "Avg Spend", value: "\u2014" },
+          { label: "Avg Stay", value: "\u2014" },
+          { label: "Satisfaction", value: "\u2014" },
+          { label: "Top Market", value: "\u2014" },
+        ];
+
+  // Get spending from the dedicated spending endpoint (real microdata)
+  const spending = spendingData?.spending_by_cluster?.[String(activeId)] ?? [];
+
+  // Activities and motivations from the selected cluster
+  const activities = detailData?.top_activities ?? activeCluster?.top_activities ?? [];
+  const motivations = detailData?.top_motivations ?? activeCluster?.top_motivations ?? [];
 
   return (
     <motion.div
@@ -241,29 +192,72 @@ export default function ProfilesPage() {
         </motion.div>
 
         <motion.div variants={fadeUp}>
-          <Panel title="Spending Breakdown" subtitle="Where the money goes">
+          <Panel title="Spending Breakdown" subtitle="Real average spend per category from survey data">
             <div className="space-y-4 py-2">
-              {spending.map(({ category, amount, pct }) => (
-                <div key={category}>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-400">{category}</span>
-                    <span className="text-gray-300">{"\u20AC"}{amount}</span>
+              {spending.length > 0 ? (
+                spending.map(({ category, amount, pct }) => (
+                  <div key={category}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-400">{category}</span>
+                      <span className="text-gray-300">{"\u20AC"}{Math.round(amount)}</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <motion.div
+                        key={`${activeId}-${category}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
+                        className="h-full bg-gradient-to-r from-ocean-500 to-tropical-500 rounded-full"
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <motion.div
-                      key={`${activeId}-${category}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.6, delay: 0.1 }}
-                      className="h-full bg-gradient-to-r from-ocean-500 to-tropical-500 rounded-full"
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 py-4 text-center">No spending data available for this cluster</p>
+              )}
             </div>
           </Panel>
         </motion.div>
       </div>
+
+      {/* Activities + Motivations — per selected cluster */}
+      {(activities.length > 0 || motivations.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {activities.length > 0 && (
+            <motion.div variants={fadeUp}>
+              <Panel title="Top Activities" subtitle="Most popular activities in this segment">
+                <div className="flex flex-wrap gap-2 py-3">
+                  {activities.map((activity) => (
+                    <span
+                      key={typeof activity === "string" ? activity : activity.activity}
+                      className="px-3 py-1.5 text-sm bg-ocean-500/10 text-ocean-400 border border-ocean-500/20 rounded-full"
+                    >
+                      {typeof activity === "string" ? activity : activity.activity}
+                    </span>
+                  ))}
+                </div>
+              </Panel>
+            </motion.div>
+          )}
+
+          {motivations.length > 0 && (
+            <motion.div variants={fadeUp}>
+              <Panel title="Top Motivations" subtitle="Key travel motivations for this segment">
+                <div className="flex flex-wrap gap-2 py-3">
+                  {motivations.map((motivation) => (
+                    <span
+                      key={typeof motivation === "string" ? motivation : motivation.motivation}
+                      className="px-3 py-1.5 text-sm bg-tropical-500/10 text-tropical-400 border border-tropical-500/20 rounded-full"
+                    >
+                      {typeof motivation === "string" ? motivation : motivation.motivation}
+                    </span>
+                  ))}
+                </div>
+              </Panel>
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {/* Nationality Profiles */}
       {topNationalities.length > 0 && (

@@ -257,7 +257,7 @@ def test_predictions_compare(client):
 # --- Profiles ---
 
 def test_profiles_list(client):
-    """Should return 4 tourist profile clusters."""
+    """Should return 4 tourist profile clusters with all fields."""
     r = client.get("/api/profiles")
     assert r.status_code == 200
     clusters = r.json()["clusters"]
@@ -267,10 +267,27 @@ def test_profiles_list(client):
         assert "name" in c
         assert "size_pct" in c
         assert c["size_pct"] > 0
+        # New fields: activities, motivations, satisfaction, spending
+        assert "top_activities" in c
+        assert "top_motivations" in c
+        assert "avg_satisfaction" in c
+        assert "spending_breakdown" in c
+        assert isinstance(c["top_activities"], list)
+        assert isinstance(c["top_motivations"], list)
+
+
+def test_profiles_list_has_activities_and_motivations(client):
+    """At least one cluster should have non-empty activities and motivations."""
+    r = client.get("/api/profiles")
+    clusters = r.json()["clusters"]
+    has_activities = any(len(c["top_activities"]) > 0 for c in clusters)
+    has_motivations = any(len(c["top_motivations"]) > 0 for c in clusters)
+    assert has_activities, "No cluster has top_activities populated"
+    assert has_motivations, "No cluster has top_motivations populated"
 
 
 def test_profile_detail(client):
-    """Cluster detail should include spending and activities."""
+    """Cluster detail should include spending, activities, and satisfaction."""
     r = client.get("/api/profiles/0")
     assert r.status_code == 200
     data = r.json()
@@ -279,6 +296,49 @@ def test_profile_detail(client):
     assert "top_activities" in data
     assert "top_motivations" in data
     assert "characteristics" in data
+    assert "avg_satisfaction" in data
+    assert "spending_breakdown" in data
+
+
+def test_profile_detail_satisfaction_range(client):
+    """Satisfaction score should be in 0-10 range when present."""
+    r = client.get("/api/profiles/0")
+    data = r.json()
+    sat = data.get("avg_satisfaction")
+    if sat is not None:
+        assert 0 <= sat <= 10, f"Satisfaction {sat} outside 0-10 range"
+
+
+def test_spending_by_cluster(client):
+    """Spending endpoint should return breakdown per cluster from microdata."""
+    r = client.get("/api/profiles/spending")
+    assert r.status_code == 200
+    data = r.json()
+    assert "spending_by_cluster" in data
+    spending = data["spending_by_cluster"]
+    # Should have data for at least one cluster
+    assert len(spending) > 0
+    # Each cluster should have categories with amount and pct
+    for cluster_id, categories in spending.items():
+        assert isinstance(categories, list)
+        assert len(categories) > 0
+        for cat in categories:
+            assert "category" in cat
+            assert "amount" in cat
+            assert "pct" in cat
+            assert cat["amount"] > 0
+            assert 0 < cat["pct"] <= 100
+
+
+def test_spending_by_cluster_percentages_sum(client):
+    """Spending percentages per cluster should sum to approximately 100."""
+    r = client.get("/api/profiles/spending")
+    spending = r.json()["spending_by_cluster"]
+    for cluster_id, categories in spending.items():
+        total_pct = sum(c["pct"] for c in categories)
+        assert 95 <= total_pct <= 105, (
+            f"Cluster {cluster_id} spending pcts sum to {total_pct}, expected ~100"
+        )
 
 
 def test_profile_not_found(client):
