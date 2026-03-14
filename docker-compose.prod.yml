@@ -1,0 +1,23 @@
+services:
+  backend:
+    image: ghcr.io/barckcode/canary-tourism-demo/backend:${VERSION:-latest}
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend-data:/app/data
+      - ../tenerife-tourism-data:/raw-data:ro
+    environment:
+      - TOURISM_RAW_DATA_DIR=/raw-data
+      - TOURISM_DEBUG=false
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/barckcode/canary-tourism-demo/frontend:${VERSION:-latest}
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
