@@ -628,7 +628,141 @@ class TestPipeline:
             results = run_pipeline()
             assert "istac" in results
             assert "ine" in results
+            assert "ckan_microdata" in results
+            assert "cabildo" in results
             assert results["istac"]["status"] == "success"
+
+    def test_run_source_pipeline_success(self, db):
+        """Should return success when fetcher returns valid records."""
+        from app.etl.pipeline import _run_source_pipeline
+
+        async def mock_fetcher():
+            return [
+                {
+                    "source": "test",
+                    "indicator": "test_ind",
+                    "geo_code": "TEST",
+                    "period": "9999-01",
+                    "measure": "ABSOLUTE",
+                    "value": 42.0,
+                },
+            ]
+
+        mock_validator = MagicMock(
+            return_value=(
+                [{"source": "test", "indicator": "test_ind", "geo_code": "TEST",
+                  "period": "9999-01", "measure": "ABSOLUTE", "value": 42.0}],
+                MagicMock(summary=MagicMock(return_value={"valid": 1})),
+            )
+        )
+        mock_upserter = MagicMock(return_value=1)
+
+        with patch("app.etl.pipeline.SessionLocal", return_value=db), \
+             patch("app.etl.pipeline._trigger_retraining"):
+            result = _run_async(_run_source_pipeline(
+                source="test_src",
+                job_name="test_job",
+                fetcher=mock_fetcher,
+                validator=mock_validator,
+                upserter=mock_upserter,
+            ))
+
+        assert result["status"] == "success"
+        assert result["records_added"] == 1
+        mock_validator.assert_called_once()
+        mock_upserter.assert_called_once()
+
+    def test_run_source_pipeline_no_data(self, db):
+        """Should return no_new_data when fetcher returns empty list."""
+        from app.etl.pipeline import _run_source_pipeline
+
+        async def mock_fetcher():
+            return []
+
+        with patch("app.etl.pipeline.SessionLocal", return_value=db):
+            result = _run_async(_run_source_pipeline(
+                source="test_src",
+                job_name="test_job",
+                fetcher=mock_fetcher,
+                validator=MagicMock(),
+                upserter=MagicMock(),
+            ))
+
+        assert result["status"] == "no_new_data"
+        assert result["records_added"] == 0
+
+    def test_run_source_pipeline_validation_failure(self, db):
+        """Should return error when all records fail validation."""
+        from app.etl.pipeline import _run_source_pipeline
+
+        async def mock_fetcher():
+            return [{"bad": "data"}]
+
+        mock_validator = MagicMock(
+            return_value=(
+                [],
+                MagicMock(summary=MagicMock(return_value={"valid": 0, "dropped": 1})),
+            )
+        )
+
+        with patch("app.etl.pipeline.SessionLocal", return_value=db):
+            result = _run_async(_run_source_pipeline(
+                source="test_src",
+                job_name="test_job",
+                fetcher=mock_fetcher,
+                validator=mock_validator,
+                upserter=MagicMock(),
+            ))
+
+        assert result["status"] == "error"
+        assert "validation" in result
+
+    def test_run_source_pipeline_fetcher_exception(self, db):
+        """Should return error when fetcher raises an exception."""
+        from app.etl.pipeline import _run_source_pipeline
+
+        async def mock_fetcher():
+            raise ConnectionError("API unavailable")
+
+        with patch("app.etl.pipeline.SessionLocal", return_value=db):
+            result = _run_async(_run_source_pipeline(
+                source="test_src",
+                job_name="test_job",
+                fetcher=mock_fetcher,
+                validator=MagicMock(),
+                upserter=MagicMock(),
+            ))
+
+        assert result["status"] == "error"
+        assert "API unavailable" in result["error"]
+
+    def test_run_source_pipeline_no_retrain(self, db):
+        """Should skip retraining when retrain=False."""
+        from app.etl.pipeline import _run_source_pipeline
+
+        async def mock_fetcher():
+            return [{"some": "data"}]
+
+        mock_validator = MagicMock(
+            return_value=(
+                [{"some": "data"}],
+                MagicMock(summary=MagicMock(return_value={"valid": 1})),
+            )
+        )
+
+        with patch("app.etl.pipeline.SessionLocal", return_value=db), \
+             patch("app.etl.pipeline._trigger_retraining") as mock_retrain:
+            result = _run_async(_run_source_pipeline(
+                source="test_src",
+                job_name="test_job",
+                fetcher=mock_fetcher,
+                validator=mock_validator,
+                upserter=MagicMock(return_value=5),
+                retrain=False,
+            ))
+
+        assert result["status"] == "success"
+        mock_retrain.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

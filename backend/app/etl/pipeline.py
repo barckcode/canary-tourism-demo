@@ -118,10 +118,26 @@ def _trigger_retraining(db: Session, reason: str):
         logger.exception("Model retraining failed.")
 
 
-async def run_istac_pipeline() -> dict[str, Any]:
-    """Run the ISTAC ETL pipeline.
+async def _run_source_pipeline(
+    source: str,
+    job_name: str,
+    fetcher: Any,
+    validator: Any,
+    upserter: Any,
+    retrain: bool = True,
+) -> dict[str, Any]:
+    """Run a generic ETL pipeline for a single data source.
 
-    Fetches indicators from ISTAC API, validates, and stores in database.
+    Handles the common pattern shared by all source pipelines:
+    fetch data, validate, store, log the run, and optionally retrain models.
+
+    Args:
+        source: Data source identifier (e.g. "istac", "ine", "ckan").
+        job_name: Pipeline job name for logging (e.g. "fetch_istac_indicators").
+        fetcher: Async callable that returns raw records.
+        validator: Callable that validates records, returning (valid, result).
+        upserter: Callable(db, records) that stores records and returns count.
+        retrain: Whether to trigger model retraining on new data.
 
     Returns:
         Dict with pipeline run results.
@@ -130,45 +146,43 @@ async def run_istac_pipeline() -> dict[str, Any]:
     db = SessionLocal()
 
     try:
-        logger.info("Starting ISTAC pipeline...")
+        logger.info("Starting %s pipeline...", source)
 
-        # Fetch data from ISTAC API
-        raw_records = await istac.fetch_indicators()
+        raw_records = await fetcher()
 
         if not raw_records:
             finished_at = datetime.now(timezone.utc).isoformat()
             _log_pipeline_run(
-                db, "istac", "fetch_istac_indicators", "no_new_data",
+                db, source, job_name, "no_new_data",
                 started_at=started_at, finished_at=finished_at,
             )
             return {"status": "no_new_data", "records_added": 0}
 
-        # Validate records
-        valid_records, validation = validate_timeseries(raw_records)
+        valid_records, validation = validator(raw_records)
 
         if not valid_records:
             finished_at = datetime.now(timezone.utc).isoformat()
             _log_pipeline_run(
-                db, "istac", "fetch_istac_indicators", "error",
+                db, source, job_name, "error",
                 error_message="All records failed validation",
                 started_at=started_at, finished_at=finished_at,
             )
             return {"status": "error", "validation": validation.summary()}
 
-        # Store in database
-        count = _upsert_timeseries(db, valid_records)
+        count = upserter(db, valid_records)
 
         finished_at = datetime.now(timezone.utc).isoformat()
         _log_pipeline_run(
-            db, "istac", "fetch_istac_indicators", "success",
+            db, source, job_name, "success",
             records_added=count, started_at=started_at, finished_at=finished_at,
         )
 
-        # Trigger retraining if new data was added
-        if count > 0:
-            _trigger_retraining(db, f"ISTAC pipeline added {count} records")
+        if retrain and count > 0:
+            _trigger_retraining(
+                db, f"{source.upper()} pipeline added {count} records",
+            )
 
-        logger.info("ISTAC pipeline complete: %d records stored.", count)
+        logger.info("%s pipeline complete: %d records stored.", source, count)
         return {
             "status": "success",
             "records_added": count,
@@ -178,155 +192,57 @@ async def run_istac_pipeline() -> dict[str, Any]:
     except Exception as exc:
         finished_at = datetime.now(timezone.utc).isoformat()
         _log_pipeline_run(
-            db, "istac", "fetch_istac_indicators", "error",
+            db, source, job_name, "error",
             error_message=str(exc), started_at=started_at,
             finished_at=finished_at,
         )
-        logger.exception("ISTAC pipeline failed.")
+        logger.exception("%s pipeline failed.", source)
         return {"status": "error", "error": str(exc)}
 
     finally:
         db.close()
+
+
+async def run_istac_pipeline() -> dict[str, Any]:
+    """Run the ISTAC ETL pipeline.
+
+    Fetches indicators from ISTAC API, validates, and stores in database.
+    """
+    return await _run_source_pipeline(
+        source="istac",
+        job_name="fetch_istac_indicators",
+        fetcher=istac.fetch_indicators,
+        validator=validate_timeseries,
+        upserter=_upsert_timeseries,
+    )
 
 
 async def run_ine_pipeline() -> dict[str, Any]:
     """Run the INE ETL pipeline.
 
     Fetches series from INE API, validates, and stores in database.
-
-    Returns:
-        Dict with pipeline run results.
     """
-    started_at = datetime.now(timezone.utc).isoformat()
-    db = SessionLocal()
-
-    try:
-        logger.info("Starting INE pipeline...")
-
-        # Fetch data from INE API
-        raw_records = await ine.fetch_series()
-
-        if not raw_records:
-            finished_at = datetime.now(timezone.utc).isoformat()
-            _log_pipeline_run(
-                db, "ine", "fetch_ine_series", "no_new_data",
-                started_at=started_at, finished_at=finished_at,
-            )
-            return {"status": "no_new_data", "records_added": 0}
-
-        # Validate records
-        valid_records, validation = validate_timeseries(raw_records)
-
-        if not valid_records:
-            finished_at = datetime.now(timezone.utc).isoformat()
-            _log_pipeline_run(
-                db, "ine", "fetch_ine_series", "error",
-                error_message="All records failed validation",
-                started_at=started_at, finished_at=finished_at,
-            )
-            return {"status": "error", "validation": validation.summary()}
-
-        # Store in database
-        count = _upsert_timeseries(db, valid_records)
-
-        finished_at = datetime.now(timezone.utc).isoformat()
-        _log_pipeline_run(
-            db, "ine", "fetch_ine_series", "success",
-            records_added=count, started_at=started_at, finished_at=finished_at,
-        )
-
-        if count > 0:
-            _trigger_retraining(db, f"INE pipeline added {count} records")
-
-        logger.info("INE pipeline complete: %d records stored.", count)
-        return {
-            "status": "success",
-            "records_added": count,
-            "validation": validation.summary(),
-        }
-
-    except Exception as exc:
-        finished_at = datetime.now(timezone.utc).isoformat()
-        _log_pipeline_run(
-            db, "ine", "fetch_ine_series", "error",
-            error_message=str(exc), started_at=started_at,
-            finished_at=finished_at,
-        )
-        logger.exception("INE pipeline failed.")
-        return {"status": "error", "error": str(exc)}
-
-    finally:
-        db.close()
+    return await _run_source_pipeline(
+        source="ine",
+        job_name="fetch_ine_series",
+        fetcher=ine.fetch_series,
+        validator=validate_timeseries,
+        upserter=_upsert_timeseries,
+    )
 
 
 async def run_ckan_microdata_pipeline() -> dict[str, Any]:
     """Run the CKAN/EGT microdata ETL pipeline.
 
     Fetches EGT microdata from CKAN, validates, and stores in database.
-
-    Returns:
-        Dict with pipeline run results.
     """
-    started_at = datetime.now(timezone.utc).isoformat()
-    db = SessionLocal()
-
-    try:
-        logger.info("Starting CKAN microdata pipeline...")
-
-        # Fetch microdata from CKAN
-        raw_records = await ckan.fetch_egt_microdata()
-
-        if not raw_records:
-            finished_at = datetime.now(timezone.utc).isoformat()
-            _log_pipeline_run(
-                db, "ckan", "fetch_egt_microdata", "no_new_data",
-                started_at=started_at, finished_at=finished_at,
-            )
-            return {"status": "no_new_data", "records_added": 0}
-
-        # Validate records
-        valid_records, validation = validate_microdata(raw_records)
-
-        if not valid_records:
-            finished_at = datetime.now(timezone.utc).isoformat()
-            _log_pipeline_run(
-                db, "ckan", "fetch_egt_microdata", "error",
-                error_message="All records failed validation",
-                started_at=started_at, finished_at=finished_at,
-            )
-            return {"status": "error", "validation": validation.summary()}
-
-        # Store in database
-        count = _upsert_microdata(db, valid_records)
-
-        finished_at = datetime.now(timezone.utc).isoformat()
-        _log_pipeline_run(
-            db, "ckan", "fetch_egt_microdata", "success",
-            records_added=count, started_at=started_at, finished_at=finished_at,
-        )
-
-        if count > 0:
-            _trigger_retraining(db, f"CKAN pipeline added {count} microdata records")
-
-        logger.info("CKAN microdata pipeline complete: %d records stored.", count)
-        return {
-            "status": "success",
-            "records_added": count,
-            "validation": validation.summary(),
-        }
-
-    except Exception as exc:
-        finished_at = datetime.now(timezone.utc).isoformat()
-        _log_pipeline_run(
-            db, "ckan", "fetch_egt_microdata", "error",
-            error_message=str(exc), started_at=started_at,
-            finished_at=finished_at,
-        )
-        logger.exception("CKAN microdata pipeline failed.")
-        return {"status": "error", "error": str(exc)}
-
-    finally:
-        db.close()
+    return await _run_source_pipeline(
+        source="ckan",
+        job_name="fetch_egt_microdata",
+        fetcher=ckan.fetch_egt_microdata,
+        validator=validate_microdata,
+        upserter=_upsert_microdata,
+    )
 
 
 async def run_cabildo_pipeline() -> dict[str, Any]:
@@ -334,64 +250,15 @@ async def run_cabildo_pipeline() -> dict[str, Any]:
 
     Fetches datasets from datos.tenerife.es CKAN portal. This portal
     is frequently offline, so failures are handled gracefully.
-
-    Returns:
-        Dict with pipeline run results.
     """
-    started_at = datetime.now(timezone.utc).isoformat()
-    db = SessionLocal()
-
-    try:
-        logger.info("Starting Cabildo pipeline...")
-
-        raw_records = await ckan.fetch_cabildo_datasets()
-
-        if not raw_records:
-            finished_at = datetime.now(timezone.utc).isoformat()
-            _log_pipeline_run(
-                db, "cabildo", "fetch_cabildo_datasets", "no_new_data",
-                started_at=started_at, finished_at=finished_at,
-            )
-            return {"status": "no_new_data", "records_added": 0}
-
-        valid_records, validation = validate_timeseries(raw_records)
-
-        if not valid_records:
-            finished_at = datetime.now(timezone.utc).isoformat()
-            _log_pipeline_run(
-                db, "cabildo", "fetch_cabildo_datasets", "error",
-                error_message="All records failed validation",
-                started_at=started_at, finished_at=finished_at,
-            )
-            return {"status": "error", "validation": validation.summary()}
-
-        count = _upsert_timeseries(db, valid_records)
-
-        finished_at = datetime.now(timezone.utc).isoformat()
-        _log_pipeline_run(
-            db, "cabildo", "fetch_cabildo_datasets", "success",
-            records_added=count, started_at=started_at, finished_at=finished_at,
-        )
-
-        logger.info("Cabildo pipeline complete: %d records stored.", count)
-        return {
-            "status": "success",
-            "records_added": count,
-            "validation": validation.summary(),
-        }
-
-    except Exception as exc:
-        finished_at = datetime.now(timezone.utc).isoformat()
-        _log_pipeline_run(
-            db, "cabildo", "fetch_cabildo_datasets", "error",
-            error_message=str(exc), started_at=started_at,
-            finished_at=finished_at,
-        )
-        logger.exception("Cabildo pipeline failed.")
-        return {"status": "error", "error": str(exc)}
-
-    finally:
-        db.close()
+    return await _run_source_pipeline(
+        source="cabildo",
+        job_name="fetch_cabildo_datasets",
+        fetcher=ckan.fetch_cabildo_datasets,
+        validator=validate_timeseries,
+        upserter=_upsert_timeseries,
+        retrain=False,
+    )
 
 
 async def run_health_check() -> dict[str, Any]:
@@ -487,16 +354,26 @@ async def run_health_check() -> dict[str, Any]:
 def run_pipeline():
     """Run the full ETL pipeline synchronously.
 
-    Executes all pipeline stages in sequence: ISTAC, INE, CKAN, Cabildo.
+    Executes all pipeline stages concurrently via asyncio.gather.
     This is the main entry point for manual pipeline execution.
     """
     logger.info("Starting full ETL pipeline...")
 
-    results = {}
-    results["istac"] = asyncio.run(run_istac_pipeline())
-    results["ine"] = asyncio.run(run_ine_pipeline())
-    results["ckan_microdata"] = asyncio.run(run_ckan_microdata_pipeline())
-    results["cabildo"] = asyncio.run(run_cabildo_pipeline())
+    async def _run_all() -> dict[str, Any]:
+        istac_res, ine_res, ckan_res, cabildo_res = await asyncio.gather(
+            run_istac_pipeline(),
+            run_ine_pipeline(),
+            run_ckan_microdata_pipeline(),
+            run_cabildo_pipeline(),
+        )
+        return {
+            "istac": istac_res,
+            "ine": ine_res,
+            "ckan_microdata": ckan_res,
+            "cabildo": cabildo_res,
+        }
+
+    results = asyncio.run(_run_all())
 
     total_added = sum(
         r.get("records_added", 0) for r in results.values()
