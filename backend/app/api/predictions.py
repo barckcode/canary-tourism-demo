@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
+from app.api.schemas import PredictionCompareResponse, PredictionResponse
 from app.db.database import get_db
 from app.db.models import ModelMetric, Prediction
 from app.rate_limit import limiter
@@ -31,7 +32,7 @@ def _get_metrics(db: Session, indicator: str, geo: str) -> dict[str, dict]:
     }
 
 
-@router.get("")
+@router.get("", response_model=PredictionResponse)
 @limiter.limit("20/minute")
 def get_predictions(
     request: Request,
@@ -82,7 +83,7 @@ def get_predictions(
     }
 
 
-@router.get("/compare")
+@router.get("/compare", response_model=PredictionCompareResponse)
 @limiter.limit("20/minute")
 def compare_models(
     request: Request,

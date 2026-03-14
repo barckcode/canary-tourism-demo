@@ -13,14 +13,15 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.utils.parsing import (
+    PLACEHOLDER_CODES,
+    INE_MONTHLY_PERIOD,
+    INE_QUARTERLY_PERIOD,
+    safe_float,
+    safe_int,
+)
 
 logger = logging.getLogger(__name__)
-
-# INE FK_Periodo → month number (monthly series)
-INE_MONTHLY_PERIOD = {i: i for i in range(1, 13)}
-
-# INE FK_Periodo → quarter label (quarterly series)
-INE_QUARTERLY_PERIOD = {19: "Q1", 20: "Q2", 21: "Q3", 22: "Q4"}
 
 # Microdata columns to extract into typed fields
 MICRODATA_KEY_COLS = {
@@ -40,25 +41,9 @@ MICRODATA_KEY_COLS = {
     "SATISFACCION": "satisfaccion",
 }
 
-PLACEHOLDER_CODES = {"_Z", "_U", "_N", "_Y", ""}
-
-
-def _safe_int(val: str) -> int | None:
-    if val in PLACEHOLDER_CODES:
-        return None
-    try:
-        return int(float(val))
-    except (ValueError, TypeError):
-        return None
-
-
-def _safe_float(val: str) -> float | None:
-    if val in PLACEHOLDER_CODES:
-        return None
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        return None
+# Backward-compatible aliases for internal use
+_safe_int = safe_int
+_safe_float = safe_float
 
 
 def seed_istac_timeseries(db: Session, data_dir: Path) -> int:

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.schemas import ScenarioResponse
 from app.db.database import get_db
 from app.models.scenario_engine import ScenarioEngine
 from app.rate_limit import limiter
@@ -37,7 +38,7 @@ class ScenarioRequest(BaseModel):
     horizon: int = Field(12, ge=1, le=60)
 
 
-@router.post("")
+@router.post("", response_model=ScenarioResponse)
 @limiter.limit("20/minute")
 def run_scenario(
     request: Request,

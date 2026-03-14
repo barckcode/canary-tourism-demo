@@ -6,6 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.api.schemas import (
+    FlowsResponse,
+    NationalityProfileEntry,
+    ProfileDetailResponse,
+    ProfilesListResponse,
+    SpendingByClusterResponse,
+)
 from app.db.database import get_db
 from app.db.models import Microdata, Profile
 from app.rate_limit import limiter
@@ -59,7 +66,7 @@ ACCOMMODATION_LABELS = {
 }
 
 
-@router.get("")
+@router.get("", response_model=ProfilesListResponse)
 @limiter.limit("60/minute")
 def get_profiles(request: Request, db: Session = Depends(get_db)):
     """Return all tourist profile clusters."""
@@ -101,7 +108,7 @@ def get_profiles(request: Request, db: Session = Depends(get_db)):
     return {"clusters": clusters}
 
 
-@router.get("/nationalities")
+@router.get("/nationalities", response_model=list[NationalityProfileEntry])
 @limiter.limit("60/minute")
 def get_nationality_profiles(request: Request, db: Session = Depends(get_db)):
     """Return aggregate stats by nationality from microdata."""
@@ -128,7 +135,7 @@ def get_nationality_profiles(request: Request, db: Session = Depends(get_db)):
     ]
 
 
-@router.get("/flows")
+@router.get("/flows", response_model=FlowsResponse)
 @limiter.limit("60/minute")
 def get_flows(request: Request, db: Session = Depends(get_db)):
     """Return Sankey flow data: Country -> Accommodation type."""
@@ -190,7 +197,7 @@ def get_flows(request: Request, db: Session = Depends(get_db)):
     return {"nodes": nodes, "links": links}
 
 
-@router.get("/spending")
+@router.get("/spending", response_model=SpendingByClusterResponse)
 @limiter.limit("60/minute")
 def get_spending_by_cluster(request: Request, db: Session = Depends(get_db)):
     """Return real spending breakdown per cluster computed from microdata.
@@ -263,7 +270,7 @@ def get_spending_by_cluster(request: Request, db: Session = Depends(get_db)):
     return {"spending_by_cluster": result}
 
 
-@router.get("/{cluster_id}")
+@router.get("/{cluster_id}", response_model=ProfileDetailResponse)
 @limiter.limit("60/minute")
 def get_profile_detail(
     request: Request,

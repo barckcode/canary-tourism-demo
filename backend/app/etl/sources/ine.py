@@ -9,6 +9,8 @@ from typing import Any
 
 import httpx
 
+from app.utils.parsing import INE_MONTHLY_PERIOD, INE_QUARTERLY_PERIOD  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://servicios.ine.es/wstempus/js/ES"
@@ -44,12 +46,6 @@ INE_SERIES = [
     ("ETR_RES241", "residente_pernoctaciones_canarias", "ES70"),
     ("ETR_RES242", "residente_gasto_medio_canarias", "ES70"),
 ]
-
-# INE FK_Periodo -> month number (monthly series)
-INE_MONTHLY_PERIOD = {i: i for i in range(1, 13)}
-
-# INE FK_Periodo -> quarter label (quarterly series)
-INE_QUARTERLY_PERIOD = {19: "Q1", 20: "Q2", 21: "Q3", 22: "Q4"}
 
 
 async def _fetch_series_data(

@@ -7,6 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
+from app.api.schemas import (
+    DashboardKPIsResponse,
+    DashboardSummaryResponse,
+    SeasonalPositionResponse,
+    TopMarketsResponse,
+)
 from app.db.database import get_db
 from app.db.models import Microdata, Prediction, TimeSeries
 from app.rate_limit import limiter
@@ -39,7 +45,7 @@ NATIONALITY_LABELS = {
 router = APIRouter()
 
 
-@router.get("/kpis")
+@router.get("/kpis", response_model=DashboardKPIsResponse)
 @limiter.limit("60/minute")
 def get_kpis(request: Request, db: Session = Depends(get_db)):
     """Return latest KPI values for the dashboard."""
@@ -146,7 +152,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
     return kpis
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=DashboardSummaryResponse)
 @limiter.limit("60/minute")
 def get_summary(request: Request, db: Session = Depends(get_db)):
     """Return 12-month trend data and top nationalities for the dashboard."""
@@ -212,7 +218,7 @@ def get_summary(request: Request, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/top-markets")
+@router.get("/top-markets", response_model=TopMarketsResponse)
 @limiter.limit("60/minute")
 def get_top_markets(request: Request, db: Session = Depends(get_db)):
     """Return top 5 source markets by tourist count from microdata.
@@ -251,7 +257,7 @@ def get_top_markets(request: Request, db: Session = Depends(get_db)):
     return {"markets": markets, "total": total}
 
 
-@router.get("/seasonal-position")
+@router.get("/seasonal-position", response_model=SeasonalPositionResponse)
 @limiter.limit("60/minute")
 def get_seasonal_position(request: Request, db: Session = Depends(get_db)):
     """Return seasonal position analysis for the dashboard.

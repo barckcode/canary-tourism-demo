@@ -1,0 +1,254 @@
+"""Pydantic response models for API endpoints.
+
+These models serve as response_model declarations on FastAPI routers,
+providing automatic OpenAPI documentation and response validation.
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+
+# ---------------------------------------------------------------------------
+# Shared / reusable sub-models
+# ---------------------------------------------------------------------------
+
+class PeriodValue(BaseModel):
+    """A single (period, value) data point."""
+
+    period: str
+    value: float
+
+
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
+class DashboardKPIsResponse(BaseModel):
+    """Latest KPI values for the dashboard."""
+
+    latest_arrivals: float
+    latest_period: str
+    yoy_change: float | None = None
+    occupancy_rate: float | None = None
+    adr: float | None = None
+    revpar: float | None = None
+    avg_stay: float | None = None
+    last_updated: str | None = None
+
+
+class DashboardSummaryResponse(BaseModel):
+    """24-month arrivals trend, 12-month occupancy trend, and forecast."""
+
+    arrivals_trend_24m: list[PeriodValue]
+    occupancy_trend_12m: list[PeriodValue]
+    forecast: list[PeriodValue]
+
+
+class MarketEntry(BaseModel):
+    country: str
+    code: str
+    pct: float
+    count: int
+
+
+class TopMarketsResponse(BaseModel):
+    markets: list[MarketEntry]
+    total: int
+
+
+class SeasonalPositionResponse(BaseModel):
+    peak_month: str
+    peak_month_number: int
+    current_position: str
+    current_month: str
+    next_3_months: str
+    next_months: list[str]
+    monthly_averages: dict[str, float]
+
+
+# ---------------------------------------------------------------------------
+# Time Series
+# ---------------------------------------------------------------------------
+
+class TimeSeriesMetadata(BaseModel):
+    indicator: str
+    geo: str
+    measure: str
+    total_points: int
+
+
+class TimeSeriesResponse(BaseModel):
+    """Historical time series data for a single indicator."""
+
+    data: list[PeriodValue]
+    metadata: TimeSeriesMetadata
+
+
+class IndicatorInfo(BaseModel):
+    id: str
+    source: str
+    available_from: str
+    available_to: str
+    total_points: int
+
+
+class YoYCell(BaseModel):
+    year: int
+    month: int
+    value: float
+    yoy_change: float | None = None
+
+
+class YoYMetadata(BaseModel):
+    geo: str
+    total_indicators: int
+
+
+class YoYResponse(BaseModel):
+    indicators: dict[str, list[YoYCell]]
+    metadata: YoYMetadata
+
+
+# ---------------------------------------------------------------------------
+# Predictions
+# ---------------------------------------------------------------------------
+
+class ForecastPoint(BaseModel):
+    """Single forecast data point with confidence intervals."""
+
+    period: str
+    value: float
+    ci_lower_80: float | None = None
+    ci_upper_80: float | None = None
+    ci_lower_95: float | None = None
+    ci_upper_95: float | None = None
+
+
+class ModelMetrics(BaseModel):
+    rmse: float | None = None
+    mae: float | None = None
+    mape: float | None = None
+    test_size: int | None = None
+
+
+class ModelInfo(BaseModel):
+    name: str
+    total_periods: int
+    metrics: ModelMetrics | None = None
+
+
+class PredictionResponse(BaseModel):
+    """Forecast for a single model."""
+
+    forecast: list[ForecastPoint]
+    model_info: ModelInfo
+
+
+class PredictionCompareResponse(BaseModel):
+    """Comparative forecast across all models."""
+
+    models: dict[str, list[ForecastPoint]]
+    metrics: dict[str, ModelMetrics]
+
+
+# ---------------------------------------------------------------------------
+# Profiles
+# ---------------------------------------------------------------------------
+
+class NationalityEntry(BaseModel):
+    nationality: str
+    percentage: float = 0
+
+
+class AccommodationEntry(BaseModel):
+    type: str
+    percentage: float = 0
+
+
+class ClusterSummary(BaseModel):
+    id: int
+    name: str
+    size_pct: float
+    avg_age: float | None = None
+    avg_spend: float | None = None
+    avg_nights: float | None = None
+    top_nationalities: list[NationalityEntry]
+    top_accommodations: list[AccommodationEntry]
+    top_activities: list[str]
+    top_motivations: list[str]
+    avg_satisfaction: float | None = None
+    spending_breakdown: dict = Field(default_factory=dict)
+
+
+class ProfilesListResponse(BaseModel):
+    """List of all tourist profile clusters."""
+
+    clusters: list[ClusterSummary]
+
+
+class ProfileDetailResponse(ClusterSummary):
+    """Detailed profile for a single cluster."""
+
+    characteristics: dict = Field(default_factory=dict)
+
+
+class NationalityProfileEntry(BaseModel):
+    nationality: str
+    count: int
+    avg_spend: float | None = None
+    avg_nights: float | None = None
+
+
+class SankeyNode(BaseModel):
+    id: str
+    label: str
+
+
+class SankeyLink(BaseModel):
+    source: str
+    target: str
+    value: int
+
+
+class FlowsResponse(BaseModel):
+    nodes: list[SankeyNode]
+    links: list[SankeyLink]
+
+
+class SpendingCategory(BaseModel):
+    category: str
+    amount: float
+    pct: float
+
+
+class SpendingByClusterResponse(BaseModel):
+    spending_by_cluster: dict[str, list[SpendingCategory]]
+
+
+# ---------------------------------------------------------------------------
+# Scenarios
+# ---------------------------------------------------------------------------
+
+class ScenarioForecastPoint(BaseModel):
+    period: str
+    value: float
+
+
+class ImpactSummary(BaseModel):
+    avg_baseline: float = 0
+    avg_scenario: float = 0
+    avg_change_pct: float = 0
+
+
+class ScenarioParams(BaseModel):
+    occupancy_change_pct: float = 0
+    adr_change_pct: float = 0
+    foreign_ratio_change_pct: float = 0
+
+
+class ScenarioResponse(BaseModel):
+    baseline_forecast: list[ScenarioForecastPoint]
+    scenario_forecast: list[ScenarioForecastPoint]
+    impact_summary: ImpactSummary | dict = Field(default_factory=dict)
+    params: ScenarioParams | dict = Field(default_factory=dict)

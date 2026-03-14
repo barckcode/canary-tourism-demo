@@ -12,6 +12,8 @@ from typing import Any
 
 import httpx
 
+from app.utils.parsing import PLACEHOLDER_CODES, safe_float, safe_int
+
 logger = logging.getLogger(__name__)
 
 # CKAN portals
@@ -24,28 +26,9 @@ EGT_PACKAGE_NAMES = [
     "encuesta-gasto-turistico-microdatos",
 ]
 
-# Placeholder codes used in EGT microdata
-PLACEHOLDER_CODES = {"_Z", "_U", "_N", "_Y", ""}
-
-
-def _safe_int(val: str) -> int | None:
-    """Safely convert string to int, returning None for placeholders."""
-    if val in PLACEHOLDER_CODES:
-        return None
-    try:
-        return int(float(val))
-    except (ValueError, TypeError):
-        return None
-
-
-def _safe_float(val: str) -> float | None:
-    """Safely convert string to float, returning None for placeholders."""
-    if val in PLACEHOLDER_CODES:
-        return None
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        return None
+# Backward-compatible aliases for internal use
+_safe_int = safe_int
+_safe_float = safe_float
 
 
 async def _ckan_package_show(

@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
+from app.api.schemas import IndicatorInfo, TimeSeriesResponse, YoYResponse
 from app.db.database import get_db
 from app.db.models import TimeSeries
 from app.rate_limit import limiter
@@ -21,7 +22,7 @@ YOY_INDICATORS = [
 ]
 
 
-@router.get("")
+@router.get("", response_model=TimeSeriesResponse)
 @limiter.limit("60/minute")
 def get_timeseries(
     request: Request,
@@ -56,7 +57,7 @@ def get_timeseries(
     }
 
 
-@router.get("/indicators")
+@router.get("/indicators", response_model=list[IndicatorInfo])
 @limiter.limit("60/minute")
 def list_indicators(request: Request, db: Session = Depends(get_db)):
     """Return list of available indicators with metadata."""
@@ -86,7 +87,7 @@ def list_indicators(request: Request, db: Session = Depends(get_db)):
     ]
 
 
-@router.get("/yoy")
+@router.get("/yoy", response_model=YoYResponse)
 @limiter.limit("60/minute")
 def get_yoy(
     request: Request,
