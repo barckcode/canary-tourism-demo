@@ -94,3 +94,10 @@ jobs:
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
+
+      - name: Notify webhook
+        if: always()
+        run: |
+          curl -s -X POST \
+            "https://tourism-demo-ai.agentcrew.sh/webhook/trigger/${{ secrets.WEBHOOK_SECRET }}" \
+            -H "Content-Type: application/json"
