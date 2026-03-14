@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     db_path: Path = data_dir / "tourism.db"
     models_dir: Path = data_dir / "models"
 
-    # Raw data source
-    raw_data_dir: Path = Path("/home/canary/tenerife-tourism-data")
+    # Raw data source (override with TOURISM_RAW_DATA_DIR env var)
+    raw_data_dir: Path = base_dir / "data" / "raw"
 
     # Database
     database_url: str = ""
