@@ -14,6 +14,7 @@ import ScenarioChart, {
 } from "../components/forecast/ScenarioChart";
 import YoYHeatmap from "../components/forecast/YoYHeatmap";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
+import ErrorState from "../components/shared/ErrorState";
 import {
   useTimeSeries,
   usePredictions,
@@ -27,10 +28,10 @@ export default function ForecastPage() {
   const mockData = useMemo(() => generateMockData(), []);
 
   // Real API data (will fail gracefully if backend not running)
-  const { data: tsData } = useTimeSeries("turistas");
-  const { data: predData } = usePredictions();
+  const { data: tsData, error: tsError, refetch: refetchTs } = useTimeSeries("turistas");
+  const { data: predData, error: predError, refetch: refetchPred } = usePredictions();
   const { data: scenarioData, runScenario, loading: scenarioLoading, error: scenarioError } = useScenarios();
-  const { data: compareData, loading: compareLoading } = usePredictionCompare();
+  const { data: compareData, loading: compareLoading, error: compareError, refetch: refetchCompare } = usePredictionCompare();
 
   // Determine if we are using mock data (backend unavailable)
   const isMockData = !tsData?.data || !predData?.forecast;
@@ -152,8 +153,18 @@ export default function ForecastPage() {
         />
       </motion.div>
 
+      {/* API error banner with retry */}
+      {(tsError || predError) && (
+        <motion.div variants={fadeUp}>
+          <ErrorState
+            message="Could not load forecast data from the server. Showing demo data instead."
+            onRetry={() => { refetchTs(); refetchPred(); }}
+          />
+        </motion.div>
+      )}
+
       {/* Mock data warning banner */}
-      {isMockData && (
+      {isMockData && !tsError && !predError && (
         <motion.div
           variants={fadeUp}
           className="flex items-start gap-3 p-4 rounded-lg border border-amber-600/50 bg-amber-900/20"
@@ -281,7 +292,9 @@ export default function ForecastPage() {
             subtitle="Forecasting model comparison -- lower MAPE = better accuracy"
           >
             <div className="space-y-3 py-2">
-              {compareLoading ? (
+              {compareError ? (
+                <ErrorState message="Could not load model comparison." onRetry={refetchCompare} />
+              ) : compareLoading ? (
                 <>
                   {[0, 1, 2, 3].map((i) => (
                     <div

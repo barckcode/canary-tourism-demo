@@ -5,6 +5,7 @@ import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import AnimatedNumber from "../components/shared/AnimatedNumber";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
+import ErrorState from "../components/shared/ErrorState";
 import ExportCSVButton from "../components/shared/ExportCSVButton";
 import SparklineChart from "../components/shared/SparklineChart";
 import TimeSlider from "../components/timeline/TimeSlider";
@@ -51,10 +52,10 @@ const kpiConfig = [
 ];
 
 export default function DashboardPage() {
-  const { data: kpis, loading } = useDashboardKPIs();
-  const { data: summary } = useDashboardSummary();
-  const { data: topMarkets, loading: marketsLoading } = useTopMarkets();
-  const { data: seasonal, loading: seasonalLoading } = useSeasonalPosition();
+  const { data: kpis, loading, error: kpisError, refetch: refetchKpis } = useDashboardKPIs();
+  const { data: summary, error: summaryError, refetch: refetchSummary } = useDashboardSummary();
+  const { data: topMarkets, loading: marketsLoading, error: marketsError, refetch: refetchMarkets } = useTopMarkets();
+  const { data: seasonal, loading: seasonalLoading, error: seasonalError, refetch: refetchSeasonal } = useSeasonalPosition();
   const [selectedPeriod, setSelectedPeriod] = useState("2026-01");
   const handlePeriodChange = useCallback((period: string) => {
     setSelectedPeriod(period);
@@ -96,27 +97,33 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* KPI cards */}
-      <motion.div
-        variants={fadeUp}
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
-      >
-        {kpiConfig.map(({ key, label, format, color }) => (
-          <Panel key={key}>
-            <div className="text-center">
-              <div className={`kpi-value ${color}`}>
-                {loading ? (
-                  <div className="h-9 w-20 mx-auto bg-gray-800 rounded animate-pulse" />
-                ) : kpis ? (
-                  <AnimatedNumber value={kpis[key]} format={format} />
-                ) : (
-                  "\u2014"
-                )}
+      {kpisError ? (
+        <motion.div variants={fadeUp}>
+          <ErrorState message="Could not load KPI data." onRetry={refetchKpis} />
+        </motion.div>
+      ) : (
+        <motion.div
+          variants={fadeUp}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
+        >
+          {kpiConfig.map(({ key, label, format, color }) => (
+            <Panel key={key}>
+              <div className="text-center">
+                <div className={`kpi-value ${color}`}>
+                  {loading ? (
+                    <div className="h-9 w-20 mx-auto bg-gray-800 rounded animate-pulse" />
+                  ) : kpis ? (
+                    <AnimatedNumber value={kpis[key]} format={format} />
+                  ) : (
+                    "\u2014"
+                  )}
+                </div>
+                <div className="kpi-label">{label}</div>
               </div>
-              <div className="kpi-label">{label}</div>
-            </div>
-          </Panel>
-        ))}
-      </motion.div>
+            </Panel>
+          ))}
+        </motion.div>
+      )}
 
       {/* Map + side panels */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -137,7 +144,9 @@ export default function DashboardPage() {
 
         <motion.div variants={fadeUp} className="space-y-4">
           <Panel title="Arrivals Trend" subtitle="Last 24 months">
-            {summary?.arrivals_trend_24m ? (
+            {summaryError ? (
+              <ErrorState message="Could not load trend data." onRetry={refetchSummary} />
+            ) : summary?.arrivals_trend_24m ? (
               <SparklineChart
                 data={summary.arrivals_trend_24m}
                 forecast={summary.forecast}
@@ -152,7 +161,9 @@ export default function DashboardPage() {
 
           <Panel title="Top Markets">
             <div className="space-y-3">
-              {marketsLoading ? (
+              {marketsError ? (
+                <ErrorState message="Could not load market data." onRetry={refetchMarkets} />
+              ) : marketsLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="h-5 bg-gray-800 rounded animate-pulse" />
@@ -191,7 +202,9 @@ export default function DashboardPage() {
           </Panel>
 
           <Panel title="Seasonal Position">
-            {seasonalLoading ? (
+            {seasonalError ? (
+              <ErrorState message="Could not load seasonal data." onRetry={refetchSeasonal} />
+            ) : seasonalLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="h-5 bg-gray-800 rounded animate-pulse" />

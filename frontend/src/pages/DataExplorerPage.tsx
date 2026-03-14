@@ -7,6 +7,7 @@ import ExportCSVButton from "../components/shared/ExportCSVButton";
 import ForecastChart, {
   type TimeSeriesPoint as ChartPoint,
 } from "../components/forecast/ForecastChart";
+import ErrorState from "../components/shared/ErrorState";
 import { useIndicators, useTimeSeries } from "../api/hooks";
 
 const fallbackIndicators = [
@@ -20,8 +21,8 @@ const fallbackIndicators = [
 
 export default function DataExplorerPage() {
   const [selectedIndicator, setSelectedIndicator] = useState<string | null>(null);
-  const { data: apiIndicators } = useIndicators();
-  const { data: tsData, loading: tsLoading } = useTimeSeries(
+  const { data: apiIndicators, error: indicatorsError, refetch: refetchIndicators } = useIndicators();
+  const { data: tsData, loading: tsLoading, error: tsError, refetch: refetchTs } = useTimeSeries(
     selectedIndicator || ""
   );
 
@@ -71,6 +72,9 @@ export default function DataExplorerPage() {
 
       <motion.div variants={fadeUp}>
         <Panel title="Available Indicators">
+          {indicatorsError ? (
+            <ErrorState message="Could not load indicators." onRetry={refetchIndicators} />
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -122,6 +126,7 @@ export default function DataExplorerPage() {
               </tbody>
             </table>
           </div>
+          )}
         </Panel>
       </motion.div>
 
@@ -139,7 +144,9 @@ export default function DataExplorerPage() {
           }
         >
           {selectedIndicator ? (
-            tsLoading ? (
+            tsError ? (
+              <ErrorState message="Could not load time series data." onRetry={refetchTs} />
+            ) : tsLoading ? (
               <div className="h-[360px] flex items-center justify-center" role="status" aria-live="polite">
                 <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
                 <span className="sr-only">Loading time series data</span>

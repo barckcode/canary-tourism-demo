@@ -9,6 +9,7 @@ import ClusterViz, {
   type ClusterData,
 } from "../components/profiles/ClusterViz";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
+import ErrorState from "../components/shared/ErrorState";
 import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData, useSpendingByCluster } from "../api/hooks";
 
 const CLUSTER_COLORS = ["#0087b9", "#f69b1a", "#28c066", "#a855f7"];
@@ -17,10 +18,10 @@ export default function ProfilesPage() {
   const [selectedCluster, setSelectedCluster] = useState<ClusterData | null>(
     null
   );
-  const { data: profilesData } = useProfiles();
+  const { data: profilesData, error: profilesError, refetch: refetchProfiles } = useProfiles();
   const { data: detailData } = useProfileDetail(selectedCluster?.id ?? null);
-  const { data: nationalityData } = useNationalityProfiles();
-  const { data: flowData } = useFlowData();
+  const { data: nationalityData, error: nationalityError, refetch: refetchNationality } = useNationalityProfiles();
+  const { data: flowData, error: flowError, refetch: refetchFlow } = useFlowData();
   const { data: spendingData } = useSpendingByCluster();
 
   // Top 8 nationalities sorted by count
@@ -143,18 +144,22 @@ export default function ProfilesPage() {
           title="Segment Bubbles"
           subtitle="Click a segment to explore its profile"
         >
-          <ErrorBoundary>
-            <ChartContainer height={320}>
-              {({ width, height }) => (
-                <ClusterViz
-                  width={width}
-                  height={height}
-                  clusters={apiClusters}
-                  onSelect={setSelectedCluster}
-                />
-              )}
-            </ChartContainer>
-          </ErrorBoundary>
+          {profilesError ? (
+            <ErrorState message="Could not load tourist profiles." onRetry={refetchProfiles} />
+          ) : (
+            <ErrorBoundary>
+              <ChartContainer height={320}>
+                {({ width, height }) => (
+                  <ClusterViz
+                    width={width}
+                    height={height}
+                    clusters={apiClusters}
+                    onSelect={setSelectedCluster}
+                  />
+                )}
+              </ChartContainer>
+            </ErrorBoundary>
+          )}
         </Panel>
       </motion.div>
 
@@ -257,7 +262,12 @@ export default function ProfilesPage() {
       )}
 
       {/* Nationality Profiles */}
-      {topNationalities.length > 0 && (
+      {nationalityError && (
+        <motion.div variants={fadeUp}>
+          <ErrorState message="Could not load nationality profiles." onRetry={refetchNationality} />
+        </motion.div>
+      )}
+      {!nationalityError && topNationalities.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <motion.div variants={fadeUp}>
             <Panel title="Top Nationalities" subtitle="Visitor count and average spend">
@@ -333,13 +343,17 @@ export default function ProfilesPage() {
           title="Tourist Flow"
           subtitle="Top 6 source markets \u2192 preferred accommodation type"
         >
-          <ErrorBoundary>
-            <ChartContainer height={420}>
-              {({ width, height }) => (
-                <SankeyFlow width={width} height={height} data={flowData} />
-              )}
-            </ChartContainer>
-          </ErrorBoundary>
+          {flowError ? (
+            <ErrorState message="Could not load tourist flow data." onRetry={refetchFlow} />
+          ) : (
+            <ErrorBoundary>
+              <ChartContainer height={420}>
+                {({ width, height }) => (
+                  <SankeyFlow width={width} height={height} data={flowData} />
+                )}
+              </ChartContainer>
+            </ErrorBoundary>
+          )}
         </Panel>
       </motion.div>
     </motion.div>
