@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import { DeckGL } from "@deck.gl/react";
 import { Map } from "react-map-gl/maplibre";
@@ -36,12 +36,27 @@ function intensityToColor(intensity: number): [number, number, number, number] {
 
 interface TenerifeMapProps {
   className?: string;
+  period?: string;
 }
 
-export default function TenerifeMap({ className = "" }: TenerifeMapProps) {
+// Seasonal multiplier by month index (0=Jan..11=Dec), peak in Oct
+const SEASONAL_FACTOR = [
+  0.77, 0.75, 0.80, 0.82, 0.74, 0.75, 0.86, 0.84, 0.89, 1.0, 0.95, 0.91,
+];
+
+function getSeasonalMultiplier(period?: string): number {
+  if (!period) return 1;
+  const month = parseInt(period.split("-")[1], 10);
+  if (isNaN(month) || month < 1 || month > 12) return 1;
+  return SEASONAL_FACTOR[month - 1];
+}
+
+export default function TenerifeMap({ className = "", period }: TenerifeMapProps) {
   const [geojsonData, setGeojsonData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hovered, setHovered] = useState<MunicipalityProperties | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  const seasonalMult = useMemo(() => getSeasonalMultiplier(period), [period]);
 
   useEffect(() => {
     fetch("/tenerife.geojson")
@@ -58,12 +73,18 @@ export default function TenerifeMap({ className = "" }: TenerifeMapProps) {
           filled: true,
           stroked: true,
           extruded: true,
-          getElevation: (f: GeoJSON.Feature) =>
-            ((f.properties as MunicipalityProperties)?.tourism_intensity || 0) * 50,
-          getFillColor: (f: GeoJSON.Feature) =>
-            intensityToColor(
-              (f.properties as MunicipalityProperties)?.tourism_intensity || 0
-            ),
+          updateTriggers: {
+            getElevation: seasonalMult,
+            getFillColor: seasonalMult,
+          },
+          getElevation: (f: GeoJSON.Feature) => {
+            const base = (f.properties as MunicipalityProperties)?.tourism_intensity || 0;
+            return Math.round(base * seasonalMult) * 50;
+          },
+          getFillColor: (f: GeoJSON.Feature) => {
+            const base = (f.properties as MunicipalityProperties)?.tourism_intensity || 0;
+            return intensityToColor(Math.round(base * seasonalMult));
+          },
           getLineColor: [255, 255, 255, 40],
           getLineWidth: 1,
           lineWidthMinPixels: 1,
@@ -115,6 +136,13 @@ export default function TenerifeMap({ className = "" }: TenerifeMapProps) {
           <div className="text-xs text-ocean-400 mt-0.5">
             Tourism intensity: {hovered.tourism_intensity}%
           </div>
+        </div>
+      )}
+
+      {/* Period indicator */}
+      {period && (
+        <div className="absolute top-3 right-3 glass-panel px-3 py-1.5">
+          <span className="text-xs font-mono text-ocean-400">{period}</span>
         </div>
       )}
 

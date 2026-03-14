@@ -23,7 +23,7 @@ interface ForecastChartProps {
   yLabel?: string;
 }
 
-// Mock data generator
+// Mock data generator with deterministic seed for consistency
 export function generateMockData(): {
   historical: TimeSeriesPoint[];
   forecast: ForecastPoint[];
@@ -33,16 +33,25 @@ export function generateMockData(): {
 
   // Historical: 2018-01 to 2026-01 (monthly)
   const baseValue = 500000;
+  // Index 0=Jan, 1=Feb, ..., 9=Oct (peak), 11=Dec
   const seasonalPattern = [
     0.85, 0.82, 0.88, 0.9, 0.81, 0.83, 0.95, 0.92, 0.98, 1.1, 1.05, 1.0,
   ];
 
-  for (let y = 2018; y <= 2025; y++) {
-    for (let m = 0; m < 12; m++) {
-      if (y === 2025 && m > 11) break;
+  // Simple seeded PRNG for deterministic mock data
+  let seed = 42;
+  const seededRandom = () => {
+    seed = (seed * 16807 + 0) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  // Historical through January 2026
+  for (let y = 2018; y <= 2026; y++) {
+    const lastMonth = y === 2026 ? 0 : 11; // Jan only for 2026
+    for (let m = 0; m <= lastMonth; m++) {
       const trend = 1 + (y - 2018) * 0.03;
       const seasonal = seasonalPattern[m];
-      const noise = 1 + (Math.random() - 0.5) * 0.08;
+      const noise = 1 + (seededRandom() - 0.5) * 0.08;
 
       // COVID dip
       let covidFactor = 1;
@@ -57,17 +66,25 @@ export function generateMockData(): {
   }
 
   // Forecast: 2026-02 to 2027-01 (12 months)
+  // Use a deseasonalized base to avoid double-applying seasonal factors
   const lastHistValue = historical[historical.length - 1].value;
-  for (let m = 1; m <= 12; m++) {
-    const monthIdx = (m + 0) % 12;
-    const seasonal = seasonalPattern[monthIdx];
-    const trend = 1 + m * 0.002;
-    const value = Math.round(lastHistValue * seasonal * trend);
-    const spread80 = value * 0.06 * Math.sqrt(m);
-    const spread95 = value * 0.1 * Math.sqrt(m);
+  const lastHistSeasonal = seasonalPattern[0]; // January
+  const deseasonalizedBase = lastHistValue / lastHistSeasonal;
+
+  for (let i = 0; i < 12; i++) {
+    const forecastMonth = (1 + i) % 12; // Feb=1, Mar=2, ..., Jan=0
+    const seasonal = seasonalPattern[forecastMonth];
+    const trend = 1 + (i + 1) * 0.002;
+    const value = Math.round(deseasonalizedBase * seasonal * trend);
+    const spread80 = value * 0.06 * Math.sqrt(i + 1);
+    const spread95 = value * 0.1 * Math.sqrt(i + 1);
+
+    // Date: Feb 2026 (i=0) through Jan 2027 (i=11)
+    const year = i < 11 ? 2026 : 2027;
+    const month = (1 + i) % 12;
 
     forecast.push({
-      date: new Date(2026, m, 1),
+      date: new Date(year, month, 1),
       value,
       ci80Lower: Math.round(value - spread80),
       ci80Upper: Math.round(value + spread80),

@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import AnimatedNumber from "../components/shared/AnimatedNumber";
@@ -53,6 +54,10 @@ const fadeUp = {
 export default function DashboardPage() {
   const { data: kpis, loading } = useDashboardKPIs();
   const { data: summary } = useDashboardSummary();
+  const [selectedPeriod, setSelectedPeriod] = useState("2026-01");
+  const handlePeriodChange = useCallback((period: string) => {
+    setSelectedPeriod(period);
+  }, []);
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
@@ -105,7 +110,7 @@ export default function DashboardPage() {
           >
             <div className="h-[360px] rounded-b-2xl overflow-hidden">
               <ErrorBoundary>
-                <TenerifeMap />
+                <TenerifeMap period={selectedPeriod} />
               </ErrorBoundary>
             </div>
           </Panel>
@@ -175,7 +180,7 @@ export default function DashboardPage() {
 
       {/* Time Slider */}
       <motion.div variants={fadeUp}>
-        <TimeSlider startYear={2010} endYear={2026} />
+        <TimeSlider startYear={2010} endYear={2026} onChange={handlePeriodChange} />
       </motion.div>
     </motion.div>
   );
