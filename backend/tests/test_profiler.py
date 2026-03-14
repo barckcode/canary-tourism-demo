@@ -135,6 +135,32 @@ def test_profiler_cluster_names_no_index_error(db):
             assert len(p["cluster_name"]) > 0
 
 
+def test_profiler_cluster_ids_match_kmeans_labels(db):
+    """Profile cluster_ids must match original KMeans labels, not sorted index."""
+    raw_jsons = _load_raw_jsons(db)
+    profiler = TouristProfiler(n_clusters=4)
+    labels = profiler.fit(raw_jsons)
+
+    # The original KMeans cluster IDs
+    original_ids = set(int(l) for l in labels)
+
+    profiles = profiler.get_profiles()
+    profile_ids = set(p["cluster_id"] for p in profiles)
+
+    assert profile_ids == original_ids, (
+        f"Profile cluster_ids {profile_ids} don't match KMeans labels {original_ids}"
+    )
+
+    # Verify each profile's cluster_id corresponds to actual records in that cluster
+    for p in profiles:
+        cid = p["cluster_id"]
+        mask = labels == cid
+        expected_size_pct = round(mask.sum() / len(labels) * 100, 1)
+        assert p["size_pct"] == expected_size_pct, (
+            f"Cluster {cid} size_pct {p['size_pct']} != expected {expected_size_pct}"
+        )
+
+
 def test_profiles_stored_in_db(db):
     """Profiles table should have been populated by trainer."""
     count = db.execute(text("SELECT COUNT(*) FROM profiles")).scalar()
