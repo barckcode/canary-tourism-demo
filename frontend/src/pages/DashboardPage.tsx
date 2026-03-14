@@ -36,7 +36,12 @@ const kpiConfig = [
   {
     key: "revpar" as const,
     label: "RevPAR",
-    format: (n: number) => `\u20AC${n.toFixed(0)}`,
+    format: (n: number) =>
+      n >= 1_000_000
+        ? `\u20AC${(n / 1_000_000).toFixed(1)}M`
+        : n >= 1_000
+          ? `\u20AC${(n / 1_000).toFixed(0)}K`
+          : `\u20AC${n.toFixed(0)}`,
     color: "text-purple-400",
   },
   {

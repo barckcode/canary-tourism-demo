@@ -299,10 +299,10 @@ export default function ProfilesPage() {
       <motion.div variants={fadeUp}>
         <Panel
           title="Tourist Flow"
-          subtitle={flowData ? "Country \u2192 Accommodation" : "Country \u2192 Zone \u2192 Accommodation"}
+          subtitle="Top 6 source markets \u2192 preferred accommodation type"
         >
           <ErrorBoundary>
-            <ChartContainer height={300}>
+            <ChartContainer height={420}>
               {({ width, height }) => (
                 <SankeyFlow width={width} height={height} data={flowData} />
               )}

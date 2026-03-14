@@ -122,7 +122,7 @@ export default function ForecastPage() {
       <motion.div variants={fadeUp}>
         <Panel
           title="Forecast Chart"
-          subtitle="Historical arrivals + predicted values with 80%/95% confidence bands"
+          subtitle="Historical arrivals + predicted values with 80%/95% confidence bands — Tenerife peaks Nov–Mar (winter high season)"
         >
           <ErrorBoundary>
             <ChartContainer height={380}>
