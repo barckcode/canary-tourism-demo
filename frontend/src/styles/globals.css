@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ocean-400 ring-offset-2 ring-offset-gray-950;
+  }
+}
+
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;

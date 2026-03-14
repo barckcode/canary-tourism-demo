@@ -112,6 +112,7 @@ export default function DataExplorerPage() {
                           )
                         }
                         aria-label={`${selectedIndicator === ind.id ? "Deselect" : "View"} ${ind.id}`}
+                        aria-pressed={selectedIndicator === ind.id}
                         className={`px-3 py-1 text-xs rounded transition-colors ${
                           selectedIndicator === ind.id
                             ? "bg-ocean-600 text-white"
