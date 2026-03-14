@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI):
             logger.info("Model training complete.")
     except Exception:
         logger.exception("Error during startup initialization.")
+        raise
     finally:
         db.close()
 
