@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
+import { MotionConfig } from "framer-motion";
 import AppShell from "./components/layout/AppShell";
 import ErrorBoundary from "./components/shared/ErrorBoundary";
 
@@ -23,52 +24,54 @@ function PageLoader() {
 
 function App() {
   return (
-    <AppShell>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <ErrorBoundary>
-                <DashboardPage />
-              </ErrorBoundary>
-            }
-          />
-          <Route
-            path="/forecast"
-            element={
-              <ErrorBoundary>
-                <ForecastPage />
-              </ErrorBoundary>
-            }
-          />
-          <Route
-            path="/profiles"
-            element={
-              <ErrorBoundary>
-                <ProfilesPage />
-              </ErrorBoundary>
-            }
-          />
-          <Route
-            path="/data"
-            element={
-              <ErrorBoundary>
-                <DataExplorerPage />
-              </ErrorBoundary>
-            }
-          />
-          <Route
-            path="/about"
-            element={
-              <ErrorBoundary>
-                <AboutPage />
-              </ErrorBoundary>
-            }
-          />
-        </Routes>
-      </Suspense>
-    </AppShell>
+    <MotionConfig reducedMotion="user">
+      <AppShell>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ErrorBoundary>
+                  <DashboardPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/forecast"
+              element={
+                <ErrorBoundary>
+                  <ForecastPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/profiles"
+              element={
+                <ErrorBoundary>
+                  <ProfilesPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/data"
+              element={
+                <ErrorBoundary>
+                  <DataExplorerPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/about"
+              element={
+                <ErrorBoundary>
+                  <AboutPage />
+                </ErrorBoundary>
+              }
+            />
+          </Routes>
+        </Suspense>
+      </AppShell>
+    </MotionConfig>
   );
 }
 

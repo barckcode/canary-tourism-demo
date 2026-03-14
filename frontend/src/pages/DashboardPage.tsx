@@ -78,7 +78,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           {kpis?.last_updated && (
-            <span className="text-xs text-gray-600">
+            <span className="text-xs text-gray-400">
               Updated: {kpis.last_updated}
             </span>
           )}

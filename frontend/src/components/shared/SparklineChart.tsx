@@ -72,7 +72,7 @@ export default function SparklineChart({
   return (
     <div ref={containerRef} className="w-full" style={{ height: containerHeight }}>
       {data.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-gray-600">
+        <div className="h-full flex items-center justify-center text-gray-400">
           <p className="text-sm">No data available</p>
         </div>
       ) : (

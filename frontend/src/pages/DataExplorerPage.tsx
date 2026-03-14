@@ -164,12 +164,12 @@ export default function DataExplorerPage() {
                 )}
               </ChartContainer>
             ) : (
-              <div className="h-[360px] flex items-center justify-center text-gray-600">
+              <div className="h-[360px] flex items-center justify-center text-gray-400">
                 <p className="text-sm">No data available for this indicator</p>
               </div>
             )
           ) : (
-            <div className="h-[360px] flex items-center justify-center text-gray-600">
+            <div className="h-[360px] flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <svg
                   className="w-12 h-12 mx-auto mb-3 text-gray-700"

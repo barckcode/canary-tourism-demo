@@ -26,9 +26,9 @@ export default function Panel({
       {(title || subtitle) && (
         <div className={`${noPadding ? "px-6 pt-5 pb-2" : "px-6 pt-5 pb-0"}`}>
           {title && (
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
               {title}
-            </h2>
+            </h3>
           )}
           {subtitle && (
             <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>

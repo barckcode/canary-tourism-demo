@@ -133,7 +133,7 @@ export default function TimeSlider({
             {years
               .filter((_, i) => i % 2 === 0 || years.length <= 10)
               .map((year) => (
-                <span key={year} className="text-[10px] text-gray-600">
+                <span key={year} className="text-[10px] text-gray-400">
                   {year}
                 </span>
               ))}
