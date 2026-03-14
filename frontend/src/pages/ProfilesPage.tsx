@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
 import ExportCSVButton from "../components/shared/ExportCSVButton";
@@ -9,17 +10,6 @@ import ClusterViz, {
 } from "../components/profiles/ClusterViz";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
 import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData, useSpendingByCluster } from "../api/hooks";
-
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
-
 
 const CLUSTER_COLORS = ["#0087b9", "#f69b1a", "#28c066", "#a855f7"];
 

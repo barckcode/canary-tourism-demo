@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
 import ExportCSVButton from "../components/shared/ExportCSVButton";
@@ -7,16 +8,6 @@ import ForecastChart, {
   type TimeSeriesPoint as ChartPoint,
 } from "../components/forecast/ForecastChart";
 import { useIndicators, useTimeSeries } from "../api/hooks";
-
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
 
 const fallbackIndicators = [
   { id: "turistas", source: "istac", available_from: "2010-01", available_to: "2026-01", total_points: 193 },

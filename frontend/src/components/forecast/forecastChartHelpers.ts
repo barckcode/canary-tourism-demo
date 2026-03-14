@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { formatCompactNumber } from "../../utils/format";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,11 +48,8 @@ export const MARGIN = { top: 20, right: 30, bottom: 40, left: 65 };
 // Pure helpers
 // ---------------------------------------------------------------------------
 
-export function formatValue(val: number): string {
-  if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
-  if (val >= 1_000) return `${(val / 1_000).toFixed(0)}K`;
-  return `${val}`;
-}
+/** @deprecated Use `formatCompactNumber` from `utils/format` directly. */
+export const formatValue = formatCompactNumber;
 
 export function computeDimensions(width: number, height: number): Dimensions {
   return {

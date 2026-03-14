@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
+import { formatCompactNumber } from "../utils/format";
+import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import AnimatedNumber from "../components/shared/AnimatedNumber";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
@@ -37,12 +39,7 @@ const kpiConfig = [
   {
     key: "revpar" as const,
     label: "RevPAR",
-    format: (n: number) =>
-      n >= 1_000_000
-        ? `\u20AC${(n / 1_000_000).toFixed(1)}M`
-        : n >= 1_000
-          ? `\u20AC${(n / 1_000).toFixed(0)}K`
-          : `\u20AC${n.toFixed(0)}`,
+    format: (n: number) => `\u20AC${formatCompactNumber(n)}`,
     color: "text-purple-400",
   },
   {
@@ -52,16 +49,6 @@ const kpiConfig = [
     color: "text-tropical-300",
   },
 ];
-
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
 
 export default function DashboardPage() {
   const { data: kpis, loading } = useDashboardKPIs();

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
 import ExportCSVButton from "../components/shared/ExportCSVButton";
@@ -21,16 +22,6 @@ import {
   type ScenarioInput,
   type ModelAccuracyMetrics,
 } from "../api/hooks";
-
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
 
 export default function ForecastPage() {
   const mockData = useMemo(() => generateMockData(), []);
