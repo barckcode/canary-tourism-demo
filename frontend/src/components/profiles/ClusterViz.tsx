@@ -127,10 +127,21 @@ export default function ClusterViz({
       .attr("class", "bubble")
       .attr("transform", (d) => `translate(${d.x},${d.y})`)
       .attr("cursor", "pointer")
+      .attr("tabindex", "0")
+      .attr("role", "button")
+      .attr("aria-label", (d) => `${d.cluster.name}: ${d.cluster.sizePct}% of tourists, average age ${d.cluster.avgAge}, average spend ${d.cluster.avgSpend} euros, ${d.cluster.avgNights} nights`)
       .on("click", (_event, d) => {
         const newId = selected === d.cluster.id ? null : d.cluster.id;
         setSelected(newId);
         onSelect?.(newId !== null ? d.cluster : null);
+      })
+      .on("keydown", (event: KeyboardEvent, d) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          const newId = selected === d.cluster.id ? null : d.cluster.id;
+          setSelected(newId);
+          onSelect?.(newId !== null ? d.cluster : null);
+        }
       });
 
     // Glow filter
@@ -224,5 +235,5 @@ export default function ClusterViz({
       });
   }, [width, height, clusters, selected, onSelect]);
 
-  return <svg ref={svgRef} className="overflow-visible" />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Tourist cluster visualization showing bubble sizes proportional to segment share" />;
 }

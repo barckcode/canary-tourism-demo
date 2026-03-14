@@ -517,5 +517,5 @@ export default function ScenarioChart({
       .text("+/-");
   }, [data, width, height]);
 
-  return <svg ref={svgRef} className="overflow-visible" />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Scenario comparison chart showing baseline forecast versus scenario forecast with impact differences" />;
 }

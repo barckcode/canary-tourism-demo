@@ -213,7 +213,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
 
   return (
     <div className="relative">
-      <svg ref={svgRef} className="overflow-visible" />
+      <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Year-over-year heatmap showing monthly percentage changes in tourist arrivals across years" />
       {tooltip && (
         <div
           className="absolute pointer-events-none z-10 glass-panel px-3 py-2 text-xs -translate-x-1/2 -translate-y-full"

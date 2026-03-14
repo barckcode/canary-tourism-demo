@@ -241,5 +241,5 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
       .text((d) => d.label);
   }, [width, height, apiData]);
 
-  return <svg ref={svgRef} className="overflow-visible" />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Sankey flow diagram showing tourist distribution from countries of origin through zones to accommodation types" />;
 }

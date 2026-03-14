@@ -463,5 +463,5 @@ export default function ForecastChart({
       .text("Forecast");
   }, [historical, forecast, width, height, yLabel, isMock]);
 
-  return <svg ref={svgRef} className="overflow-visible" />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={`${yLabel} forecast chart showing historical data and predicted values with confidence intervals`} />;
 }

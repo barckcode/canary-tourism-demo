@@ -318,7 +318,7 @@ export default function SparklineChart({
           <p className="text-sm">No data available</p>
         </div>
       ) : (
-        <svg ref={svgRef} className="overflow-visible" />
+        <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Sparkline trend chart showing data values over time" />
       )}
     </div>
   );

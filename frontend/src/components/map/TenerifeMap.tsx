@@ -109,7 +109,7 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
   }, [hovered]);
 
   return (
-    <div className={`relative w-full h-full ${className}`}>
+    <div className={`relative w-full h-full ${className}`} role="region" aria-label="Interactive 3D map of Tenerife showing tourism intensity by municipality. Use mouse or touch to pan, zoom, and rotate. Hover over municipalities for details.">
       <DeckGL
         initialViewState={INITIAL_VIEW_STATE}
         controller={true}
