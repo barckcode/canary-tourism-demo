@@ -1,5 +1,31 @@
 """Integration tests for all API endpoints."""
 
+from app.api.dashboard import _classify_position
+
+
+def test_classify_position_high():
+    """Values >= 110% of average should be classified as High."""
+    assert _classify_position(1200, 1000) == "High"
+    assert _classify_position(1100, 1000) == "High"
+
+
+def test_classify_position_moderate():
+    """Values between 90% and 110% of average should be Moderate."""
+    assert _classify_position(1000, 1000) == "Moderate"
+    assert _classify_position(1050, 1000) == "Moderate"
+    assert _classify_position(950, 1000) == "Moderate"
+
+
+def test_classify_position_low():
+    """Values <= 90% of average should be classified as Low."""
+    assert _classify_position(800, 1000) == "Low"
+    assert _classify_position(900, 1000) == "Low"
+
+
+def test_classify_position_zero_avg():
+    """Zero average should return Moderate to avoid division by zero."""
+    assert _classify_position(100, 0) == "Moderate"
+
 
 def test_health(client):
     r = client.get("/health")
@@ -38,6 +64,55 @@ def test_dashboard_summary_trends(client):
     assert len(data["arrivals_trend_24m"]) > 0
     assert "period" in data["arrivals_trend_24m"][0]
     assert "value" in data["arrivals_trend_24m"][0]
+
+
+def test_dashboard_top_markets(client):
+    """Top markets endpoint should return markets with percentages."""
+    r = client.get("/api/dashboard/top-markets")
+    assert r.status_code == 200
+    data = r.json()
+    assert "markets" in data
+    assert "total" in data
+    assert len(data["markets"]) > 0
+    assert len(data["markets"]) <= 5
+    first = data["markets"][0]
+    assert "country" in first
+    assert "pct" in first
+    assert "count" in first
+    assert first["pct"] > 0
+    # Percentages should sum to <= 100
+    total_pct = sum(m["pct"] for m in data["markets"])
+    assert total_pct <= 100.1
+
+
+def test_dashboard_top_markets_sorted(client):
+    """Top markets should be sorted by count descending."""
+    r = client.get("/api/dashboard/top-markets")
+    data = r.json()
+    markets = data["markets"]
+    for i in range(len(markets) - 1):
+        assert markets[i]["count"] >= markets[i + 1]["count"]
+
+
+def test_dashboard_seasonal_position(client):
+    """Seasonal position should return peak month and current position."""
+    r = client.get("/api/dashboard/seasonal-position")
+    assert r.status_code == 200
+    data = r.json()
+    assert "peak_month" in data
+    assert "peak_month_number" in data
+    assert "current_position" in data
+    assert "current_month" in data
+    assert "next_3_months" in data
+    assert "next_months" in data
+    assert "monthly_averages" in data
+    # Position values should be one of the valid options
+    assert data["current_position"] in ("High", "Moderate", "Low")
+    assert data["next_3_months"] in ("High", "Moderate", "Low")
+    # Peak month number should be 1-12
+    assert 1 <= data["peak_month_number"] <= 12
+    # Monthly averages should have entries
+    assert len(data["monthly_averages"]) > 0
 
 
 # --- Time Series ---

@@ -6,7 +6,7 @@ import ErrorBoundary from "../components/shared/ErrorBoundary";
 import SparklineChart from "../components/shared/SparklineChart";
 import TimeSlider from "../components/timeline/TimeSlider";
 import TenerifeMap from "../components/map/TenerifeMap";
-import { useDashboardKPIs, useDashboardSummary } from "../api/hooks";
+import { useDashboardKPIs, useDashboardSummary, useTopMarkets, useSeasonalPosition } from "../api/hooks";
 
 const kpiConfig = [
   {
@@ -65,6 +65,8 @@ const fadeUp = {
 export default function DashboardPage() {
   const { data: kpis, loading } = useDashboardKPIs();
   const { data: summary } = useDashboardSummary();
+  const { data: topMarkets, loading: marketsLoading } = useTopMarkets();
+  const { data: seasonal, loading: seasonalLoading } = useSeasonalPosition();
   const [selectedPeriod, setSelectedPeriod] = useState("2026-01");
   const handlePeriodChange = useCallback((period: string) => {
     setSelectedPeriod(period);
@@ -144,47 +146,70 @@ export default function DashboardPage() {
 
           <Panel title="Top Markets">
             <div className="space-y-3">
-              {[
-                { country: "United Kingdom", pct: 32 },
-                { country: "Germany", pct: 28 },
-                { country: "Sweden", pct: 12 },
-                { country: "Spain", pct: 10 },
-              ].map(({ country, pct }) => (
-                <div key={country} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">{country}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.8, delay: 0.3 }}
-                        className="h-full bg-ocean-500 rounded-full"
-                      />
-                    </div>
-                    <span className="text-xs text-gray-500 w-8 text-right">
-                      {pct}%
-                    </span>
-                  </div>
+              {marketsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-5 bg-gray-800 rounded animate-pulse" />
+                  ))}
                 </div>
-              ))}
+              ) : topMarkets?.markets ? (
+                topMarkets.markets.map(({ country, pct }) => (
+                  <div key={country} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-300">{country}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, delay: 0.3 }}
+                          className="h-full bg-ocean-500 rounded-full"
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 w-8 text-right">
+                        {pct}%
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">No market data available</span>
+              )}
             </div>
           </Panel>
 
           <Panel title="Seasonal Position">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Peak Month</span>
-                <span className="text-volcanic-400 font-medium">October</span>
+            {seasonalLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-5 bg-gray-800 rounded animate-pulse" />
+                ))}
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Current</span>
-                <span className="text-tropical-400 font-medium">High</span>
+            ) : seasonal ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Peak Month</span>
+                  <span className="text-volcanic-400 font-medium">{seasonal.peak_month}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Current</span>
+                  <span className={`font-medium ${
+                    seasonal.current_position === "High" ? "text-tropical-400" :
+                    seasonal.current_position === "Low" ? "text-red-400" :
+                    "text-ocean-400"
+                  }`}>{seasonal.current_position}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Next 3 months</span>
+                  <span className={`font-medium ${
+                    seasonal.next_3_months === "High" ? "text-tropical-400" :
+                    seasonal.next_3_months === "Low" ? "text-red-400" :
+                    "text-ocean-400"
+                  }`}>{seasonal.next_3_months}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Next 3 months</span>
-                <span className="text-ocean-400 font-medium">Moderate</span>
-              </div>
-            </div>
+            ) : (
+              <span className="text-sm text-gray-500">No seasonal data available</span>
+            )}
           </Panel>
         </motion.div>
       </div>

@@ -104,6 +104,40 @@ export function useDashboardSummary() {
   );
 }
 
+export interface TopMarket {
+  country: string;
+  code: string;
+  pct: number;
+  count: number;
+}
+
+export interface TopMarketsResponse {
+  markets: TopMarket[];
+  total: number;
+}
+
+export function useTopMarkets() {
+  return useQuery<TopMarketsResponse>(
+    () => api.dashboard.topMarkets() as Promise<TopMarketsResponse>
+  );
+}
+
+export interface SeasonalPositionResponse {
+  peak_month: string;
+  peak_month_number: number;
+  current_position: string;
+  current_month: string;
+  next_3_months: string;
+  next_months: string[];
+  monthly_averages: Record<string, number>;
+}
+
+export function useSeasonalPosition() {
+  return useQuery<SeasonalPositionResponse>(
+    () => api.dashboard.seasonalPosition() as Promise<SeasonalPositionResponse>
+  );
+}
+
 // ── Time Series ──
 
 export interface TimeSeriesPoint {

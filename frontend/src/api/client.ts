@@ -15,6 +15,8 @@ export const api = {
   dashboard: {
     kpis: () => fetchJSON("/dashboard/kpis"),
     summary: () => fetchJSON("/dashboard/summary"),
+    topMarkets: () => fetchJSON("/dashboard/top-markets"),
+    seasonalPosition: () => fetchJSON("/dashboard/seasonal-position"),
   },
   timeseries: {
     get: (params: Record<string, string>) => {
