@@ -236,10 +236,14 @@ class TouristProfiler:
             })
 
         # Re-order by avg_spend to match PLAN cluster definitions
+        cluster_name_list = list(CLUSTER_NAMES.values())
         profiles.sort(key=lambda p: p["avg_spend"] or 0)
         for i, p in enumerate(profiles):
             old_id = p["cluster_id"]
             p["cluster_id"] = i
-            p["cluster_name"] = list(CLUSTER_NAMES.values())[min(i, 3)]
+            if i < len(cluster_name_list):
+                p["cluster_name"] = cluster_name_list[i]
+            else:
+                p["cluster_name"] = f"Cluster {i + 1}"
 
         return profiles

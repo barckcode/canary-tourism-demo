@@ -257,16 +257,18 @@ async def fetch_egt_microdata(
                 )
                 rows = await _download_csv_resource(client, url)
 
+                records_before = len(all_records)
                 for row in rows:
                     record = _parse_microdata_row(row, quarter)
                     if record is not None:
                         all_records.append(record)
+                parsed_count = len(all_records) - records_before
 
                 logger.info(
                     "CKAN %s/%s: parsed %d Tenerife records from %d rows.",
                     package_name,
                     quarter,
-                    sum(1 for _ in []),  # placeholder
+                    parsed_count,
                     len(rows),
                 )
 

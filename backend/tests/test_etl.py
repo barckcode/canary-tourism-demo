@@ -319,6 +319,27 @@ class TestCKANConnector:
         assert ckan._safe_float("_U") is None
         assert ckan._safe_float("") is None
 
+    def test_parse_microdata_record_counting(self):
+        """Counting parsed records should reflect actual Tenerife matches."""
+        rows = [
+            {"ISLA": "ES709", "NUMERO_CUESTIONARIO": "1", "EDAD": "30",
+             "NACIONALIDAD": "GB", "GASTO_EUROS": "500"},
+            {"ISLA": "ES708", "NUMERO_CUESTIONARIO": "2"},  # not Tenerife
+            {"ISLA": "ES709", "NUMERO_CUESTIONARIO": "_Z"},  # invalid
+            {"ISLA": "ES709", "NUMERO_CUESTIONARIO": "3", "EDAD": "25",
+             "NACIONALIDAD": "DE", "GASTO_EUROS": "800"},
+        ]
+        all_records: list = []
+        records_before = len(all_records)
+        for row in rows:
+            record = ckan._parse_microdata_row(row, "2025Q1")
+            if record is not None:
+                all_records.append(record)
+        parsed_count = len(all_records) - records_before
+        # Only 2 valid Tenerife records (rows 0 and 3)
+        assert parsed_count == 2
+        assert len(all_records) == 2
+
 
 # ---------------------------------------------------------------------------
 # Validator tests

@@ -4,7 +4,7 @@ import json
 
 from sqlalchemy import text
 
-from app.models.profiler import TouristProfiler
+from app.models.profiler import CLUSTER_NAMES, TouristProfiler
 
 
 def _load_raw_jsons(db):
@@ -99,6 +99,40 @@ def test_profiler_nationalities_are_lists(db):
         assert len(p["top_nationalities"]) > 0, (
             f"Cluster {p['cluster_id']} has no nationalities"
         )
+
+
+def test_profiler_cluster_names_fallback_with_extra_clusters(db):
+    """When n_clusters exceeds CLUSTER_NAMES, extra clusters get fallback names."""
+    raw_jsons = _load_raw_jsons(db)
+    n = len(CLUSTER_NAMES) + 1  # one more than defined names
+    profiler = TouristProfiler(n_clusters=n)
+    profiler.fit(raw_jsons)
+    profiles = profiler.get_profiles()
+
+    assert len(profiles) == n
+    names = [p["cluster_name"] for p in profiles]
+    # First len(CLUSTER_NAMES) profiles should use the defined names
+    defined_names = list(CLUSTER_NAMES.values())
+    for name in defined_names:
+        assert name in names, f"Expected defined name '{name}' in profiles"
+    # The extra cluster should have a fallback name like "Cluster 5"
+    fallback_names = [n for n in names if n not in defined_names]
+    assert len(fallback_names) == 1
+    assert fallback_names[0].startswith("Cluster ")
+
+
+def test_profiler_cluster_names_no_index_error(db):
+    """Cluster naming must not raise IndexError regardless of n_clusters."""
+    raw_jsons = _load_raw_jsons(db)
+    for n in (2, 3, 4, 5, 6):
+        profiler = TouristProfiler(n_clusters=n)
+        profiler.fit(raw_jsons)
+        # This must not raise
+        profiles = profiler.get_profiles()
+        assert len(profiles) == n
+        for p in profiles:
+            assert isinstance(p["cluster_name"], str)
+            assert len(p["cluster_name"]) > 0
 
 
 def test_profiles_stored_in_db(db):
