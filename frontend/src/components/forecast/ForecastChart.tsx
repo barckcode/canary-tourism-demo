@@ -21,6 +21,7 @@ interface ForecastChartProps {
   width: number;
   height: number;
   yLabel?: string;
+  isMock?: boolean;
 }
 
 // Mock data generator with deterministic seed for consistency
@@ -104,6 +105,7 @@ export default function ForecastChart({
   width,
   height,
   yLabel = "Tourist Arrivals",
+  isMock = false,
 }: ForecastChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -337,13 +339,17 @@ export default function ForecastChart({
       .attr("font-size", "12px")
       .attr("font-weight", "600");
 
+    const tooltipType = tooltip
+      .append("text")
+      .attr("font-size", "9px");
+
     // Hover overlay
     const allDataPoints = [
-      ...historical.map((d) => ({ date: d.date, value: d.value })),
-      ...forecast.map((d) => ({ date: d.date, value: d.value })),
+      ...historical.map((d) => ({ date: d.date, value: d.value, isForecast: false })),
+      ...forecast.map((d) => ({ date: d.date, value: d.value, isForecast: true })),
     ];
 
-    const bisect = d3.bisector<{ date: Date; value: number }, Date>(
+    const bisect = d3.bisector<{ date: Date; value: number; isForecast: boolean }, Date>(
       (d) => d.date
     ).left;
 
@@ -386,18 +392,34 @@ export default function ForecastChart({
         const formattedValue =
           d.value >= 1000 ? `${(d.value / 1000).toFixed(0)}K` : `${d.value}`;
 
+        // Determine data type label
+        let typeLabel: string;
+        let typeColor: string;
+        if (isMock) {
+          typeLabel = "DEMO";
+          typeColor = "rgba(245, 158, 11, 0.8)";
+        } else if (d.isForecast) {
+          typeLabel = "Forecast";
+          typeColor = "rgba(40, 192, 102, 0.8)";
+        } else {
+          typeLabel = "Actual";
+          typeColor = "rgba(0, 135, 185, 0.8)";
+        }
+
         tooltipDate.text(formattedDate);
         tooltipValue.text(formattedValue);
+        tooltipType.text(typeLabel).attr("fill", typeColor);
 
         const tooltipW = 90;
-        const tooltipH = 42;
+        const tooltipH = 54;
         const tooltipX = cx + 12 > w - tooltipW ? cx - tooltipW - 12 : cx + 12;
         const tooltipY = cy - tooltipH / 2;
 
         tooltip.attr("transform", `translate(${tooltipX},${tooltipY})`);
         tooltip.select("rect").attr("width", tooltipW).attr("height", tooltipH);
         tooltipDate.attr("x", 8).attr("y", 16);
-        tooltipValue.attr("x", 8).attr("y", 34);
+        tooltipValue.attr("x", 8).attr("y", 32);
+        tooltipType.attr("x", 8).attr("y", 46);
       });
 
     // Legend
@@ -439,7 +461,7 @@ export default function ForecastChart({
       .attr("fill", "rgba(255,255,255,0.5)")
       .attr("font-size", "10px")
       .text("Forecast");
-  }, [historical, forecast, width, height, yLabel]);
+  }, [historical, forecast, width, height, yLabel, isMock]);
 
   return <svg ref={svgRef} className="overflow-visible" />;
 }

@@ -19,6 +19,7 @@ import {
   usePredictionCompare,
   useScenarios,
   type ScenarioInput,
+  type ModelAccuracyMetrics,
 } from "../api/hooks";
 
 const stagger = {
@@ -40,10 +41,16 @@ export default function ForecastPage() {
   const { data: scenarioData, runScenario, loading: scenarioLoading, error: scenarioError } = useScenarios();
   const { data: compareData, loading: compareLoading } = usePredictionCompare();
 
+  // Determine if we are using mock data (backend unavailable)
+  const isMockData = !tsData?.data || !predData?.forecast;
+
   // Build model list from compare API or fall back to hardcoded data
   const modelList = useMemo(() => {
+    const metricsMap = compareData?.metrics ?? {};
+
     if (compareData?.models) {
       const entries = Object.entries(compareData.models).map(([key, points]) => ({
+        key,
         name: key
           .split("_")
           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -51,9 +58,17 @@ export default function ForecastPage() {
         periods: points.length,
         active: points.length > 0,
         best: false,
+        metrics: metricsMap[key] ?? null,
       }));
-      // Mark the model with the most forecast points as best
-      if (entries.length > 0) {
+
+      // Mark the model with the lowest MAPE as best
+      const modelsWithMape = entries.filter((e) => e.metrics?.mape != null);
+      if (modelsWithMape.length > 0) {
+        const minMape = Math.min(...modelsWithMape.map((e) => e.metrics!.mape));
+        const bestIdx = entries.findIndex((e) => e.metrics?.mape === minMape);
+        if (bestIdx >= 0) entries[bestIdx].best = true;
+      } else if (entries.length > 0) {
+        // Fallback: mark model with most periods
         const maxPeriods = Math.max(...entries.map((e) => e.periods));
         const bestIdx = entries.findIndex((e) => e.periods === maxPeriods);
         if (bestIdx >= 0) entries[bestIdx].best = true;
@@ -62,10 +77,10 @@ export default function ForecastPage() {
     }
     // Fallback hardcoded data
     return [
-      { name: "SARIMA", periods: 12, active: true, best: false },
-      { name: "Holt-Winters", periods: 12, active: false, best: false },
-      { name: "Ensemble", periods: 12, active: true, best: true },
-      { name: "Seasonal Naive", periods: 12, active: false, best: false },
+      { key: "sarima", name: "SARIMA", periods: 12, active: true, best: false, metrics: null as ModelAccuracyMetrics | null },
+      { key: "holt_winters", name: "Holt-Winters", periods: 12, active: false, best: false, metrics: null },
+      { key: "ensemble", name: "Ensemble", periods: 12, active: true, best: true, metrics: null },
+      { key: "seasonal_naive", name: "Seasonal Naive", periods: 12, active: false, best: false, metrics: null },
     ];
   }, [compareData]);
 
@@ -128,7 +143,6 @@ export default function ForecastPage() {
           <h2 className="text-2xl font-bold gradient-text">Prediction Engine</h2>
           <p className="text-sm text-gray-500 mt-1">
             AI-powered tourism demand forecasting
-            {tsData ? "" : " (using mock data)"}
           </p>
         </div>
         <ExportCSVButton
@@ -147,24 +161,74 @@ export default function ForecastPage() {
         />
       </motion.div>
 
+      {/* Mock data warning banner */}
+      {isMockData && (
+        <motion.div
+          variants={fadeUp}
+          className="flex items-start gap-3 p-4 rounded-lg border border-amber-600/50 bg-amber-900/20"
+          role="alert"
+        >
+          <svg
+            className="w-5 h-5 text-amber-400 mt-0.5 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+            />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-amber-300">
+              Demo data -- the connection to the prediction server is not available
+            </p>
+            <p className="text-xs text-amber-400/70 mt-1">
+              The charts below display synthetic data for demonstration purposes only.
+              Values shown are not based on real predictions.
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Main chart */}
       <motion.div variants={fadeUp}>
         <Panel
           title="Forecast Chart"
-          subtitle="Historical arrivals + predicted values with 80%/95% confidence bands — Tenerife peaks Nov–Mar (winter high season)"
+          subtitle="Historical arrivals + predicted values with 80%/95% confidence bands -- Tenerife peaks Nov-Mar (winter high season)"
         >
           <ErrorBoundary>
-            <ChartContainer height={380}>
-              {({ width, height }) => (
-                <ForecastChart
-                  historical={chartData.historical}
-                  forecast={chartData.forecast}
-                  width={width}
-                  height={height}
-                  yLabel="Tourist Arrivals"
-                />
+            <div className={isMockData ? "relative" : ""}>
+              {isMockData && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                  <span className="text-3xl font-bold text-white/[0.07] rotate-[-18deg] select-none tracking-widest uppercase">
+                    Demo Data
+                  </span>
+                </div>
               )}
-            </ChartContainer>
+              <div
+                className={
+                  isMockData
+                    ? "border border-dashed border-amber-600/30 rounded-lg p-1 opacity-75 grayscale-[40%]"
+                    : ""
+                }
+              >
+                <ChartContainer height={380}>
+                  {({ width, height }) => (
+                    <ForecastChart
+                      historical={chartData.historical}
+                      forecast={chartData.forecast}
+                      width={width}
+                      height={height}
+                      yLabel="Tourist Arrivals"
+                      isMock={isMockData}
+                    />
+                  )}
+                </ChartContainer>
+              </div>
+            </div>
           </ErrorBoundary>
         </Panel>
       </motion.div>
@@ -222,7 +286,7 @@ export default function ForecastPage() {
         <motion.div variants={fadeUp}>
           <Panel
             title="Model Performance"
-            subtitle="Forecasting model comparison"
+            subtitle="Forecasting model comparison -- lower MAPE = better accuracy"
           >
             <div className="space-y-3 py-2">
               {compareLoading ? (
@@ -235,10 +299,14 @@ export default function ForecastPage() {
                   ))}
                 </>
               ) : (
-                modelList.map(({ name, periods, active, best }) => (
+                modelList.map(({ name, periods, active, best, metrics }) => (
                   <div
                     key={name}
-                    className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-800/40"
+                    className={`flex items-center justify-between py-2.5 px-3 rounded-lg ${
+                      best
+                        ? "bg-tropical-500/10 ring-1 ring-tropical-500/30"
+                        : "bg-gray-800/40"
+                    }`}
                   >
                     <div className="flex items-center gap-2">
                       <div
@@ -246,14 +314,29 @@ export default function ForecastPage() {
                       />
                       <span className="text-sm text-gray-300">{name}</span>
                       {best && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-volcanic-500/20 text-volcanic-400 font-medium">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-tropical-500/20 text-tropical-400 font-medium">
                           Best
                         </span>
                       )}
                     </div>
-                    <span className="text-sm font-mono text-gray-400">
-                      {periods} periods
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {metrics ? (
+                        <span
+                          className={`text-xs font-mono px-2 py-0.5 rounded ${
+                            best
+                              ? "bg-tropical-500/20 text-tropical-300"
+                              : "bg-gray-700/60 text-gray-400"
+                          }`}
+                          title={`RMSE: ${metrics.rmse.toLocaleString()} | MAE: ${metrics.mae.toLocaleString()} | MAPE: ${metrics.mape.toFixed(1)}% | Test: ${metrics.test_size} months`}
+                        >
+                          MAPE {metrics.mape.toFixed(1)}%
+                        </span>
+                      ) : (
+                        <span className="text-sm font-mono text-gray-400">
+                          {periods} periods
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -273,7 +356,7 @@ export default function ForecastPage() {
           >
             <Panel
               title="Scenario Comparison"
-              subtitle="Baseline vs scenario forecast — shaded areas show positive (green) and negative (red) impact"
+              subtitle="Baseline vs scenario forecast -- shaded areas show positive (green) and negative (red) impact"
             >
               <ChartContainer height={340}>
                 {({ width, height }) => (
@@ -294,7 +377,7 @@ export default function ForecastPage() {
       <motion.div variants={fadeUp}>
         <Panel
           title="YoY Heatmap"
-          subtitle="Month x Year comparison — hover any cell for details"
+          subtitle="Month x Year comparison -- hover any cell for details"
         >
           <ErrorBoundary>
             <ChartContainer height={280}>

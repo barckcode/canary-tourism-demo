@@ -243,6 +243,31 @@ def test_predictions_sarima(client):
     assert len(r.json()["forecast"]) == 12
 
 
+def test_predictions_metrics_in_model_info(client):
+    """Prediction response should include accuracy metrics in model_info."""
+    r = client.get("/api/predictions?indicator=turistas&model=ensemble&horizon=12")
+    assert r.status_code == 200
+    data = r.json()
+    metrics = data["model_info"].get("metrics")
+    assert metrics is not None, "metrics should be present in model_info"
+    assert "rmse" in metrics
+    assert "mae" in metrics
+    assert "mape" in metrics
+    assert "test_size" in metrics
+    assert metrics["mape"] > 0
+    assert metrics["rmse"] > 0
+    assert metrics["mae"] > 0
+    assert metrics["test_size"] == 12
+
+
+def test_predictions_metrics_mape_reasonable(client):
+    """MAPE values should be reasonable (< 50%) for production models."""
+    r = client.get("/api/predictions?indicator=turistas&model=ensemble&horizon=12")
+    data = r.json()
+    mape = data["model_info"]["metrics"]["mape"]
+    assert 0 < mape < 50, f"MAPE {mape}% outside reasonable range"
+
+
 def test_predictions_compare(client):
     """Compare endpoint should return multiple models."""
     r = client.get("/api/predictions/compare?indicator=turistas")
@@ -252,6 +277,22 @@ def test_predictions_compare(client):
     assert "ensemble" in models
     assert "holt_winters" in models
     assert "seasonal_naive" in models
+
+
+def test_predictions_compare_includes_metrics(client):
+    """Compare endpoint should return accuracy metrics for all models."""
+    r = client.get("/api/predictions/compare?indicator=turistas")
+    assert r.status_code == 200
+    data = r.json()
+    assert "metrics" in data, "compare response should include metrics"
+    metrics = data["metrics"]
+    for model_name in ["sarima", "holt_winters", "seasonal_naive", "ensemble"]:
+        assert model_name in metrics, f"Missing metrics for {model_name}"
+        m = metrics[model_name]
+        assert "rmse" in m
+        assert "mae" in m
+        assert "mape" in m
+        assert m["mape"] > 0
 
 
 # --- Profiles ---

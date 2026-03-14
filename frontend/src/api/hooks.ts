@@ -221,11 +221,19 @@ export interface ForecastPoint {
   ci_upper_95: number;
 }
 
+export interface ModelAccuracyMetrics {
+  rmse: number;
+  mae: number;
+  mape: number;
+  test_size: number;
+}
+
 export interface PredictionResponse {
   forecast: ForecastPoint[];
   model_info: {
     name: string;
     total_periods: number;
+    metrics: ModelAccuracyMetrics | null;
   };
 }
 
@@ -249,6 +257,7 @@ export function usePredictions(
 
 export interface PredictionCompareResponse {
   models: Record<string, ForecastPoint[]>;
+  metrics?: Record<string, ModelAccuracyMetrics>;
 }
 
 export function usePredictionCompare(

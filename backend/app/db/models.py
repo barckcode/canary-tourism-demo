@@ -110,6 +110,25 @@ class Profile(Base):
     )
 
 
+class ModelMetric(Base):
+    __tablename__ = "model_metrics"
+
+    id = Column(Integer, primary_key=True)
+    model = Column(String, nullable=False)
+    indicator = Column(String, nullable=False)
+    geo_code = Column(String, nullable=False)
+    rmse = Column(Float)
+    mae = Column(Float)
+    mape = Column(Float)
+    test_size = Column(Integer)
+    generated_at = Column(String, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("model", "indicator", "geo_code", name="uq_model_metric"),
+        Index("ix_metric_model_indicator", "model", "indicator"),
+    )
+
+
 class PipelineRun(Base):
     __tablename__ = "pipeline_runs"
 

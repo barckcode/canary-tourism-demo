@@ -4,10 +4,31 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.db.models import Prediction
+from app.db.models import ModelMetric, Prediction
 from app.rate_limit import limiter
 
 router = APIRouter()
+
+
+def _get_metrics(db: Session, indicator: str, geo: str) -> dict[str, dict]:
+    """Load accuracy metrics for all models from the database."""
+    rows = (
+        db.query(ModelMetric)
+        .filter(
+            ModelMetric.indicator == indicator,
+            ModelMetric.geo_code == geo,
+        )
+        .all()
+    )
+    return {
+        r.model: {
+            "rmse": r.rmse,
+            "mae": r.mae,
+            "mape": r.mape,
+            "test_size": r.test_size,
+        }
+        for r in rows
+    }
 
 
 @router.get("")
@@ -20,7 +41,11 @@ def get_predictions(
     model: str = Query("ensemble", description="Model name"),
     db: Session = Depends(get_db),
 ):
-    """Return pre-computed forecast for the given parameters."""
+    """Return pre-computed forecast for the given parameters.
+
+    Includes accuracy metrics (RMSE, MAE, MAPE) computed via
+    hold-out validation on the last 12 months of non-COVID data.
+    """
     results = (
         db.query(Prediction)
         .filter(
@@ -32,6 +57,10 @@ def get_predictions(
         .limit(horizon)
         .all()
     )
+
+    # Fetch metrics for the requested model
+    all_metrics = _get_metrics(db, indicator, geo)
+    model_metrics = all_metrics.get(model)
 
     return {
         "forecast": [
@@ -48,6 +77,7 @@ def get_predictions(
         "model_info": {
             "name": model,
             "total_periods": len(results),
+            "metrics": model_metrics,
         },
     }
 
@@ -61,7 +91,14 @@ def compare_models(
     horizon: int = Query(12, ge=1, le=60),
     db: Session = Depends(get_db),
 ):
-    """Compare forecasts from all available models."""
+    """Compare forecasts from all available models.
+
+    Each model entry includes its forecast points and accuracy metrics.
+    The ``metrics`` key contains per-model RMSE, MAE, and MAPE values
+    from hold-out evaluation on the last 12 non-COVID months.
+    """
+    all_metrics = _get_metrics(db, indicator, geo)
+
     models = {}
     for model_name in ["sarima", "holt_winters", "seasonal_naive", "ensemble"]:
         results = (
@@ -88,4 +125,7 @@ def compare_models(
                 for r in results
             ]
 
-    return {"models": models}
+    return {
+        "models": models,
+        "metrics": all_metrics,
+    }

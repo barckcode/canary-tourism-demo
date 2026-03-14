@@ -80,6 +80,33 @@ def _store_predictions(db: Session, model_name: str, indicator: str,
     return count
 
 
+def _store_metrics(db: Session, metrics: dict, indicator: str, geo_code: str,
+                   test_size: int) -> None:
+    """Persist model accuracy metrics to the model_metrics table."""
+    from app.models.forecaster import ModelMetrics  # avoid circular at module level
+
+    for model_name, m in metrics.items():
+        if not isinstance(m, ModelMetrics):
+            continue
+        db.execute(
+            text("""
+                INSERT OR REPLACE INTO model_metrics
+                    (model, indicator, geo_code, rmse, mae, mape, test_size)
+                VALUES (:model, :indicator, :geo, :rmse, :mae, :mape, :ts)
+            """),
+            {
+                "model": model_name,
+                "indicator": indicator,
+                "geo": geo_code,
+                "rmse": m.rmse,
+                "mae": m.mae,
+                "mape": m.mape,
+                "ts": test_size,
+            },
+        )
+    logger.info("Stored metrics for %d models.", len(metrics))
+
+
 def train_forecaster(db: Session, horizon: int = 12) -> dict:
     """Train SARIMA + HW + Naive forecaster and store predictions."""
     logger.info("Loading arrivals time series...")
@@ -89,6 +116,10 @@ def train_forecaster(db: Session, horizon: int = 12) -> dict:
 
     forecaster = Forecaster()
     forecaster.fit(series, exclude_covid=True)
+
+    # Evaluate accuracy on held-out test set (last 12 non-COVID months)
+    metrics = forecaster.evaluate(test_size=12)
+    _store_metrics(db, metrics, "turistas", "ES709", test_size=12)
 
     # Generate forecasts from all models
     results = {}

@@ -126,3 +126,36 @@ def test_naive_standalone(db):
     result = f.predict_naive(horizon=12)
     last_12 = series.values[-12:]
     np.testing.assert_array_almost_equal(result.values, last_12)
+
+
+def test_evaluate_returns_metrics_for_all_models(db):
+    """Evaluate should return RMSE, MAE, MAPE for all four model types."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    metrics = f.evaluate(test_size=12)
+
+    assert len(metrics) == 4
+    for name in ["sarima", "holt_winters", "seasonal_naive", "ensemble"]:
+        assert name in metrics, f"Missing metrics for {name}"
+        m = metrics[name]
+        assert m.rmse > 0, f"{name} RMSE should be positive"
+        assert m.mae > 0, f"{name} MAE should be positive"
+        assert 0 < m.mape < 100, f"{name} MAPE {m.mape}% outside 0-100 range"
+
+
+def test_evaluate_ensemble_best_or_competitive(db):
+    """Ensemble MAPE should be competitive (within 2x of best individual model)."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    metrics = f.evaluate(test_size=12)
+
+    individual_mapes = [
+        metrics[k].mape for k in ["sarima", "holt_winters", "seasonal_naive"]
+    ]
+    best_individual = min(individual_mapes)
+    ensemble_mape = metrics["ensemble"].mape
+    assert ensemble_mape <= best_individual * 2.0, (
+        f"Ensemble MAPE {ensemble_mape} much worse than best individual {best_individual}"
+    )
