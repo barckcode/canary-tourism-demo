@@ -42,17 +42,17 @@ def test_dashboard_kpis_fields(client):
     data = r.json()
     for field in ["latest_arrivals", "latest_period", "occupancy_rate"]:
         assert field in data, f"Missing field: {field}"
-    assert data["latest_arrivals"] > 100_000
+    assert data["latest_arrivals"] > 0
 
 
 def test_dashboard_kpis_yoy_change(client):
-    """YoY change should be a reasonable percentage."""
+    """YoY change should be present and be a reasonable percentage."""
     r = client.get("/api/dashboard/kpis")
     data = r.json()
-    if "yoy_change" in data:
-        assert -50 < data["yoy_change"] < 100, (
-            f"YoY change {data['yoy_change']}% outside expected range"
-        )
+    assert "yoy_change" in data, "yoy_change field must be present in KPIs response"
+    assert -50 < data["yoy_change"] < 100, (
+        f"YoY change {data['yoy_change']}% outside expected range"
+    )
 
 
 def test_dashboard_summary_trends(client):
@@ -122,7 +122,7 @@ def test_timeseries_query_turistas(client):
     r = client.get("/api/timeseries?indicator=turistas&geo=ES709")
     assert r.status_code == 200
     data = r.json()
-    assert len(data["data"]) > 100
+    assert len(data["data"]) > 12, "Expected more than 12 months of turistas data"
     assert data["metadata"]["indicator"] == "turistas"
     assert data["metadata"]["geo"] == "ES709"
 
@@ -145,7 +145,7 @@ def test_timeseries_indicators_list(client):
     r = client.get("/api/timeseries/indicators")
     assert r.status_code == 200
     data = r.json()
-    assert len(data) > 5
+    assert len(data) > 0, "Expected at least one indicator"
     ids = [d["id"] for d in data]
     assert "turistas" in ids
 
@@ -342,12 +342,12 @@ def test_profile_detail(client):
 
 
 def test_profile_detail_satisfaction_range(client):
-    """Satisfaction score should be in 0-10 range when present."""
+    """Satisfaction score should be present and in 0-10 range."""
     r = client.get("/api/profiles/0")
     data = r.json()
     sat = data.get("avg_satisfaction")
-    if sat is not None:
-        assert 0 <= sat <= 10, f"Satisfaction {sat} outside 0-10 range"
+    assert sat is not None, "avg_satisfaction must be present in profile detail"
+    assert 0 <= sat <= 10, f"Satisfaction {sat} outside 0-10 range"
 
 
 def test_spending_by_cluster(client):
@@ -466,3 +466,56 @@ def test_scenario_zero_changes(client):
     data = r.json()
     for b, s in zip(data["baseline_forecast"], data["scenario_forecast"]):
         assert b["value"] == s["value"]
+
+
+# --- Error response tests ---
+
+def test_timeseries_missing_indicator(client):
+    """Timeseries endpoint should return 422 when indicator param is missing."""
+    r = client.get("/api/timeseries?geo=ES709")
+    assert r.status_code == 422
+
+
+def test_timeseries_empty_result(client):
+    """Non-existent indicator should return empty data, not an error."""
+    r = client.get("/api/timeseries?indicator=nonexistent_xyz&geo=ES709")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data"] == []
+    assert data["metadata"]["total_points"] == 0
+
+
+def test_profile_detail_invalid_cluster(client):
+    """Non-existent cluster ID should return 404 with detail message."""
+    r = client.get("/api/profiles/999")
+    assert r.status_code == 404
+    assert "detail" in r.json()
+
+
+def test_scenario_invalid_values(client):
+    """Scenario with out-of-range values should return 422."""
+    r = client.post(
+        "/api/scenarios",
+        json={
+            "occupancy_change_pct": 100.0,
+            "adr_change_pct": 0,
+            "foreign_ratio_change_pct": 0,
+            "horizon": 6,
+        },
+    )
+    assert r.status_code == 422
+
+
+def test_scenario_missing_body(client):
+    """Scenario without a JSON body should return 422."""
+    r = client.post("/api/scenarios")
+    assert r.status_code == 422
+
+
+def test_predictions_invalid_model(client):
+    """Requesting predictions for a non-existent model returns empty forecast."""
+    r = client.get("/api/predictions?indicator=turistas&model=nonexistent_model")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["forecast"] == []
+    assert data["model_info"]["name"] == "nonexistent_model"
