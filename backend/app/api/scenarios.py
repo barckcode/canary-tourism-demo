@@ -1,5 +1,7 @@
 """Scenario engine endpoints (GBR what-if analysis)."""
 
+import threading
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -12,11 +14,17 @@ router = APIRouter()
 
 # Module-level singleton — loaded once, reused across requests
 _engine: ScenarioEngine | None = None
+_engine_lock = threading.Lock()
 
 
 def _get_engine(db: Session) -> ScenarioEngine:
     global _engine
-    if _engine is None or not _engine.is_fitted:
+    if _engine is not None and _engine.is_fitted:
+        return _engine
+    with _engine_lock:
+        # Double-check after acquiring the lock
+        if _engine is not None and _engine.is_fitted:
+            return _engine
         _engine = ScenarioEngine()
         _engine.predict_scenario(db=db, horizon=1)  # triggers lazy load from pkl
     return _engine

@@ -6,6 +6,7 @@ exploration with user-adjustable inputs.
 """
 
 import logging
+import math
 import re
 
 import joblib
@@ -18,6 +19,24 @@ from sqlalchemy.orm import Session
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_numeric(value: object, default: float = 0.0) -> float:
+    """Return a finite float from *value*, falling back to *default*.
+
+    Handles None, NaN, and non-numeric types gracefully so that
+    downstream arithmetic never crashes on missing data.
+    """
+    if value is None:
+        return default
+    try:
+        fval = float(value)
+    except (TypeError, ValueError):
+        return default
+    if math.isnan(fval) or math.isinf(fval):
+        return default
+    return fval
+
 
 # COVID exclusion range
 COVID_START = "2020-03"
@@ -209,14 +228,15 @@ class ScenarioEngine:
             feat["rolling_3m"] = arrivals_series.iloc[-3:].mean()
             feat["rolling_12m"] = arrivals_series.iloc[-12:].mean()
 
+            last_arrivals = _safe_numeric(ext_df["arrivals"].iloc[-1])
+            last_foreign = _safe_numeric(ext_df["foreign"].iloc[-1])
             last_foreign_ratio = (
-                ext_df["foreign"].iloc[-1] / ext_df["arrivals"].iloc[-1]
-                if ext_df["arrivals"].iloc[-1] else 0.5
+                last_foreign / last_arrivals if last_arrivals != 0 else 0.5
             )
             feat["foreign_ratio"] = last_foreign_ratio
 
             for col_name in ACCOM_INDICATORS.values():
-                feat[f"{col_name}_lag1"] = ext_df[col_name].iloc[-1]
+                feat[f"{col_name}_lag1"] = _safe_numeric(ext_df[col_name].iloc[-1])
 
             feat["month"] = period.month
             feat["month_sin"] = np.sin(2 * np.pi * period.month / 12)
@@ -231,13 +251,13 @@ class ScenarioEngine:
             # Scenario prediction (modify features)
             feat_sc = feat.copy()
             if occupancy_change_pct:
-                feat_sc["room_occ_lag1"] *= (1 + occupancy_change_pct / 100)
-                feat_sc["bed_occ_lag1"] *= (1 + occupancy_change_pct / 100)
+                feat_sc["room_occ_lag1"] = _safe_numeric(feat_sc["room_occ_lag1"]) * (1 + occupancy_change_pct / 100)
+                feat_sc["bed_occ_lag1"] = _safe_numeric(feat_sc["bed_occ_lag1"]) * (1 + occupancy_change_pct / 100)
             if adr_change_pct:
-                feat_sc["adr_lag1"] *= (1 + adr_change_pct / 100)
-                feat_sc["revpar_lag1"] *= (1 + adr_change_pct / 100)
+                feat_sc["adr_lag1"] = _safe_numeric(feat_sc["adr_lag1"]) * (1 + adr_change_pct / 100)
+                feat_sc["revpar_lag1"] = _safe_numeric(feat_sc["revpar_lag1"]) * (1 + adr_change_pct / 100)
             if foreign_ratio_change_pct:
-                feat_sc["foreign_ratio"] *= (1 + foreign_ratio_change_pct / 100)
+                feat_sc["foreign_ratio"] = _safe_numeric(feat_sc["foreign_ratio"], 0.5) * (1 + foreign_ratio_change_pct / 100)
 
             X_sc = pd.DataFrame([feat_sc], columns=self.feature_names)
             X_sc = X_sc.fillna(0)
@@ -250,7 +270,7 @@ class ScenarioEngine:
                 "foreign": base_pred * last_foreign_ratio,
             }
             for col_name in ACCOM_INDICATORS.values():
-                new_row[col_name] = ext_df[col_name].iloc[-1]
+                new_row[col_name] = _safe_numeric(ext_df[col_name].iloc[-1])
             ext_df.loc[period_str] = new_row
 
         avg_baseline = np.mean([b["value"] for b in baseline])
