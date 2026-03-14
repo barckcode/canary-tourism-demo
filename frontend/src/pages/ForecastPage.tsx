@@ -11,6 +11,7 @@ import ScenarioChart, {
   ScenarioImpactStats,
 } from "../components/forecast/ScenarioChart";
 import YoYHeatmap from "../components/forecast/YoYHeatmap";
+import ErrorBoundary from "../components/shared/ErrorBoundary";
 import {
   useTimeSeries,
   usePredictions,
@@ -92,17 +93,19 @@ export default function ForecastPage() {
           title="Forecast Chart"
           subtitle="Historical arrivals + predicted values with 80%/95% confidence bands"
         >
-          <ChartContainer height={380}>
-            {({ width, height }) => (
-              <ForecastChart
-                historical={chartData.historical}
-                forecast={chartData.forecast}
-                width={width}
-                height={height}
-                yLabel="Tourist Arrivals"
-              />
-            )}
-          </ChartContainer>
+          <ErrorBoundary>
+            <ChartContainer height={380}>
+              {({ width, height }) => (
+                <ForecastChart
+                  historical={chartData.historical}
+                  forecast={chartData.forecast}
+                  width={width}
+                  height={height}
+                  yLabel="Tourist Arrivals"
+                />
+              )}
+            </ChartContainer>
+          </ErrorBoundary>
         </Panel>
       </motion.div>
 
@@ -227,11 +230,13 @@ export default function ForecastPage() {
           title="YoY Heatmap"
           subtitle="Month x Year comparison — hover any cell for details"
         >
-          <ChartContainer height={280}>
-            {({ width, height }) => (
-              <YoYHeatmap width={width} height={height} />
-            )}
-          </ChartContainer>
+          <ErrorBoundary>
+            <ChartContainer height={280}>
+              {({ width, height }) => (
+                <YoYHeatmap width={width} height={height} />
+              )}
+            </ChartContainer>
+          </ErrorBoundary>
         </Panel>
       </motion.div>
     </motion.div>

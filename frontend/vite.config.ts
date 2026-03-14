@@ -3,6 +3,18 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          d3: ["d3", "d3-sankey"],
+          deckgl: ["@deck.gl/core", "@deck.gl/layers", "@deck.gl/react"],
+          maplibre: ["maplibre-gl"],
+          framer: ["framer-motion"],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

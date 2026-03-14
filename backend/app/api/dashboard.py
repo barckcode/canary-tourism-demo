@@ -1,17 +1,19 @@
 """Dashboard KPI and summary endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models import Prediction, TimeSeries
+from app.rate_limit import limiter
 
 router = APIRouter()
 
 
 @router.get("/kpis")
-def get_kpis(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_kpis(request: Request, db: Session = Depends(get_db)):
     """Return latest KPI values for the dashboard."""
     kpis = {}
 
@@ -117,7 +119,8 @@ def get_kpis(db: Session = Depends(get_db)):
 
 
 @router.get("/summary")
-def get_summary(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_summary(request: Request, db: Session = Depends(get_db)):
     """Return 12-month trend data and top nationalities for the dashboard."""
     # Arrivals trend (last 24 months)
     arrivals = (

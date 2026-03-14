@@ -6,6 +6,7 @@ import SankeyFlow from "../components/profiles/SankeyFlow";
 import ClusterViz, {
   type ClusterData,
 } from "../components/profiles/ClusterViz";
+import ErrorBoundary from "../components/shared/ErrorBoundary";
 import { useProfiles, useProfileDetail } from "../api/hooks";
 
 const stagger = {
@@ -151,16 +152,18 @@ export default function ProfilesPage() {
           title="Segment Bubbles"
           subtitle="Click a segment to explore its profile"
         >
-          <ChartContainer height={320}>
-            {({ width, height }) => (
-              <ClusterViz
-                width={width}
-                height={height}
-                clusters={apiClusters}
-                onSelect={setSelectedCluster}
-              />
-            )}
-          </ChartContainer>
+          <ErrorBoundary>
+            <ChartContainer height={320}>
+              {({ width, height }) => (
+                <ClusterViz
+                  width={width}
+                  height={height}
+                  clusters={apiClusters}
+                  onSelect={setSelectedCluster}
+                />
+              )}
+            </ChartContainer>
+          </ErrorBoundary>
         </Panel>
       </motion.div>
 
@@ -218,11 +221,13 @@ export default function ProfilesPage() {
           title="Tourist Flow"
           subtitle="Country \u2192 Zone \u2192 Accommodation"
         >
-          <ChartContainer height={300}>
-            {({ width, height }) => (
-              <SankeyFlow width={width} height={height} />
-            )}
-          </ChartContainer>
+          <ErrorBoundary>
+            <ChartContainer height={300}>
+              {({ width, height }) => (
+                <SankeyFlow width={width} height={height} />
+              )}
+            </ChartContainer>
+          </ErrorBoundary>
         </Panel>
       </motion.div>
     </motion.div>

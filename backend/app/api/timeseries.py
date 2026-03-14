@@ -1,17 +1,20 @@
 """Time series data endpoints."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import distinct
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models import TimeSeries
+from app.rate_limit import limiter
 
 router = APIRouter()
 
 
 @router.get("")
+@limiter.limit("60/minute")
 def get_timeseries(
+    request: Request,
     indicator: str = Query(..., description="Indicator name"),
     geo: str = Query("ES709", description="Geographic code"),
     from_period: str = Query(None, alias="from", description="Start period YYYY-MM"),
@@ -44,7 +47,8 @@ def get_timeseries(
 
 
 @router.get("/indicators")
-def list_indicators(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def list_indicators(request: Request, db: Session = Depends(get_db)):
     """Return list of available indicators with metadata."""
     from sqlalchemy import func
 

@@ -1,11 +1,12 @@
 """Scenario engine endpoints (GBR what-if analysis)."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.scenario_engine import ScenarioEngine
+from app.rate_limit import limiter
 
 router = APIRouter()
 
@@ -29,17 +30,19 @@ class ScenarioRequest(BaseModel):
 
 
 @router.post("")
+@limiter.limit("20/minute")
 def run_scenario(
-    request: ScenarioRequest,
+    request: Request,
+    scenario: ScenarioRequest,
     db: Session = Depends(get_db),
 ):
     """Run a what-if scenario using the GBR model."""
     engine = _get_engine(db)
     result = engine.predict_scenario(
         db=db,
-        occupancy_change_pct=request.occupancy_change_pct,
-        adr_change_pct=request.adr_change_pct,
-        foreign_ratio_change_pct=request.foreign_ratio_change_pct,
-        horizon=request.horizon,
+        occupancy_change_pct=scenario.occupancy_change_pct,
+        adr_change_pct=scenario.adr_change_pct,
+        foreign_ratio_change_pct=scenario.foreign_ratio_change_pct,
+        horizon=scenario.horizon,
     )
     return result

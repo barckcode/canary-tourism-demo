@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import AnimatedNumber from "../components/shared/AnimatedNumber";
+import ErrorBoundary from "../components/shared/ErrorBoundary";
 import SparklineChart from "../components/shared/SparklineChart";
 import TimeSlider from "../components/timeline/TimeSlider";
 import TenerifeMap from "../components/map/TenerifeMap";
@@ -103,7 +104,9 @@ export default function DashboardPage() {
             noPadding
           >
             <div className="h-[360px] rounded-b-2xl overflow-hidden">
-              <TenerifeMap />
+              <ErrorBoundary>
+                <TenerifeMap />
+              </ErrorBoundary>
             </div>
           </Panel>
         </motion.div>

@@ -1,17 +1,20 @@
 """Prediction and forecast endpoints."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import Field
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models import Prediction
+from app.rate_limit import limiter
 
 router = APIRouter()
 
 
 @router.get("")
+@limiter.limit("20/minute")
 def get_predictions(
+    request: Request,
     indicator: str = Query("turistas", description="Indicator to forecast"),
     geo: str = Query("ES709", description="Geographic code"),
     horizon: int = Query(12, ge=1, le=60, description="Forecast horizon in months"),
@@ -51,7 +54,9 @@ def get_predictions(
 
 
 @router.get("/compare")
+@limiter.limit("20/minute")
 def compare_models(
+    request: Request,
     indicator: str = Query("turistas"),
     geo: str = Query("ES709"),
     horizon: int = Query(12, ge=1, le=60),

@@ -2,12 +2,13 @@
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models import Microdata, Profile
+from app.rate_limit import limiter
 
 router = APIRouter()
 
@@ -23,7 +24,8 @@ def safe_json_loads(s, default=None):
 
 
 @router.get("")
-def get_profiles(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_profiles(request: Request, db: Session = Depends(get_db)):
     """Return all tourist profile clusters."""
     profiles = db.query(Profile).order_by(Profile.cluster_id).all()
     return {
@@ -44,7 +46,8 @@ def get_profiles(db: Session = Depends(get_db)):
 
 
 @router.get("/nationalities")
-def get_nationality_profiles(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_nationality_profiles(request: Request, db: Session = Depends(get_db)):
     """Return aggregate stats by nationality from microdata."""
     results = (
         db.query(
@@ -70,7 +73,8 @@ def get_nationality_profiles(db: Session = Depends(get_db)):
 
 
 @router.get("/flows")
-def get_flows(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_flows(request: Request, db: Session = Depends(get_db)):
     """Return Sankey flow data: Country -> Zone -> Accommodation."""
     # Country -> Accommodation flows
     flows = (
@@ -102,7 +106,9 @@ def get_flows(db: Session = Depends(get_db)):
 
 
 @router.get("/{cluster_id}")
+@limiter.limit("60/minute")
 def get_profile_detail(
+    request: Request,
     cluster_id: int = Path(..., description="Cluster ID"),
     db: Session = Depends(get_db),
 ):

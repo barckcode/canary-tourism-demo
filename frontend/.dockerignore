@@ -1,0 +1,15 @@
+node_modules
+dist
+build
+.git
+.gitignore
+.env
+.env.*
+*.log
+.vite
+coverage
+.eslintcache
+*.md
+LICENSE
+.dockerignore
+Dockerfile

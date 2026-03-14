@@ -3,6 +3,7 @@
 from sqlalchemy import (
     Column,
     Float,
+    Index,
     Integer,
     String,
     Text,
@@ -30,6 +31,9 @@ class TimeSeries(Base):
             "source", "indicator", "geo_code", "period", "measure",
             name="uq_timeseries",
         ),
+        Index("ix_ts_indicator_geo", "indicator", "geo_code"),
+        Index("ix_ts_source_indicator", "source", "indicator"),
+        Index("ix_ts_period", "period"),
     )
 
 
@@ -57,6 +61,9 @@ class Microdata(Base):
 
     __table_args__ = (
         UniqueConstraint("quarter", "cuestionario", name="uq_microdata"),
+        Index("ix_micro_quarter", "quarter"),
+        Index("ix_micro_cluster_id", "cluster_id"),
+        Index("ix_micro_nacionalidad", "nacionalidad"),
     )
 
 
@@ -74,6 +81,11 @@ class Prediction(Base):
     ci_lower_95 = Column(Float)
     ci_upper_95 = Column(Float)
     generated_at = Column(String, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_pred_model_indicator_geo", "model", "indicator", "geo_code"),
+        Index("ix_pred_period", "period"),
+    )
 
 
 class Profile(Base):
@@ -93,6 +105,10 @@ class Profile(Base):
     characteristics = Column(Text)
     generated_at = Column(String, server_default=func.now())
 
+    __table_args__ = (
+        Index("ix_profile_cluster_id", "cluster_id"),
+    )
+
 
 class PipelineRun(Base):
     __tablename__ = "pipeline_runs"
@@ -105,3 +121,7 @@ class PipelineRun(Base):
     error_message = Column(Text)
     started_at = Column(String)
     finished_at = Column(String)
+
+    __table_args__ = (
+        Index("ix_pipeline_source_status", "source", "status"),
+    )
