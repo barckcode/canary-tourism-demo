@@ -62,26 +62,27 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
         .order_by(desc(TimeSeries.period))
         .first()
     )
-    if latest:
+    if latest and latest.value is not None:
         kpis["latest_arrivals"] = latest.value
         kpis["latest_period"] = latest.period
 
-        # YoY change
-        prev_year_period = f"{int(latest.period[:4]) - 1}{latest.period[4:]}"
-        prev = (
-            db.query(TimeSeries)
-            .filter(
-                TimeSeries.indicator == "turistas",
-                TimeSeries.geo_code == "ES709",
-                TimeSeries.measure == "ABSOLUTE",
-                TimeSeries.period == prev_year_period,
+        # YoY change — guard against malformed period strings
+        if latest.period and len(latest.period) >= 4:
+            prev_year_period = f"{int(latest.period[:4]) - 1}{latest.period[4:]}"
+            prev = (
+                db.query(TimeSeries)
+                .filter(
+                    TimeSeries.indicator == "turistas",
+                    TimeSeries.geo_code == "ES709",
+                    TimeSeries.measure == "ABSOLUTE",
+                    TimeSeries.period == prev_year_period,
+                )
+                .first()
             )
-            .first()
-        )
-        if prev and prev.value:
-            kpis["yoy_change"] = round(
-                (latest.value - prev.value) / prev.value * 100, 2
-            )
+            if prev is not None and prev.value is not None and prev.value != 0:
+                kpis["yoy_change"] = round(
+                    (latest.value - prev.value) / prev.value * 100, 2
+                )
 
     # Occupancy rate
     occ = (

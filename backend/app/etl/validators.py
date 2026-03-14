@@ -6,6 +6,7 @@ and deduplication logic for time series and microdata records.
 
 import logging
 import re
+from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -136,12 +137,13 @@ def validate_timeseries(
         if not _is_valid_period(period):
             result.add_warning("period", f"Record {i}: unusual period format '{period}'")
 
-        # Year range check (1990 to 2030 is reasonable for this dataset)
+        # Year range check (1990 to now+5 is reasonable for this dataset)
+        max_year = datetime.now().year + 5
         year_match = re.match(r"^(\d{4})", period)
         if year_match:
             year = int(year_match.group(1))
-            if year < 1990 or year > 2030:
-                result.add_error("period", f"Record {i}: year {year} out of range [1990, 2030]")
+            if year < 1990 or year > max_year:
+                result.add_error("period", f"Record {i}: year {year} out of range [1990, {max_year}]")
                 result.records_dropped += 1
                 continue
 

@@ -736,6 +736,58 @@ class TestPipeline:
         assert result["status"] == "error"
         assert "API unavailable" in result["error"]
 
+    def test_validate_timeseries_dynamic_year_upper_bound(self):
+        """Should accept years up to now+5 and reject years beyond that (issue #27)."""
+        from datetime import datetime
+
+        current_year = datetime.now().year
+
+        # A record with year = now+4 should be accepted
+        near_future = [
+            {
+                "source": "istac",
+                "indicator": "turistas",
+                "geo_code": "ES709",
+                "period": f"{current_year + 4}-01",
+                "measure": "ABSOLUTE",
+                "value": 100.0,
+            },
+        ]
+        valid, result = validate_timeseries(near_future)
+        assert len(valid) == 1, "Year within now+5 should be accepted"
+
+        # A record with year = now+6 should be rejected
+        far_future = [
+            {
+                "source": "istac",
+                "indicator": "turistas",
+                "geo_code": "ES709",
+                "period": f"{current_year + 6}-01",
+                "measure": "ABSOLUTE",
+                "value": 100.0,
+            },
+        ]
+        valid, result = validate_timeseries(far_future)
+        assert len(valid) == 0, "Year beyond now+5 should be rejected"
+
+        # Year 2031 specifically (the original hard-coded boundary) should be accepted
+        # as long as it is within now+5
+        rec_2031 = [
+            {
+                "source": "istac",
+                "indicator": "turistas",
+                "geo_code": "ES709",
+                "period": "2031-06",
+                "measure": "ABSOLUTE",
+                "value": 200.0,
+            },
+        ]
+        valid, result = validate_timeseries(rec_2031)
+        if 2031 <= current_year + 5:
+            assert len(valid) == 1, "2031 should be accepted when within dynamic range"
+        else:
+            assert len(valid) == 0, "2031 should be rejected when outside dynamic range"
+
     def test_run_source_pipeline_no_retrain(self, db):
         """Should skip retraining when retrain=False."""
         from app.etl.pipeline import _run_source_pipeline
