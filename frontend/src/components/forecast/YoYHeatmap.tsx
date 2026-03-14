@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import { useYoYHeatmap, type YoYCell } from "../../api/hooks";
 
 interface YoYHeatmapProps {
   width: number;
@@ -9,7 +10,7 @@ interface YoYHeatmapProps {
 interface CellData {
   year: number;
   month: number;
-  arrivals: number;
+  value: number;
   yoyChange: number | null;
 }
 
@@ -18,44 +19,28 @@ const MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-function generateMockHeatmapData(): CellData[] {
-  const data: CellData[] = [];
-  const baseValue = 500000;
-  const seasonalPattern = [
-    0.85, 0.82, 0.88, 0.9, 0.81, 0.83, 0.95, 0.92, 0.98, 1.1, 1.05, 1.0,
-  ];
-
-  const yearValues: Record<number, number[]> = {};
-
-  for (let y = 2018; y <= 2026; y++) {
-    yearValues[y] = [];
-    for (let m = 0; m < 12; m++) {
-      if (y === 2026 && m > 0) break;
-      const trend = 1 + (y - 2018) * 0.03;
-      const seasonal = seasonalPattern[m];
-      const noise = 1 + (Math.random() - 0.5) * 0.06;
-      let covidFactor = 1;
-      if (y === 2020 && m >= 2) covidFactor = m < 6 ? 0.05 : 0.3 + m * 0.05;
-      if (y === 2021 && m < 6) covidFactor = 0.5 + m * 0.08;
-
-      const arrivals = Math.round(
-        baseValue * trend * seasonal * noise * covidFactor
-      );
-      yearValues[y].push(arrivals);
-
-      const prevYear = yearValues[y - 1];
-      const yoyChange =
-        prevYear && prevYear[m] !== undefined
-          ? ((arrivals - prevYear[m]) / prevYear[m]) * 100
-          : null;
-
-      data.push({ year: y, month: m, arrivals, yoyChange });
-    }
-  }
-  return data;
-}
-
 const MARGIN = { top: 30, right: 20, bottom: 10, left: 50 };
+
+/**
+ * Convert API YoY cells into the flat CellData array used by the D3 chart.
+ * When multiple indicators are returned, we use the first one (turistas by
+ * default since it is first in the backend list).
+ */
+function apiToCellData(indicators: Record<string, YoYCell[]>): CellData[] {
+  const keys = Object.keys(indicators);
+  if (keys.length === 0) return [];
+
+  // Prefer "turistas" if available, otherwise use the first indicator
+  const key = keys.includes("turistas") ? "turistas" : keys[0];
+  const cells = indicators[key];
+
+  return cells.map((c) => ({
+    year: c.year,
+    month: c.month,
+    value: c.value,
+    yoyChange: c.yoy_change,
+  }));
+}
 
 export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -65,13 +50,19 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
     data: CellData;
   } | null>(null);
 
+  const { data: yoyData, loading, error } = useYoYHeatmap();
+
+  const cellData = yoyData ? apiToCellData(yoyData.indicators) : [];
+
   useEffect(() => {
     if (!svgRef.current || width <= 0 || height <= 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    const data = generateMockHeatmapData();
+    if (cellData.length === 0) return;
+
+    const data = cellData;
     const years = [...new Set(data.map((d) => d.year))].sort();
 
     const w = width - MARGIN.left - MARGIN.right;
@@ -86,7 +77,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
     const cellW = w / 12;
     const cellH = h / years.length;
 
-    // Color scale: red (negative) → neutral → blue (positive)
+    // Color scale: red (negative) -> neutral -> blue (positive)
     const colorScale = d3
       .scaleLinear<string>()
       .domain([-50, 0, 50])
@@ -167,7 +158,58 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
           ? `${d.yoyChange > 0 ? "+" : ""}${d.yoyChange.toFixed(0)}%`
           : ""
       );
-  }, [width, height]);
+  }, [width, height, cellData]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div
+        className="flex items-center justify-center"
+        style={{ width, height }}
+      >
+        <div className="text-gray-500 text-sm animate-pulse">
+          Loading heatmap data...
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div
+        className="flex items-center justify-center"
+        style={{ width, height }}
+      >
+        <div className="text-center">
+          <p className="text-red-400 text-sm font-medium">
+            Failed to load heatmap data
+          </p>
+          <p className="text-gray-500 text-xs mt-1">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state - not enough data
+  if (cellData.length === 0) {
+    return (
+      <div
+        className="flex items-center justify-center"
+        style={{ width, height }}
+      >
+        <div className="text-center">
+          <p className="text-gray-400 text-sm font-medium">
+            Not enough data for YoY comparison
+          </p>
+          <p className="text-gray-500 text-xs mt-1">
+            At least two years of monthly data are required to calculate
+            year-over-year changes.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
@@ -181,9 +223,11 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
             {MONTHS[tooltip.data.month]} {tooltip.data.year}
           </div>
           <div className="text-gray-400 mt-0.5">
-            Arrivals:{" "}
+            Value:{" "}
             <span className="text-gray-200">
-              {(tooltip.data.arrivals / 1000).toFixed(0)}K
+              {tooltip.data.value >= 1000
+                ? `${(tooltip.data.value / 1000).toFixed(0)}K`
+                : tooltip.data.value.toLocaleString()}
             </span>
           </div>
           {tooltip.data.yoyChange !== null && (

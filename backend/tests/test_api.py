@@ -75,6 +75,75 @@ def test_timeseries_indicators_list(client):
     assert "turistas" in ids
 
 
+# --- YoY Heatmap ---
+
+def test_yoy_default_indicators(client):
+    """YoY endpoint without indicator param should return multiple indicators."""
+    r = client.get("/api/timeseries/yoy")
+    assert r.status_code == 200
+    data = r.json()
+    assert "indicators" in data
+    assert "metadata" in data
+    assert data["metadata"]["total_indicators"] > 0
+    # turistas should always be present
+    assert "turistas" in data["indicators"]
+
+
+def test_yoy_single_indicator(client):
+    """YoY endpoint with a specific indicator should return only that one."""
+    r = client.get("/api/timeseries/yoy?indicator=turistas")
+    assert r.status_code == 200
+    data = r.json()
+    indicators = data["indicators"]
+    assert len(indicators) == 1
+    assert "turistas" in indicators
+
+
+def test_yoy_cell_structure(client):
+    """Each YoY cell should have year, month, value, and yoy_change fields."""
+    r = client.get("/api/timeseries/yoy?indicator=turistas")
+    assert r.status_code == 200
+    cells = r.json()["indicators"]["turistas"]
+    assert len(cells) > 12, "Expected more than one year of data"
+    first = cells[0]
+    assert "year" in first
+    assert "month" in first
+    assert "value" in first
+    assert "yoy_change" in first
+    # First year cells should have null yoy_change
+    assert first["yoy_change"] is None
+
+
+def test_yoy_change_calculation(client):
+    """YoY change values should be reasonable percentages."""
+    r = client.get("/api/timeseries/yoy?indicator=turistas")
+    assert r.status_code == 200
+    cells = r.json()["indicators"]["turistas"]
+    non_null = [c for c in cells if c["yoy_change"] is not None]
+    assert len(non_null) > 0
+    for c in non_null:
+        # YoY changes should be finite numbers (not NaN or Inf)
+        assert isinstance(c["yoy_change"], (int, float))
+
+
+def test_yoy_empty_indicator(client):
+    """Non-existent indicator should return empty indicators dict."""
+    r = client.get("/api/timeseries/yoy?indicator=nonexistent_indicator_xyz")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["indicators"] == {}
+    assert data["metadata"]["total_indicators"] == 0
+
+
+def test_yoy_month_range(client):
+    """All month values should be 0-11 (zero-based)."""
+    r = client.get("/api/timeseries/yoy?indicator=turistas")
+    assert r.status_code == 200
+    cells = r.json()["indicators"]["turistas"]
+    for c in cells:
+        assert 0 <= c["month"] <= 11
+
+
 # --- Predictions ---
 
 def test_predictions_ensemble(client):

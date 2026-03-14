@@ -22,6 +22,10 @@ export const api = {
       return fetchJSON(`/timeseries?${qs}`);
     },
     indicators: () => fetchJSON("/timeseries/indicators"),
+    yoy: (params?: Record<string, string>) => {
+      const qs = params ? new URLSearchParams(params).toString() : "";
+      return fetchJSON(`/timeseries/yoy${qs ? `?${qs}` : ""}`);
+    },
   },
   predictions: {
     get: (params?: Record<string, string>) => {

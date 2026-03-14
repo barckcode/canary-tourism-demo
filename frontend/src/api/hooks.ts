@@ -150,6 +150,32 @@ export function useIndicators() {
   );
 }
 
+// ── YoY Heatmap ──
+
+export interface YoYCell {
+  year: number;
+  month: number;
+  value: number;
+  yoy_change: number | null;
+}
+
+export interface YoYResponse {
+  indicators: Record<string, YoYCell[]>;
+  metadata: {
+    geo: string;
+    total_indicators: number;
+  };
+}
+
+export function useYoYHeatmap(indicator?: string, geo = "ES709") {
+  const params: Record<string, string> = { geo };
+  if (indicator) params.indicator = indicator;
+  return useQuery<YoYResponse>(
+    () => api.timeseries.yoy(params) as Promise<YoYResponse>,
+    [indicator, geo]
+  );
+}
+
 // ── Predictions ──
 
 export interface ForecastPoint {
