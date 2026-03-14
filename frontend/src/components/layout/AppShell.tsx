@@ -1,6 +1,6 @@
-import { NavLink } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ReactNode, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ReactNode, useState, useEffect, useCallback } from "react";
 
 const navItems = [
   {
@@ -53,70 +53,202 @@ const navItems = [
   },
 ];
 
+function SidebarContent({
+  collapsed,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-4 h-16 border-b border-gray-800/50">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-ocean-500 to-tropical-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          TI
+        </div>
+        {!collapsed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="overflow-hidden"
+          >
+            <h1 className="text-sm font-semibold text-white whitespace-nowrap leading-tight">
+              Tenerife Tourism
+            </h1>
+            <p className="text-[10px] text-gray-500 whitespace-nowrap">
+              Intelligence Platform
+            </p>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-4 space-y-1" aria-label="Main navigation">
+        {navItems.map(({ to, label, icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === "/"}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                isActive
+                  ? "text-ocean-400 bg-ocean-500/10"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800/50"
+              }`
+            }
+          >
+            <svg
+              className="w-5 h-5 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              {icon}
+            </svg>
+            {!collapsed && (
+              <span className="text-sm font-medium whitespace-nowrap">
+                {label}
+              </span>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+    </>
+  );
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  const closeMobileDrawer = useCallback(() => {
+    setMobileOpen(false);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-950">
-      {/* Sidebar */}
+      {/* Skip navigation link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-ocean-500 focus:text-white focus:rounded-lg focus:text-sm focus:font-medium focus:outline-none focus:ring-2 focus:ring-ocean-400 focus:ring-offset-2 focus:ring-offset-gray-950"
+      >
+        Skip to main content
+      </a>
+
+      {/* Mobile header bar */}
+      <div className="fixed top-0 left-0 right-0 z-30 flex items-center h-14 px-4 border-b border-gray-800/50 bg-gray-950 md:hidden">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="p-2 -ml-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+          aria-label="Open navigation menu"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+        <div className="flex items-center gap-2 ml-3">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-ocean-500 to-tropical-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+            TI
+          </div>
+          <span className="text-sm font-semibold text-white">
+            Tenerife Tourism
+          </span>
+        </div>
+      </div>
+
+      {/* Mobile drawer overlay + sidebar */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/60 md:hidden"
+              onClick={closeMobileDrawer}
+              aria-hidden="true"
+            />
+            {/* Drawer */}
+            <motion.aside
+              key="mobile-drawer"
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col bg-gray-950 border-r border-gray-800/50 md:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
+            >
+              {/* Close button */}
+              <div className="absolute top-3 right-3">
+                <button
+                  onClick={closeMobileDrawer}
+                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+                  aria-label="Close navigation menu"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <SidebarContent collapsed={false} onNavigate={closeMobileDrawer} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop sidebar */}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? 64 : 240 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="flex flex-col border-r border-gray-800/50 shrink-0"
+        className="hidden md:flex flex-col border-r border-gray-800/50 shrink-0"
       >
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-4 h-16 border-b border-gray-800/50">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-ocean-500 to-tropical-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-            TI
-          </div>
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="overflow-hidden"
-            >
-              <h1 className="text-sm font-semibold text-white whitespace-nowrap leading-tight">
-                Tenerife Tourism
-              </h1>
-              <p className="text-[10px] text-gray-500 whitespace-nowrap">
-                Intelligence Platform
-              </p>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-2 py-4 space-y-1">
-          {navItems.map(({ to, label, icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? "text-ocean-400 bg-ocean-500/10"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800/50"
-                }`
-              }
-            >
-              <svg
-                className="w-5 h-5 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                {icon}
-              </svg>
-              {!collapsed && (
-                <span className="text-sm font-medium whitespace-nowrap">
-                  {label}
-                </span>
-              )}
-            </NavLink>
-          ))}
-        </nav>
+        <SidebarContent collapsed={collapsed} />
 
         {/* Collapse toggle */}
         <button
@@ -141,9 +273,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </motion.aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-auto flex flex-col">
-        <div className="flex-1 p-6">{children}</div>
-        <footer className="px-6 py-4 border-t border-gray-800/50 flex items-center justify-between text-xs text-gray-500">
+      <main id="main-content" className="flex-1 overflow-auto flex flex-col pt-14 md:pt-0">
+        <div className="flex-1 p-4 md:p-6">{children}</div>
+        <footer className="px-4 md:px-6 py-4 border-t border-gray-800/50 flex items-center justify-between text-xs text-gray-500">
           <a
             href="https://github.com/barckcode/canary-tourism-demo"
             target="_blank"
