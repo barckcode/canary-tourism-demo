@@ -201,7 +201,14 @@ export default function ProfilesPage() {
                       <span className="text-gray-400">{category}</span>
                       <span className="text-gray-300">{"\u20AC"}{Math.round(amount)}</span>
                     </div>
-                    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className="w-full h-2 bg-gray-800 rounded-full overflow-hidden"
+                      role="progressbar"
+                      aria-valuenow={pct}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${category} spending ${Math.round(amount)} euros, ${pct}%`}
+                    >
                       <motion.div
                         key={`${activeId}-${category}`}
                         initial={{ width: 0 }}
@@ -273,7 +280,14 @@ export default function ProfilesPage() {
                         {count.toLocaleString()} visitors {"\u00B7"} {"\u20AC"}{Math.round(avg_spend)}
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className="w-full h-2 bg-gray-800 rounded-full overflow-hidden"
+                      role="progressbar"
+                      aria-valuenow={Math.round((count / maxNatCount) * 100)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${nationality} visitors ${count.toLocaleString()}`}
+                    >
                       <motion.div
                         key={`nat-${nationality}`}
                         initial={{ width: 0 }}
@@ -299,7 +313,14 @@ export default function ProfilesPage() {
                         {avg_nights.toFixed(1)} nights
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className="w-full h-2 bg-gray-800 rounded-full overflow-hidden"
+                      role="progressbar"
+                      aria-valuenow={Math.round((avg_nights / maxNights) * 100)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${nationality} average stay ${avg_nights.toFixed(1)} nights`}
+                    >
                       <motion.div
                         key={`stay-${nationality}`}
                         initial={{ width: 0 }}

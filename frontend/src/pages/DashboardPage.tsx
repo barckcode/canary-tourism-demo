@@ -176,7 +176,14 @@ export default function DashboardPage() {
                   <div key={country} className="flex items-center justify-between">
                     <span className="text-sm text-gray-300">{country}</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden"
+                        role="progressbar"
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`${country} market share ${pct}%`}
+                      >
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${pct}%` }}

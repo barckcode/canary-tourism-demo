@@ -116,6 +116,7 @@ export default function DataExplorerPage() {
                             selectedIndicator === ind.id ? null : ind.id
                           )
                         }
+                        aria-label={`${selectedIndicator === ind.id ? "Deselect" : "View"} ${ind.id}`}
                         className={`px-3 py-1 text-xs rounded transition-colors ${
                           selectedIndicator === ind.id
                             ? "bg-ocean-600 text-white"
@@ -148,8 +149,9 @@ export default function DataExplorerPage() {
         >
           {selectedIndicator ? (
             tsLoading ? (
-              <div className="h-[360px] flex items-center justify-center">
+              <div className="h-[360px] flex items-center justify-center" role="status" aria-live="polite">
                 <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
+                <span className="sr-only">Loading time series data</span>
               </div>
             ) : chartData.length > 0 ? (
               <ChartContainer height={360}>

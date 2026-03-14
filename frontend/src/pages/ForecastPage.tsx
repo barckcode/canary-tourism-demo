@@ -260,6 +260,7 @@ export default function ForecastPage() {
                     max={20}
                     value={scenarioValues[key]}
                     onChange={(e) => updateSlider(key, Number(e.target.value))}
+                    aria-label={`${label} ${scenarioValues[key] > 0 ? "+" : ""}${scenarioValues[key]}%`}
                     className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-ocean-500"
                   />
                 </div>

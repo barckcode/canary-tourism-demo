@@ -124,6 +124,7 @@ export default function TimeSlider({
               setCurrentMonth(Number(e.target.value));
               setPlaying(false);
             }}
+            aria-label={`Time period slider, currently ${monthToLabel(currentMonth)}`}
             className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-ocean-500"
           />
 
