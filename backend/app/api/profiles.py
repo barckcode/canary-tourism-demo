@@ -69,6 +69,21 @@ def get_profiles(request: Request, db: Session = Depends(get_db)):
         characteristics = safe_json_loads(p.characteristics, default={})
         if isinstance(characteristics, list):
             characteristics = {}
+
+        # Convert nationality codes to labeled objects
+        raw_nationalities = safe_json_loads(p.top_nationalities)
+        nat_entries = [
+            {"nationality": NATIONALITY_LABELS.get(code, code), "percentage": 0}
+            for code in raw_nationalities
+        ] if isinstance(raw_nationalities, list) else []
+
+        # Convert accommodation codes to labeled objects
+        raw_accommodations = safe_json_loads(p.top_accommodations)
+        acc_entries = [
+            {"type": ACCOMMODATION_LABELS.get(code, code), "percentage": 0}
+            for code in raw_accommodations
+        ] if isinstance(raw_accommodations, list) else []
+
         clusters.append({
             "id": p.cluster_id,
             "name": p.cluster_name,
@@ -76,8 +91,8 @@ def get_profiles(request: Request, db: Session = Depends(get_db)):
             "avg_age": p.avg_age,
             "avg_spend": p.avg_spend,
             "avg_nights": p.avg_nights,
-            "top_nationalities": safe_json_loads(p.top_nationalities),
-            "top_accommodations": safe_json_loads(p.top_accommodations),
+            "top_nationalities": nat_entries,
+            "top_accommodations": acc_entries,
             "top_activities": safe_json_loads(p.top_activities),
             "top_motivations": safe_json_loads(p.top_motivations),
             "avg_satisfaction": characteristics.get("avg_satisfaction"),
@@ -266,6 +281,20 @@ def get_profile_detail(
     if isinstance(characteristics, list):
         characteristics = {}
 
+    # Convert nationality codes to labeled objects
+    raw_nationalities = safe_json_loads(profile.top_nationalities)
+    nat_entries = [
+        {"nationality": NATIONALITY_LABELS.get(code, code), "percentage": 0}
+        for code in raw_nationalities
+    ] if isinstance(raw_nationalities, list) else []
+
+    # Convert accommodation codes to labeled objects
+    raw_accommodations = safe_json_loads(profile.top_accommodations)
+    acc_entries = [
+        {"type": ACCOMMODATION_LABELS.get(code, code), "percentage": 0}
+        for code in raw_accommodations
+    ] if isinstance(raw_accommodations, list) else []
+
     return {
         "id": profile.cluster_id,
         "name": profile.cluster_name,
@@ -273,8 +302,8 @@ def get_profile_detail(
         "avg_age": profile.avg_age,
         "avg_spend": profile.avg_spend,
         "avg_nights": profile.avg_nights,
-        "top_nationalities": safe_json_loads(profile.top_nationalities),
-        "top_accommodations": safe_json_loads(profile.top_accommodations),
+        "top_nationalities": nat_entries,
+        "top_accommodations": acc_entries,
         "top_activities": safe_json_loads(profile.top_activities),
         "top_motivations": safe_json_loads(profile.top_motivations),
         "avg_satisfaction": characteristics.get("avg_satisfaction"),

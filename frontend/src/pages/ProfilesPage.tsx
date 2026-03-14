@@ -229,10 +229,10 @@ export default function ProfilesPage() {
                 <div className="flex flex-wrap gap-2 py-3">
                   {activities.map((activity) => (
                     <span
-                      key={typeof activity === "string" ? activity : activity.activity}
+                      key={activity}
                       className="px-3 py-1.5 text-sm bg-ocean-500/10 text-ocean-400 border border-ocean-500/20 rounded-full"
                     >
-                      {typeof activity === "string" ? activity : activity.activity}
+                      {activity}
                     </span>
                   ))}
                 </div>
@@ -246,10 +246,10 @@ export default function ProfilesPage() {
                 <div className="flex flex-wrap gap-2 py-3">
                   {motivations.map((motivation) => (
                     <span
-                      key={typeof motivation === "string" ? motivation : motivation.motivation}
+                      key={motivation}
                       className="px-3 py-1.5 text-sm bg-tropical-500/10 text-tropical-400 border border-tropical-500/20 rounded-full"
                     >
-                      {typeof motivation === "string" ? motivation : motivation.motivation}
+                      {motivation}
                     </span>
                   ))}
                 </div>
