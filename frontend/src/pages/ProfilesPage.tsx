@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
+import ExportCSVButton from "../components/shared/ExportCSVButton";
 import SankeyFlow from "../components/profiles/SankeyFlow";
 import ClusterViz, {
   type ClusterData,
@@ -142,6 +143,20 @@ export default function ProfilesPage() {
     }));
   }, [profilesData]);
 
+  const profilesCsvRows = useMemo<(string | number)[][]>(() => {
+    if (!profilesData?.clusters) return [];
+    return profilesData.clusters.map((c) => [
+      c.id,
+      c.name,
+      c.size_pct,
+      Math.round(c.avg_age),
+      Math.round(c.avg_spend),
+      c.avg_nights.toFixed(1),
+      c.top_nationalities?.map((n) => n.nationality).join("; ") || "",
+      c.top_accommodations?.map((a) => a.type).join("; ") || "",
+    ]);
+  }, [profilesData]);
+
   const activeId = selectedCluster?.id ?? 1;
   const details = detailData
     ? [
@@ -162,11 +177,23 @@ export default function ProfilesPage() {
       animate="show"
       className="space-y-6"
     >
-      <motion.div variants={fadeUp}>
-        <h2 className="text-2xl font-bold gradient-text">Tourist Profiles</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Behavioral segmentation from survey microdata
-        </p>
+      <motion.div variants={fadeUp} className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold gradient-text">Tourist Profiles</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Behavioral segmentation from survey microdata
+          </p>
+        </div>
+        <ExportCSVButton
+          headers={["Cluster ID", "Name", "Size %", "Avg Age", "Avg Spend", "Avg Nights", "Top Nationalities", "Top Accommodations"]}
+          rows={profilesCsvRows}
+          filename="tourist-profiles"
+          metadata={{
+            source: "Tenerife Tourism Intelligence - Tourist Profiles",
+          }}
+          disabled={profilesCsvRows.length === 0}
+          ariaLabel="Export tourist profiles as CSV"
+        />
       </motion.div>
 
       {/* D3 Force Bubble Chart */}

@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import AnimatedNumber from "../components/shared/AnimatedNumber";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
+import ExportCSVButton from "../components/shared/ExportCSVButton";
 import SparklineChart from "../components/shared/SparklineChart";
 import TimeSlider from "../components/timeline/TimeSlider";
 import TenerifeMap from "../components/map/TenerifeMap";
@@ -72,6 +73,11 @@ export default function DashboardPage() {
     setSelectedPeriod(period);
   }, []);
 
+  const csvRows = useMemo<(string | number)[][]>(() => {
+    if (!kpis) return [];
+    return kpiConfig.map(({ key, label }) => [label, kpis[key]]);
+  }, [kpis]);
+
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
       {/* Header */}
@@ -82,11 +88,24 @@ export default function DashboardPage() {
             Tenerife tourism overview
           </p>
         </div>
-        {kpis?.last_updated && (
-          <span className="text-xs text-gray-600">
-            Updated: {kpis.last_updated}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {kpis?.last_updated && (
+            <span className="text-xs text-gray-600">
+              Updated: {kpis.last_updated}
+            </span>
+          )}
+          <ExportCSVButton
+            headers={["KPI", "Value"]}
+            rows={csvRows}
+            filename={`dashboard-kpis-${selectedPeriod}`}
+            metadata={{
+              source: "Tenerife Tourism Intelligence - Dashboard",
+              filters: { period: selectedPeriod },
+            }}
+            disabled={!kpis}
+            ariaLabel="Export dashboard KPIs as CSV"
+          />
+        </div>
       </motion.div>
 
       {/* KPI cards */}

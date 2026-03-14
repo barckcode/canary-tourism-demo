@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
+import ExportCSVButton from "../components/shared/ExportCSVButton";
 import ForecastChart, {
   generateMockData,
   type TimeSeriesPoint as ChartTimePoint,
@@ -95,6 +96,18 @@ export default function ForecastPage() {
     return mockData;
   }, [tsData, predData, mockData]);
 
+  const forecastCsvRows = useMemo<(string | number)[][]>(() => {
+    if (!predData?.forecast) return [];
+    return predData.forecast.map((d) => [
+      d.period,
+      d.value,
+      d.ci_lower_80,
+      d.ci_upper_80,
+      d.ci_lower_95,
+      d.ci_upper_95,
+    ]);
+  }, [predData]);
+
   const handleRunScenario = () => {
     runScenario(scenarioValues as ScenarioInput);
   };
@@ -110,12 +123,28 @@ export default function ForecastPage() {
       animate="show"
       className="space-y-6"
     >
-      <motion.div variants={fadeUp}>
-        <h2 className="text-2xl font-bold gradient-text">Prediction Engine</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          AI-powered tourism demand forecasting
-          {tsData ? "" : " (using mock data)"}
-        </p>
+      <motion.div variants={fadeUp} className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold gradient-text">Prediction Engine</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            AI-powered tourism demand forecasting
+            {tsData ? "" : " (using mock data)"}
+          </p>
+        </div>
+        <ExportCSVButton
+          headers={["Period", "Forecast", "CI Lower 80", "CI Upper 80", "CI Lower 95", "CI Upper 95"]}
+          rows={forecastCsvRows}
+          filename={`forecast-${predData?.model_info?.name || "ensemble"}`}
+          metadata={{
+            source: "Tenerife Tourism Intelligence - Prediction Engine",
+            filters: {
+              model: predData?.model_info?.name || "ensemble",
+              periods: String(predData?.model_info?.total_periods || 12),
+            },
+          }}
+          disabled={forecastCsvRows.length === 0}
+          ariaLabel="Export forecast data as CSV"
+        />
       </motion.div>
 
       {/* Main chart */}

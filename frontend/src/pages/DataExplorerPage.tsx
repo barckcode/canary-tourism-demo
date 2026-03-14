@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
+import ExportCSVButton from "../components/shared/ExportCSVButton";
 import ForecastChart, {
   type TimeSeriesPoint as ChartPoint,
 } from "../components/forecast/ForecastChart";
@@ -43,6 +44,11 @@ export default function DataExplorerPage() {
     }));
   }, [tsData]);
 
+  const csvRows = useMemo<(string | number)[][]>(() => {
+    if (!tsData?.data || !selectedIndicator) return [];
+    return tsData.data.map((d) => [selectedIndicator, d.period, d.value]);
+  }, [tsData, selectedIndicator]);
+
   return (
     <motion.div
       variants={stagger}
@@ -50,11 +56,26 @@ export default function DataExplorerPage() {
       animate="show"
       className="space-y-6"
     >
-      <motion.div variants={fadeUp}>
-        <h2 className="text-2xl font-bold gradient-text">Data Explorer</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Browse raw time series and indicators
-        </p>
+      <motion.div variants={fadeUp} className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold gradient-text">Data Explorer</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Browse raw time series and indicators
+          </p>
+        </div>
+        <ExportCSVButton
+          headers={["Indicator", "Period", "Value"]}
+          rows={csvRows}
+          filename={`data-explorer-${selectedIndicator || "none"}`}
+          metadata={{
+            source: "Tenerife Tourism Intelligence - Data Explorer",
+            filters: selectedIndicator
+              ? { indicator: selectedIndicator }
+              : undefined,
+          }}
+          disabled={!selectedIndicator || csvRows.length === 0}
+          ariaLabel="Export time series data as CSV"
+        />
       </motion.div>
 
       <motion.div variants={fadeUp}>
