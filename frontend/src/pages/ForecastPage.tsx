@@ -316,7 +316,9 @@ export default function ForecastPage() {
                     <div className="flex items-center gap-2">
                       <div
                         className={`w-2 h-2 rounded-full ${active ? "bg-tropical-500" : "bg-gray-600"}`}
+                        aria-hidden="true"
                       />
+                      <span className="sr-only">{active ? "Active" : "Inactive"}:</span>
                       <span className="text-sm text-gray-300">{name}</span>
                       {best && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-tropical-500/20 text-tropical-400 font-medium">

@@ -79,11 +79,11 @@ export default function DataExplorerPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-400 border-b border-gray-700/50">
-                  <th className="pb-3 font-medium">Indicator</th>
-                  <th className="pb-3 font-medium">Source</th>
-                  <th className="pb-3 font-medium">Range</th>
-                  <th className="pb-3 font-medium">Points</th>
-                  <th className="pb-3 font-medium">Actions</th>
+                  <th scope="col" className="pb-3 font-medium">Indicator</th>
+                  <th scope="col" className="pb-3 font-medium">Source</th>
+                  <th scope="col" className="pb-3 font-medium">Range</th>
+                  <th scope="col" className="pb-3 font-medium">Points</th>
+                  <th scope="col" className="pb-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
