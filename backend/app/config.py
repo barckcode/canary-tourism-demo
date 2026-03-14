@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     models_dir: Path = data_dir / "models"
 
     # Raw data source (override with TOURISM_RAW_DATA_DIR env var)
-    raw_data_dir: Path = base_dir / "data" / "raw"
+    raw_data_dir: Path = base_dir.parent / "tenerife-tourism-data"
 
     # Database
     database_url: str = ""

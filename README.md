@@ -62,7 +62,7 @@ All data is sourced from official public institutions:
 ### Prerequisites
 
 - Docker and Docker Compose
-- Raw data files in `../tenerife-tourism-data/` (ISTAC CSVs, INE JSONs, EGT microdata)
+- Raw data files in `tenerife-tourism-data/` (ISTAC CSVs, INE JSONs, EGT microdata)
 
 ### Development
 

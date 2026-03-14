@@ -5,7 +5,7 @@ services:
       - "8000:8000"
     volumes:
       - backend-data:/app/data
-      - ../tenerife-tourism-data:/raw-data:ro
+      - ./tenerife-tourism-data:/raw-data:ro
     environment:
       - TOURISM_RAW_DATA_DIR=/raw-data
       - TOURISM_DEBUG=false

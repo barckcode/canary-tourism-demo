@@ -30,3 +30,6 @@ frontend/dist/
 
 # Logs
 *.log
+
+# Raw data (local only)
+tenerife-tourism-data/
