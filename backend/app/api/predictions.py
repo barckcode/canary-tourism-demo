@@ -1,7 +1,6 @@
 """Prediction and forecast endpoints."""
 
 from fastapi import APIRouter, Depends, Query, Request
-from pydantic import Field
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db

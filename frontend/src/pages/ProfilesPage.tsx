@@ -7,7 +7,7 @@ import ClusterViz, {
   type ClusterData,
 } from "../components/profiles/ClusterViz";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
-import { useProfiles, useProfileDetail } from "../api/hooks";
+import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData } from "../api/hooks";
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -103,6 +103,29 @@ export default function ProfilesPage() {
   );
   const { data: profilesData } = useProfiles();
   const { data: detailData } = useProfileDetail(selectedCluster?.id ?? null);
+  const { data: nationalityData } = useNationalityProfiles();
+  const { data: flowData } = useFlowData();
+
+  // Top 8 nationalities sorted by count
+  const topNationalities = useMemo(() => {
+    if (!nationalityData) return [];
+    return [...nationalityData]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }, [nationalityData]);
+
+  const maxNatCount = useMemo(
+    () => (topNationalities.length > 0 ? topNationalities[0].count : 1),
+    [topNationalities]
+  );
+
+  const maxNights = useMemo(
+    () =>
+      topNationalities.length > 0
+        ? Math.max(...topNationalities.map((n) => n.avg_nights))
+        : 1,
+    [topNationalities]
+  );
 
   // Map API clusters to ClusterViz format (with fallback)
   const apiClusters = useMemo<ClusterData[] | undefined>(() => {
@@ -215,16 +238,73 @@ export default function ProfilesPage() {
         </motion.div>
       </div>
 
+      {/* Nationality Profiles */}
+      {topNationalities.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.div variants={fadeUp}>
+            <Panel title="Top Nationalities" subtitle="Visitor count and average spend">
+              <div className="space-y-4 py-2">
+                {topNationalities.map(({ nationality, count, avg_spend }) => (
+                  <div key={nationality}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-300">{nationality}</span>
+                      <span className="text-gray-400">
+                        {count.toLocaleString()} visitors {"\u00B7"} {"\u20AC"}{Math.round(avg_spend)}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <motion.div
+                        key={`nat-${nationality}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(count / maxNatCount) * 100}%` }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
+                        className="h-full bg-gradient-to-r from-ocean-500 to-tropical-500 rounded-full"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <Panel title="Avg Stay by Market" subtitle="Average nights per nationality">
+              <div className="space-y-4 py-2">
+                {topNationalities.map(({ nationality, avg_nights }) => (
+                  <div key={nationality}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-300">{nationality}</span>
+                      <span className="text-gray-400">
+                        {avg_nights.toFixed(1)} nights
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <motion.div
+                        key={`stay-${nationality}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(avg_nights / maxNights) * 100}%` }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
+                        className="h-full bg-gradient-to-r from-volcanic-500 to-tropical-500 rounded-full"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          </motion.div>
+        </div>
+      )}
+
       {/* Sankey */}
       <motion.div variants={fadeUp}>
         <Panel
           title="Tourist Flow"
-          subtitle="Country \u2192 Zone \u2192 Accommodation"
+          subtitle={flowData ? "Country \u2192 Accommodation" : "Country \u2192 Zone \u2192 Accommodation"}
         >
           <ErrorBoundary>
             <ChartContainer height={300}>
               {({ width, height }) => (
-                <SankeyFlow width={width} height={height} />
+                <SankeyFlow width={width} height={height} data={flowData} />
               )}
             </ChartContainer>
           </ErrorBoundary>

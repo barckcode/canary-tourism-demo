@@ -5,7 +5,6 @@ from the ISTAC REST API at datos.canarias.es.
 """
 
 import logging
-from datetime import datetime
 from typing import Any
 
 import httpx

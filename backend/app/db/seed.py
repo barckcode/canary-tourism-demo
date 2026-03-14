@@ -7,14 +7,12 @@ the time_series and microdata tables. Idempotent via INSERT OR REPLACE.
 import csv
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db.models import Microdata, TimeSeries
 
 logger = logging.getLogger(__name__)
 

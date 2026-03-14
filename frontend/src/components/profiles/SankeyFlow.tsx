@@ -10,6 +10,10 @@ import {
 interface SankeyFlowProps {
   width: number;
   height: number;
+  data?: {
+    nodes: { id: string; label: string }[];
+    links: { source: string; target: string; value: number }[];
+  } | null;
 }
 
 interface NodeData {
@@ -97,7 +101,31 @@ const categoryColors: Record<string, string> = {
 
 const MARGIN = { top: 10, right: 10, bottom: 10, left: 10 };
 
-export default function SankeyFlow({ width, height }: SankeyFlowProps) {
+// Convert API data (string IDs) to internal format (numeric IDs)
+function convertApiData(apiData: {
+  nodes: { id: string; label: string }[];
+  links: { source: string; target: string; value: number }[];
+}): { nodes: NodeData[]; links: LinkData[] } {
+  const idMap = new Map<string, number>();
+  const nodes: NodeData[] = apiData.nodes.map((n, i) => {
+    idMap.set(n.id, i);
+    // Determine category from ID prefix
+    let category = "country";
+    if (n.id.startsWith("accom_")) category = "accommodation";
+    else if (n.id.startsWith("zone_")) category = "zone";
+    return { id: i, name: n.label, category };
+  });
+  const links: LinkData[] = apiData.links
+    .filter((l) => idMap.has(l.source) && idMap.has(l.target))
+    .map((l) => ({
+      source: idMap.get(l.source)!,
+      target: idMap.get(l.target)!,
+      value: l.value,
+    }));
+  return { nodes, links };
+}
+
+export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -115,7 +143,9 @@ export default function SankeyFlow({ width, height }: SankeyFlowProps) {
       .append("g")
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
 
-    const data = getMockSankeyData();
+    // Use API data if available, otherwise fall back to mock
+    const useApiData = apiData && apiData.nodes.length > 0;
+    const data = useApiData ? convertApiData(apiData) : getMockSankeyData();
 
     const sankeyGenerator = d3Sankey<NodeData, LinkData>()
       .nodeId((d: SankeyNode<NodeData, LinkData>) => d.id)
@@ -185,24 +215,31 @@ export default function SankeyFlow({ width, height }: SankeyFlowProps) {
       .attr("font-size", "11px")
       .text((d) => d.name);
 
-    // Category labels (top)
-    const categories = [
-      { label: "Country", x: 0 },
-      { label: "Zone", x: w / 2 },
-      { label: "Accommodation", x: w },
-    ];
+    // Category labels (top) — adapt to 2-level (API) or 3-level (mock)
+    const uniqueCategories = [...new Set(data.nodes.map((n) => n.category))];
+    const categoryLabels: { label: string; x: number; anchor: string }[] =
+      uniqueCategories.length === 2
+        ? [
+            { label: "Country", x: 0, anchor: "start" },
+            { label: "Accommodation", x: w, anchor: "end" },
+          ]
+        : [
+            { label: "Country", x: 0, anchor: "start" },
+            { label: "Zone", x: w / 2, anchor: "middle" },
+            { label: "Accommodation", x: w, anchor: "end" },
+          ];
     g.append("g")
       .selectAll("text")
-      .data(categories)
+      .data(categoryLabels)
       .join("text")
       .attr("x", (d) => d.x)
       .attr("y", -2)
-      .attr("text-anchor", (_d, i) => (i === 0 ? "start" : i === 1 ? "middle" : "end"))
+      .attr("text-anchor", (d) => d.anchor)
       .attr("fill", "rgba(255,255,255,0.3)")
       .attr("font-size", "10px")
       .attr("text-transform", "uppercase")
       .text((d) => d.label);
-  }, [width, height]);
+  }, [width, height, apiData]);
 
   return <svg ref={svgRef} className="overflow-visible" />;
 }

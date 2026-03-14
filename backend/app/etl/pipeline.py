@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.etl.sources import ckan, ine, istac
 from app.etl.validators import (
-    ValidationResult,
     validate_microdata,
     validate_timeseries,
 )

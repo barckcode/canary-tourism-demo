@@ -13,6 +13,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.api.router import api_router
 from app.config import settings
 from app.db.database import init_db
+from app.etl.scheduler import setup_scheduler, shutdown_scheduler
 from app.rate_limit import limiter
 
 logging.basicConfig(
@@ -57,8 +58,12 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
+    # Start background scheduler for data fetching
+    setup_scheduler()
+
     logger.info("Application ready.")
     yield
+    shutdown_scheduler()
     logger.info("Shutting down.")
 
 

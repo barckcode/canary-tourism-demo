@@ -1,7 +1,6 @@
 """Time series data endpoints."""
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import distinct
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db

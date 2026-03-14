@@ -15,6 +15,7 @@ import ErrorBoundary from "../components/shared/ErrorBoundary";
 import {
   useTimeSeries,
   usePredictions,
+  usePredictionCompare,
   useScenarios,
   type ScenarioInput,
 } from "../api/hooks";
@@ -36,6 +37,36 @@ export default function ForecastPage() {
   const { data: tsData } = useTimeSeries("turistas");
   const { data: predData } = usePredictions();
   const { data: scenarioData, runScenario, loading: scenarioLoading, error: scenarioError } = useScenarios();
+  const { data: compareData, loading: compareLoading } = usePredictionCompare();
+
+  // Build model list from compare API or fall back to hardcoded data
+  const modelList = useMemo(() => {
+    if (compareData?.models) {
+      const entries = Object.entries(compareData.models).map(([key, points]) => ({
+        name: key
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" "),
+        periods: points.length,
+        active: points.length > 0,
+        best: false,
+      }));
+      // Mark the model with the most forecast points as best
+      if (entries.length > 0) {
+        const maxPeriods = Math.max(...entries.map((e) => e.periods));
+        const bestIdx = entries.findIndex((e) => e.periods === maxPeriods);
+        if (bestIdx >= 0) entries[bestIdx].best = true;
+      }
+      return entries;
+    }
+    // Fallback hardcoded data
+    return [
+      { name: "SARIMA", periods: 12, active: true, best: false },
+      { name: "Holt-Winters", periods: 12, active: false, best: false },
+      { name: "Ensemble", periods: 12, active: true, best: true },
+      { name: "Seasonal Naive", periods: 12, active: false, best: false },
+    ];
+  }, [compareData]);
 
   // Scenario sliders state
   const [scenarioValues, setScenarioValues] = useState({
@@ -165,32 +196,38 @@ export default function ForecastPage() {
             subtitle="Forecasting model comparison"
           >
             <div className="space-y-3 py-2">
-              {[
-                { name: "SARIMA", mape: 5.36, active: true, best: false },
-                { name: "Holt-Winters", mape: 8.87, active: false, best: false },
-                { name: "Ensemble", mape: 4.12, active: true, best: true },
-                { name: "Seasonal Naive", mape: 2.76, active: false, best: false },
-              ].map(({ name, mape, active, best }) => (
-                <div
-                  key={name}
-                  className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-800/40"
-                >
-                  <div className="flex items-center gap-2">
+              {compareLoading ? (
+                <>
+                  {[0, 1, 2, 3].map((i) => (
                     <div
-                      className={`w-2 h-2 rounded-full ${active ? "bg-tropical-500" : "bg-gray-600"}`}
+                      key={i}
+                      className="h-10 rounded-lg bg-gray-800/40 animate-pulse"
                     />
-                    <span className="text-sm text-gray-300">{name}</span>
-                    {best && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-volcanic-500/20 text-volcanic-400 font-medium">
-                        Best
-                      </span>
-                    )}
+                  ))}
+                </>
+              ) : (
+                modelList.map(({ name, periods, active, best }) => (
+                  <div
+                    key={name}
+                    className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-800/40"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-2 h-2 rounded-full ${active ? "bg-tropical-500" : "bg-gray-600"}`}
+                      />
+                      <span className="text-sm text-gray-300">{name}</span>
+                      {best && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-volcanic-500/20 text-volcanic-400 font-medium">
+                          Best
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm font-mono text-gray-400">
+                      {periods} periods
+                    </span>
                   </div>
-                  <span className="text-sm font-mono text-gray-400">
-                    MAPE: {mape}%
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </Panel>
         </motion.div>

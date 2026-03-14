@@ -34,6 +34,12 @@ const kpiConfig = [
     color: "text-ocean-300",
   },
   {
+    key: "revpar" as const,
+    label: "RevPAR",
+    format: (n: number) => `\u20AC${n.toFixed(0)}`,
+    color: "text-purple-400",
+  },
+  {
     key: "avg_stay" as const,
     label: "Avg Stay",
     format: (n: number) => `${n.toFixed(1)}n`,
@@ -79,7 +85,7 @@ export default function DashboardPage() {
       {/* KPI cards */}
       <motion.div
         variants={fadeUp}
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
       >
         {kpiConfig.map(({ key, label, format, color }) => (
           <Panel key={key}>
