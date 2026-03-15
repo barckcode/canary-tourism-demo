@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
@@ -15,6 +16,7 @@ import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData, use
 const CLUSTER_COLORS = ["#0087b9", "#f69b1a", "#28c066", "#a855f7"];
 
 export default function ProfilesPage() {
+  const { t } = useTranslation();
   const [selectedCluster, setSelectedCluster] = useState<ClusterData | null>(
     null
   );
@@ -80,29 +82,29 @@ export default function ProfilesPage() {
   const activeCluster = profilesData?.clusters?.find((c) => c.id === activeId);
   const details = detailData
     ? [
-        { label: "Profile", value: detailData.name },
-        { label: "Avg Age", value: String(Math.round(detailData.avg_age)) },
-        { label: "Avg Spend", value: `\u20AC${Math.round(detailData.avg_spend).toLocaleString()}` },
-        { label: "Avg Stay", value: `${detailData.avg_nights.toFixed(1)} nights` },
-        { label: "Satisfaction", value: detailData.avg_satisfaction != null ? `${detailData.avg_satisfaction.toFixed(1)}/10` : "\u2014" },
-        { label: "Top Market", value: detailData.top_nationalities?.[0]?.nationality || "\u2014" },
+        { label: t('profiles.profile'), value: detailData.name },
+        { label: t('profiles.avgAge'), value: String(Math.round(detailData.avg_age)) },
+        { label: t('profiles.avgSpend'), value: `\u20AC${Math.round(detailData.avg_spend).toLocaleString()}` },
+        { label: t('profiles.avgStay'), value: `${detailData.avg_nights.toFixed(1)} ${t('profiles.nights')}` },
+        { label: t('profiles.satisfaction'), value: detailData.avg_satisfaction != null ? `${detailData.avg_satisfaction.toFixed(1)}/10` : "\u2014" },
+        { label: t('profiles.topMarket'), value: detailData.top_nationalities?.[0]?.nationality || "\u2014" },
       ]
     : activeCluster
       ? [
-          { label: "Profile", value: activeCluster.name },
-          { label: "Avg Age", value: String(Math.round(activeCluster.avg_age)) },
-          { label: "Avg Spend", value: `\u20AC${Math.round(activeCluster.avg_spend).toLocaleString()}` },
-          { label: "Avg Stay", value: `${activeCluster.avg_nights.toFixed(1)} nights` },
-          { label: "Satisfaction", value: activeCluster.avg_satisfaction != null ? `${activeCluster.avg_satisfaction.toFixed(1)}/10` : "\u2014" },
-          { label: "Top Market", value: activeCluster.top_nationalities?.[0]?.nationality || "\u2014" },
+          { label: t('profiles.profile'), value: activeCluster.name },
+          { label: t('profiles.avgAge'), value: String(Math.round(activeCluster.avg_age)) },
+          { label: t('profiles.avgSpend'), value: `\u20AC${Math.round(activeCluster.avg_spend).toLocaleString()}` },
+          { label: t('profiles.avgStay'), value: `${activeCluster.avg_nights.toFixed(1)} ${t('profiles.nights')}` },
+          { label: t('profiles.satisfaction'), value: activeCluster.avg_satisfaction != null ? `${activeCluster.avg_satisfaction.toFixed(1)}/10` : "\u2014" },
+          { label: t('profiles.topMarket'), value: activeCluster.top_nationalities?.[0]?.nationality || "\u2014" },
         ]
       : [
-          { label: "Profile", value: "\u2014" },
-          { label: "Avg Age", value: "\u2014" },
-          { label: "Avg Spend", value: "\u2014" },
-          { label: "Avg Stay", value: "\u2014" },
-          { label: "Satisfaction", value: "\u2014" },
-          { label: "Top Market", value: "\u2014" },
+          { label: t('profiles.profile'), value: "\u2014" },
+          { label: t('profiles.avgAge'), value: "\u2014" },
+          { label: t('profiles.avgSpend'), value: "\u2014" },
+          { label: t('profiles.avgStay'), value: "\u2014" },
+          { label: t('profiles.satisfaction'), value: "\u2014" },
+          { label: t('profiles.topMarket'), value: "\u2014" },
         ];
 
   // Get spending from the dedicated spending endpoint (real microdata)
@@ -121,9 +123,9 @@ export default function ProfilesPage() {
     >
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold gradient-text">Tourist Profiles</h1>
+          <h1 className="text-2xl font-bold gradient-text">{t('profiles.title')}</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Behavioral segmentation from survey microdata
+            {t('profiles.subtitle')}
           </p>
         </div>
         <ExportCSVButton
@@ -134,18 +136,18 @@ export default function ProfilesPage() {
             source: "Tenerife Tourism Intelligence - Tourist Profiles",
           }}
           disabled={profilesCsvRows.length === 0}
-          ariaLabel="Export tourist profiles as CSV"
+          ariaLabel={t('profiles.exportAriaLabel')}
         />
       </motion.div>
 
       {/* D3 Force Bubble Chart */}
       <motion.div variants={fadeUp}>
         <Panel
-          title="Segment Bubbles"
-          subtitle="Click a segment to explore its profile"
+          title={t('profiles.segmentBubbles')}
+          subtitle={t('profiles.segmentBubblesSubtitle')}
         >
           {profilesError ? (
-            <ErrorState message="Could not load tourist profiles." onRetry={refetchProfiles} />
+            <ErrorState message={t('profiles.couldNotLoadProfiles')} onRetry={refetchProfiles} />
           ) : (
             <ErrorBoundary>
               <ChartContainer height={320}>
@@ -163,12 +165,12 @@ export default function ProfilesPage() {
         </Panel>
       </motion.div>
 
-      {/* Detail + Spending — updates based on selected cluster */}
+      {/* Detail + Spending -- updates based on selected cluster */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div variants={fadeUp}>
           <Panel
-            title="Selected Segment"
-            subtitle={selectedCluster?.description || "Click a bubble above"}
+            title={t('profiles.selectedSegment')}
+            subtitle={selectedCluster?.description || t('profiles.clickBubble')}
           >
             <div className="space-y-3 py-2">
               {details.map(({ label, value }) => (
@@ -187,7 +189,7 @@ export default function ProfilesPage() {
         </motion.div>
 
         <motion.div variants={fadeUp}>
-          <Panel title="Spending Breakdown" subtitle="Real average spend per category from survey data">
+          <Panel title={t('profiles.spendingBreakdown')} subtitle={t('profiles.spendingSubtitle')}>
             <div className="space-y-4 py-2">
               {spending.length > 0 ? (
                 spending.map(({ category, amount, pct }) => (
@@ -202,7 +204,7 @@ export default function ProfilesPage() {
                       aria-valuenow={pct}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-label={`${category} spending ${Math.round(amount)} euros, ${pct}%`}
+                      aria-label={t('profiles.spendingAriaLabel', { category, amount: Math.round(amount), pct })}
                     >
                       <motion.div
                         key={`${activeId}-${category}`}
@@ -215,19 +217,19 @@ export default function ProfilesPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 py-4 text-center">No spending data available for this cluster</p>
+                <p className="text-sm text-gray-400 py-4 text-center">{t('profiles.noSpendingData')}</p>
               )}
             </div>
           </Panel>
         </motion.div>
       </div>
 
-      {/* Activities + Motivations — per selected cluster */}
+      {/* Activities + Motivations -- per selected cluster */}
       {(activities.length > 0 || motivations.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {activities.length > 0 && (
             <motion.div variants={fadeUp}>
-              <Panel title="Top Activities" subtitle="Most popular activities in this segment">
+              <Panel title={t('profiles.topActivities')} subtitle={t('profiles.topActivitiesSubtitle')}>
                 <div className="flex flex-wrap gap-2 py-3">
                   {activities.map((activity) => (
                     <span
@@ -244,7 +246,7 @@ export default function ProfilesPage() {
 
           {motivations.length > 0 && (
             <motion.div variants={fadeUp}>
-              <Panel title="Top Motivations" subtitle="Key travel motivations for this segment">
+              <Panel title={t('profiles.topMotivations')} subtitle={t('profiles.topMotivationsSubtitle')}>
                 <div className="flex flex-wrap gap-2 py-3">
                   {motivations.map((motivation) => (
                     <span
@@ -264,20 +266,20 @@ export default function ProfilesPage() {
       {/* Nationality Profiles */}
       {nationalityError && (
         <motion.div variants={fadeUp}>
-          <ErrorState message="Could not load nationality profiles." onRetry={refetchNationality} />
+          <ErrorState message={t('profiles.couldNotLoadNationalities')} onRetry={refetchNationality} />
         </motion.div>
       )}
       {!nationalityError && topNationalities.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <motion.div variants={fadeUp}>
-            <Panel title="Top Nationalities" subtitle="Visitor count and average spend">
+            <Panel title={t('profiles.topNationalities')} subtitle={t('profiles.topNationalitiesSubtitle')}>
               <div className="space-y-4 py-2">
                 {topNationalities.map(({ nationality, count, avg_spend }) => (
                   <div key={nationality}>
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="text-gray-300">{nationality}</span>
                       <span className="text-gray-400">
-                        {count.toLocaleString()} visitors {"\u00B7"} {"\u20AC"}{Math.round(avg_spend)}
+                        {count.toLocaleString()} {t('profiles.visitors')} {"\u00B7"} {"\u20AC"}{Math.round(avg_spend)}
                       </span>
                     </div>
                     <div
@@ -286,7 +288,7 @@ export default function ProfilesPage() {
                       aria-valuenow={Math.round((count / maxNatCount) * 100)}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-label={`${nationality} visitors ${count.toLocaleString()}`}
+                      aria-label={`${nationality} ${t('profiles.visitors')} ${count.toLocaleString()}`}
                     >
                       <motion.div
                         key={`nat-${nationality}`}
@@ -303,14 +305,14 @@ export default function ProfilesPage() {
           </motion.div>
 
           <motion.div variants={fadeUp}>
-            <Panel title="Avg Stay by Market" subtitle="Average nights per nationality">
+            <Panel title={t('profiles.avgStayByMarket')} subtitle={t('profiles.avgStayByMarketSubtitle')}>
               <div className="space-y-4 py-2">
                 {topNationalities.map(({ nationality, avg_nights }) => (
                   <div key={nationality}>
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="text-gray-300">{nationality}</span>
                       <span className="text-gray-400">
-                        {avg_nights.toFixed(1)} nights
+                        {avg_nights.toFixed(1)} {t('profiles.nights')}
                       </span>
                     </div>
                     <div
@@ -319,7 +321,7 @@ export default function ProfilesPage() {
                       aria-valuenow={Math.round((avg_nights / maxNights) * 100)}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-label={`${nationality} average stay ${avg_nights.toFixed(1)} nights`}
+                      aria-label={`${nationality} ${t('profiles.avgStay')} ${avg_nights.toFixed(1)} ${t('profiles.nights')}`}
                     >
                       <motion.div
                         key={`stay-${nationality}`}
@@ -340,11 +342,11 @@ export default function ProfilesPage() {
       {/* Sankey */}
       <motion.div variants={fadeUp}>
         <Panel
-          title="Tourist Flow"
-          subtitle="Top 6 source markets \u2192 preferred accommodation type"
+          title={t('profiles.touristFlow')}
+          subtitle={t('profiles.touristFlowSubtitle')}
         >
           {flowError ? (
-            <ErrorState message="Could not load tourist flow data." onRetry={refetchFlow} />
+            <ErrorState message={t('profiles.couldNotLoadFlow')} onRetry={refetchFlow} />
           ) : (
             <ErrorBoundary>
               <ChartContainer height={420}>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
@@ -20,6 +21,7 @@ const fallbackIndicators = [
 ];
 
 export default function DataExplorerPage() {
+  const { t } = useTranslation();
   const [selectedIndicator, setSelectedIndicator] = useState<string | null>(null);
   const { data: apiIndicators, error: indicatorsError, refetch: refetchIndicators } = useIndicators();
   const { data: tsData, loading: tsLoading, error: tsError, refetch: refetchTs } = useTimeSeries(
@@ -50,13 +52,13 @@ export default function DataExplorerPage() {
     >
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold gradient-text">Data Explorer</h1>
+          <h1 className="text-2xl font-bold gradient-text">{t('dataExplorer.title')}</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Browse raw time series and indicators
+            {t('dataExplorer.subtitle')}
           </p>
         </div>
         <ExportCSVButton
-          headers={["Indicator", "Period", "Value"]}
+          headers={[t('dataExplorer.indicator'), "Period", t('dashboard.value')]}
           rows={csvRows}
           filename={`data-explorer-${selectedIndicator || "none"}`}
           metadata={{
@@ -66,24 +68,24 @@ export default function DataExplorerPage() {
               : undefined,
           }}
           disabled={!selectedIndicator || csvRows.length === 0}
-          ariaLabel="Export time series data as CSV"
+          ariaLabel={t('dataExplorer.exportAriaLabel')}
         />
       </motion.div>
 
       <motion.div variants={fadeUp}>
-        <Panel title="Available Indicators">
+        <Panel title={t('dataExplorer.availableIndicators')}>
           {indicatorsError ? (
-            <ErrorState message="Could not load indicators." onRetry={refetchIndicators} />
+            <ErrorState message={t('dataExplorer.couldNotLoadIndicators')} onRetry={refetchIndicators} />
           ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-400 border-b border-gray-700/50">
-                  <th scope="col" className="pb-3 font-medium">Indicator</th>
-                  <th scope="col" className="pb-3 font-medium">Source</th>
-                  <th scope="col" className="pb-3 font-medium">Range</th>
-                  <th scope="col" className="pb-3 font-medium">Points</th>
-                  <th scope="col" className="pb-3 font-medium">Actions</th>
+                  <th scope="col" className="pb-3 font-medium">{t('dataExplorer.indicator')}</th>
+                  <th scope="col" className="pb-3 font-medium">{t('dataExplorer.source')}</th>
+                  <th scope="col" className="pb-3 font-medium">{t('dataExplorer.range')}</th>
+                  <th scope="col" className="pb-3 font-medium">{t('dataExplorer.points')}</th>
+                  <th scope="col" className="pb-3 font-medium">{t('dataExplorer.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -99,7 +101,7 @@ export default function DataExplorerPage() {
                     </td>
                     <td className="py-3 text-gray-400">{ind.source}</td>
                     <td className="py-3 text-gray-400 font-mono text-xs">
-                      {ind.available_from} \u2192 {ind.available_to}
+                      {ind.available_from} {"\u2192"} {ind.available_to}
                     </td>
                     <td className="py-3 text-gray-400 text-center">
                       {ind.total_points}
@@ -111,7 +113,7 @@ export default function DataExplorerPage() {
                             selectedIndicator === ind.id ? null : ind.id
                           )
                         }
-                        aria-label={`${selectedIndicator === ind.id ? "Deselect" : "View"} ${ind.id}`}
+                        aria-label={`${selectedIndicator === ind.id ? t('dataExplorer.deselect') : t('dataExplorer.view')} ${ind.id}`}
                         aria-pressed={selectedIndicator === ind.id}
                         className={`px-3 py-1 text-xs rounded transition-colors ${
                           selectedIndicator === ind.id
@@ -119,7 +121,7 @@ export default function DataExplorerPage() {
                             : "bg-ocean-600/20 text-ocean-400 hover:bg-ocean-600/30"
                         }`}
                       >
-                        {selectedIndicator === ind.id ? "Selected" : "View"}
+                        {selectedIndicator === ind.id ? t('dataExplorer.selected') : t('dataExplorer.view')}
                       </button>
                     </td>
                   </tr>
@@ -135,22 +137,22 @@ export default function DataExplorerPage() {
         <Panel
           title={
             selectedIndicator
-              ? `Time Series: ${selectedIndicator}`
-              : "Time Series Viewer"
+              ? t('dataExplorer.timeSeries', { indicator: selectedIndicator })
+              : t('dataExplorer.timeSeriesViewer')
           }
           subtitle={
             selectedIndicator
-              ? `${tsData?.metadata?.total_points || 0} data points`
-              : "Select an indicator above to visualize"
+              ? t('dataExplorer.dataPoints', { count: tsData?.metadata?.total_points || 0 })
+              : t('dataExplorer.selectIndicatorAbove')
           }
         >
           {selectedIndicator ? (
             tsError ? (
-              <ErrorState message="Could not load time series data." onRetry={refetchTs} />
+              <ErrorState message={t('dataExplorer.couldNotLoadTimeSeries')} onRetry={refetchTs} />
             ) : tsLoading ? (
               <div className="h-[360px] flex items-center justify-center" role="status" aria-live="polite">
                 <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
-                <span className="sr-only">Loading time series data</span>
+                <span className="sr-only">{t('common.loadingTimeSeries')}</span>
               </div>
             ) : chartData.length > 0 ? (
               <ChartContainer height={360}>
@@ -166,7 +168,7 @@ export default function DataExplorerPage() {
               </ChartContainer>
             ) : (
               <div className="h-[360px] flex items-center justify-center text-gray-400">
-                <p className="text-sm">No data available for this indicator</p>
+                <p className="text-sm">{t('dataExplorer.noDataForIndicator')}</p>
               </div>
             )
           ) : (
@@ -185,7 +187,7 @@ export default function DataExplorerPage() {
                     d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
                   />
                 </svg>
-                <p className="text-sm">Select an indicator to view its time series</p>
+                <p className="text-sm">{t('dataExplorer.selectIndicator')}</p>
               </div>
             </div>
           )}

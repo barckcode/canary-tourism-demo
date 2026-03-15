@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
@@ -26,6 +27,7 @@ import {
 } from "../api/hooks";
 
 export default function ForecastPage() {
+  const { t, i18n } = useTranslation();
   const mockData = useMemo(() => generateMockData(), []);
 
   // Real API data (will fail gracefully if backend not running)
@@ -125,6 +127,8 @@ export default function ForecastPage() {
     setScenarioValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const currentLocale = i18n.language?.startsWith("es") ? "es-ES" : "en-GB";
+
   return (
     <motion.div
       variants={stagger}
@@ -134,15 +138,15 @@ export default function ForecastPage() {
     >
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold gradient-text">Prediction Engine</h1>
+          <h1 className="text-2xl font-bold gradient-text">{t('forecast.title')}</h1>
           <p className="text-sm text-gray-400 mt-1">
-            AI-powered tourism demand forecasting
+            {t('forecast.subtitle')}
           </p>
           {trainingInfo?.last_trained_at && (
             <p className="text-xs text-gray-500 mt-1">
-              Model trained on{" "}
+              {t('forecast.modelTrainedOn')}{" "}
               <time dateTime={trainingInfo.last_trained_at}>
-                {new Date(trainingInfo.last_trained_at).toLocaleDateString("en-GB", {
+                {new Date(trainingInfo.last_trained_at).toLocaleDateString(currentLocale, {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
@@ -163,7 +167,7 @@ export default function ForecastPage() {
             },
           }}
           disabled={forecastCsvRows.length === 0}
-          ariaLabel="Export forecast data as CSV"
+          ariaLabel={t('forecast.exportAriaLabel')}
         />
       </motion.div>
 
@@ -171,7 +175,7 @@ export default function ForecastPage() {
       {(tsError || predError) && (
         <motion.div variants={fadeUp}>
           <ErrorState
-            message="Could not load forecast data from the server. Showing demo data instead."
+            message={t('forecast.couldNotLoadForecast')}
             onRetry={() => { refetchTs(); refetchPred(); }}
           />
         </motion.div>
@@ -199,11 +203,10 @@ export default function ForecastPage() {
           </svg>
           <div>
             <p className="text-sm font-semibold text-amber-300">
-              Demo data -- the connection to the prediction server is not available
+              {t('forecast.demoDataWarning')}
             </p>
             <p className="text-xs text-amber-400/70 mt-1">
-              The charts below display synthetic data for demonstration purposes only.
-              Values shown are not based on real predictions.
+              {t('forecast.demoDataDetails')}
             </p>
           </div>
         </motion.div>
@@ -212,15 +215,15 @@ export default function ForecastPage() {
       {/* Main chart */}
       <motion.div variants={fadeUp}>
         <Panel
-          title="Forecast Chart"
-          subtitle="Historical arrivals + predicted values with 80%/95% confidence bands -- Tenerife peaks Nov-Mar (winter high season)"
+          title={t('forecast.forecastChart')}
+          subtitle={t('forecast.forecastChartSubtitle')}
         >
           <ErrorBoundary>
             <div className={isMockData ? "relative" : ""}>
               {isMockData && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
                   <span className="text-3xl font-bold text-white/[0.07] rotate-[-18deg] select-none tracking-widest uppercase">
-                    Demo Data
+                    {t('forecast.demoData')}
                   </span>
                 </div>
               )}
@@ -238,7 +241,7 @@ export default function ForecastPage() {
                       forecast={chartData.forecast}
                       width={width}
                       height={height}
-                      yLabel="Tourist Arrivals"
+                      yLabel={t('forecast.touristArrivals')}
                       isMock={isMockData}
                     />
                   )}
@@ -253,14 +256,14 @@ export default function ForecastPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div variants={fadeUp}>
           <Panel
-            title="Scenario Engine"
-            subtitle="Adjust parameters for what-if analysis"
+            title={t('forecast.scenarioEngine')}
+            subtitle={t('forecast.scenarioSubtitle')}
           >
             <div className="space-y-5 py-2">
               {[
-                { label: "Occupancy Change", key: "occupancy_change_pct" as const },
-                { label: "ADR Change", key: "adr_change_pct" as const },
-                { label: "Foreign Tourist Ratio", key: "foreign_ratio_change_pct" as const },
+                { label: t('forecast.occupancyChange'), key: "occupancy_change_pct" as const },
+                { label: t('forecast.adrChange'), key: "adr_change_pct" as const },
+                { label: t('forecast.foreignTouristRatio'), key: "foreign_ratio_change_pct" as const },
               ].map(({ label, key }) => (
                 <div key={key}>
                   <div className="flex justify-between text-sm mb-2">
@@ -286,12 +289,12 @@ export default function ForecastPage() {
                 disabled={scenarioLoading}
                 className="w-full py-2.5 bg-ocean-600 hover:bg-ocean-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                {scenarioLoading ? "Running..." : "Run Scenario"}
+                {scenarioLoading ? t('forecast.running') : t('forecast.runScenario')}
               </button>
               {scenarioError && (
                 <div className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
                   <p className="text-sm text-red-400">
-                    <span className="font-medium">Scenario error:</span>{" "}
+                    <span className="font-medium">{t('forecast.scenarioError')}:</span>{" "}
                     {scenarioError}
                   </p>
                 </div>
@@ -302,12 +305,12 @@ export default function ForecastPage() {
 
         <motion.div variants={fadeUp}>
           <Panel
-            title="Model Performance"
-            subtitle="Forecasting model comparison -- lower MAPE = better accuracy"
+            title={t('forecast.modelPerformance')}
+            subtitle={t('forecast.modelPerformanceSubtitle')}
           >
             <div className="space-y-3 py-2">
               {compareError ? (
-                <ErrorState message="Could not load model comparison." onRetry={refetchCompare} />
+                <ErrorState message={t('forecast.couldNotLoadModels')} onRetry={refetchCompare} />
               ) : compareLoading ? (
                 <>
                   {[0, 1, 2, 3].map((i) => (
@@ -332,11 +335,11 @@ export default function ForecastPage() {
                         className={`w-2 h-2 rounded-full ${active ? "bg-tropical-500" : "bg-gray-600"}`}
                         aria-hidden="true"
                       />
-                      <span className="sr-only">{active ? "Active" : "Inactive"}:</span>
+                      <span className="sr-only">{active ? t('forecast.active') : t('forecast.inactive')}:</span>
                       <span className="text-sm text-gray-300">{name}</span>
                       {best && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-tropical-500/20 text-tropical-400 font-medium">
-                          Best
+                          {t('forecast.best')}
                         </span>
                       )}
                     </div>
@@ -354,7 +357,7 @@ export default function ForecastPage() {
                         </span>
                       ) : (
                         <span className="text-sm font-mono text-gray-400">
-                          {periods} periods
+                          {periods} {t('forecast.periods')}
                         </span>
                       )}
                     </div>
@@ -376,8 +379,8 @@ export default function ForecastPage() {
             exit={{ opacity: 0, y: -8, transition: { duration: 0.3 } }}
           >
             <Panel
-              title="Scenario Comparison"
-              subtitle="Baseline vs scenario forecast -- shaded areas show positive (green) and negative (red) impact"
+              title={t('forecast.scenarioComparison')}
+              subtitle={t('forecast.scenarioComparisonSubtitle')}
             >
               <ChartContainer height={340}>
                 {({ width, height }) => (
@@ -397,8 +400,8 @@ export default function ForecastPage() {
       {/* Heatmap */}
       <motion.div variants={fadeUp}>
         <Panel
-          title="YoY Heatmap"
-          subtitle="Month x Year comparison -- hover any cell for details"
+          title={t('forecast.yoyHeatmap')}
+          subtitle={t('forecast.yoyHeatmapSubtitle')}
         >
           <ErrorBoundary>
             <ChartContainer height={280}>

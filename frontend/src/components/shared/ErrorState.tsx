@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface ErrorStateProps {
   /** Custom error message. Defaults to a generic message. */
@@ -12,9 +13,11 @@ interface ErrorStateProps {
  * Shows an error icon, a descriptive message and an optional retry button.
  */
 export default function ErrorState({
-  message = "Failed to load data. Please try again.",
+  message,
   onRetry,
 }: ErrorStateProps) {
+  const { t } = useTranslation();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -42,9 +45,9 @@ export default function ErrorState({
 
       <div className="text-center">
         <h3 className="text-sm font-semibold text-gray-200 mb-1">
-          Something went wrong
+          {t('common.somethingWentWrong')}
         </h3>
-        <p className="text-xs text-gray-400 max-w-xs">{message}</p>
+        <p className="text-xs text-gray-400 max-w-xs">{message || t('common.errorLoading')}</p>
       </div>
 
       {onRetry && (
@@ -52,7 +55,7 @@ export default function ErrorState({
           onClick={onRetry}
           className="px-4 py-2 text-xs font-medium rounded-lg bg-ocean-600 hover:bg-ocean-500 text-white transition-colors"
         >
-          Retry
+          {t('common.retry')}
         </button>
       )}
     </motion.div>

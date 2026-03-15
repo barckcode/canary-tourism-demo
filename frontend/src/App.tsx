@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import AppShell from "./components/layout/AppShell";
 import ErrorBoundary from "./components/shared/ErrorBoundary";
 
@@ -11,12 +12,13 @@ const DataExplorerPage = lazy(() => import("./pages/DataExplorerPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 
 function PageLoader() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center h-[60vh]" role="status" aria-live="polite">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-gray-400">Loading...</span>
-        <span className="sr-only">Loading page content</span>
+        <span className="text-sm text-gray-400">{t('common.loading')}</span>
+        <span className="sr-only">{t('common.loadingPageContent')}</span>
       </div>
     </div>
   );

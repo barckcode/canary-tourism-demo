@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { exportCSV, type CSVMetadata } from "../../utils/csv";
 
 interface ExportCSVButtonProps {
@@ -19,8 +20,9 @@ export default function ExportCSVButton({
   filename,
   metadata,
   disabled = false,
-  ariaLabel = "Export data as CSV",
+  ariaLabel,
 }: ExportCSVButtonProps) {
+  const { t } = useTranslation();
   const [exported, setExported] = useState(false);
 
   const handleExport = useCallback(() => {
@@ -35,7 +37,7 @@ export default function ExportCSVButton({
     <motion.button
       onClick={handleExport}
       disabled={disabled || rows.length === 0}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel || t('common.exportCSV')}
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
       className={`
@@ -67,7 +69,7 @@ export default function ExportCSVButton({
               d="M5 13l4 4L19 7"
             />
           </svg>
-          <span>Exported</span>
+          <span>{t('common.exported')}</span>
         </>
       ) : (
         <>
@@ -86,7 +88,7 @@ export default function ExportCSVButton({
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
             />
           </svg>
-          <span>Export CSV</span>
+          <span>{t('common.exportCSV')}</span>
         </>
       )}
     </motion.button>

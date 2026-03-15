@@ -1,57 +1,44 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ReactNode, useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
-const navItems = [
-  {
-    to: "/",
-    label: "Dashboard",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-2a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"
-      />
-    ),
-  },
-  {
-    to: "/forecast",
-    label: "Predictions",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M7 12l3-3 3 3 4-4m0 0h-4m4 0v4M3 20h18"
-      />
-    ),
-  },
-  {
-    to: "/profiles",
-    label: "Profiles",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-      />
-    ),
-  },
-  {
-    to: "/data",
-    label: "Data Explorer",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-      />
-    ),
-  },
-];
+function LanguageToggle() {
+  const { i18n } = useTranslation();
+  const currentLang = i18n.language?.startsWith("es") ? "es" : "en";
+
+  const toggle = () => {
+    const newLang = currentLang === "es" ? "en" : "es";
+    i18n.changeLanguage(newLang);
+    document.documentElement.lang = newLang;
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+      aria-label={currentLang === "es" ? "Switch to English" : "Cambiar a Espanol"}
+    >
+      <svg
+        className="w-4 h-4 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A9 9 0 013 12c0-1.605.42-3.113 1.157-4.418"
+        />
+      </svg>
+      <span className={currentLang === "es" ? "text-ocean-400 font-semibold" : ""}>ES</span>
+      <span className="text-gray-600">|</span>
+      <span className={currentLang === "en" ? "text-ocean-400 font-semibold" : ""}>EN</span>
+    </button>
+  );
+}
 
 function SidebarContent({
   collapsed,
@@ -60,6 +47,59 @@ function SidebarContent({
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
+  const { t } = useTranslation();
+
+  const navItems = [
+    {
+      to: "/",
+      labelKey: "nav.dashboard",
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-2a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"
+        />
+      ),
+    },
+    {
+      to: "/forecast",
+      labelKey: "nav.predictions",
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M7 12l3-3 3 3 4-4m0 0h-4m4 0v4M3 20h18"
+        />
+      ),
+    },
+    {
+      to: "/profiles",
+      labelKey: "nav.profiles",
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+        />
+      ),
+    },
+    {
+      to: "/data",
+      labelKey: "nav.dataExplorer",
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+        />
+      ),
+    },
+  ];
+
   return (
     <>
       {/* Logo */}
@@ -74,54 +114,67 @@ function SidebarContent({
             className="overflow-hidden"
           >
             <div className="text-sm font-semibold text-white whitespace-nowrap leading-tight">
-              Tenerife Tourism
+              {t('nav.platformName')}
             </div>
             <p className="text-[10px] text-gray-400 whitespace-nowrap">
-              Intelligence Platform
+              {t('nav.platformSubtitle')}
             </p>
           </motion.div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-1" aria-label="Main navigation">
-        {navItems.map(({ to, label, icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            onClick={onNavigate}
-            aria-label={label}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? "text-ocean-400 bg-ocean-500/10"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800/50"
-              }`
-            }
-          >
-            <svg
-              className="w-5 h-5 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
+      <nav className="flex-1 px-2 py-4 space-y-1" aria-label={t('nav.mainNavigation')}>
+        {navItems.map(({ to, labelKey, icon }) => {
+          const label = t(labelKey);
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === "/"}
+              onClick={onNavigate}
+              aria-label={label}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? "text-ocean-400 bg-ocean-500/10"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800/50"
+                }`
+              }
             >
-              {icon}
-            </svg>
-            {!collapsed && (
-              <span className="text-sm font-medium whitespace-nowrap">
-                {label}
-              </span>
-            )}
-          </NavLink>
-        ))}
+              <svg
+                className="w-5 h-5 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                {icon}
+              </svg>
+              {!collapsed && (
+                <span className="text-sm font-medium whitespace-nowrap">
+                  {label}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
+
+      {/* Language toggle at bottom of nav area */}
+      <div className={`px-2 pb-2 ${collapsed ? "flex justify-center" : ""}`}>
+        {collapsed ? (
+          <LanguageToggle />
+        ) : (
+          <LanguageToggle />
+        )}
+      </div>
     </>
   );
 }
 
 export default function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -154,7 +207,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-ocean-500 focus:text-white focus:rounded-lg focus:text-sm focus:font-medium focus:outline-none focus:ring-2 focus:ring-ocean-400 focus:ring-offset-2 focus:ring-offset-gray-950"
       >
-        Skip to main content
+        {t('nav.skipToMain')}
       </a>
 
       {/* Mobile header bar */}
@@ -162,7 +215,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <button
           onClick={() => setMobileOpen(true)}
           className="p-2 -ml-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
-          aria-label="Open navigation menu"
+          aria-label={t('nav.openMenu')}
         >
           <svg
             className="w-6 h-6"
@@ -184,7 +237,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             TI
           </div>
           <span className="text-sm font-semibold text-white">
-            Tenerife Tourism
+            {t('nav.platformName')}
           </span>
         </div>
       </div>
@@ -214,14 +267,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
               className="fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col bg-gray-950 border-r border-gray-800/50 md:hidden"
               role="dialog"
               aria-modal="true"
-              aria-label="Navigation menu"
+              aria-label={t('nav.navigationMenu')}
             >
               {/* Close button */}
               <div className="absolute top-3 right-3">
                 <button
                   onClick={closeMobileDrawer}
                   className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
-                  aria-label="Close navigation menu"
+                  aria-label={t('nav.closeMenu')}
                 >
                   <svg
                     className="w-5 h-5"
@@ -258,7 +311,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-3 mx-2 mb-4 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
         >
           <svg
             className={`w-5 h-5 transition-transform duration-300 ${collapsed ? "rotate-180" : ""}`}
@@ -286,12 +339,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 hover:text-white transition-colors"
-            aria-label="View source on GitHub"
+            aria-label={t('nav.viewSourceOnGithub')}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
             </svg>
-            GitHub
+            {t('nav.github')}
           </a>
           <NavLink
             to="/about"
@@ -299,7 +352,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               `hover:text-white transition-colors ${isActive ? "text-ocean-400" : ""}`
             }
           >
-            About this project
+            {t('nav.aboutProject')}
           </NavLink>
         </footer>
       </main>
