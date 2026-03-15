@@ -146,6 +146,23 @@ class TrainingRun(Base):
     )
 
 
+class SavedScenario(Base):
+    __tablename__ = "saved_scenarios"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    occupancy_change_pct = Column(Float, default=0.0)
+    adr_change_pct = Column(Float, default=0.0)
+    foreign_ratio_change_pct = Column(Float, default=0.0)
+    horizon = Column(Integer, default=12)
+    result_json = Column(Text)  # JSON-serialized scenario result
+    created_at = Column(String, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_saved_scenario_created", "created_at"),
+    )
+
+
 class PipelineRun(Base):
     __tablename__ = "pipeline_runs"
 

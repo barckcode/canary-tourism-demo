@@ -18,6 +18,7 @@ from app.db.models import (
     ModelMetric,
     Prediction,
     Profile,
+    SavedScenario,
     TimeSeries,
     TrainingRun,
 )

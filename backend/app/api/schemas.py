@@ -291,3 +291,39 @@ class ScenarioResponse(BaseModel):
     scenario_forecast: list[ScenarioForecastPoint]
     impact_summary: ImpactSummary | dict = Field(default_factory=dict)
     params: ScenarioParams | dict = Field(default_factory=dict)
+
+
+class SavedScenarioSummary(BaseModel):
+    """Lightweight saved scenario listing (without full result)."""
+
+    id: int
+    name: str
+    occupancy_change_pct: float = 0.0
+    adr_change_pct: float = 0.0
+    foreign_ratio_change_pct: float = 0.0
+    horizon: int = 12
+    created_at: str | None = None
+
+
+class SavedScenarioDetail(SavedScenarioSummary):
+    """Full saved scenario including the result."""
+
+    result: ScenarioResponse
+
+
+class SavedScenarioListResponse(BaseModel):
+    """List of saved scenarios."""
+
+    scenarios: list[SavedScenarioSummary]
+
+
+class CompareResponse(BaseModel):
+    """Comparison of multiple saved scenarios keyed by ID."""
+
+    scenarios: dict[str, SavedScenarioDetail]
+
+
+class FeatureImportanceResponse(BaseModel):
+    """GBR model feature importances."""
+
+    importances: dict[str, float]
