@@ -51,6 +51,28 @@ export const api = {
     flows: () => fetchJSON("/profiles/flows"),
     spending: () => fetchJSON("/profiles/spending"),
   },
+  events: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? new URLSearchParams(params).toString() : "";
+      return fetchJSON(`/events${qs ? `?${qs}` : ""}`);
+    },
+    categories: () => fetchJSON("/events/categories"),
+    create: (data: {
+      name: string;
+      description?: string;
+      category: string;
+      start_date: string;
+      end_date?: string;
+      impact_estimate?: string;
+      location?: string;
+    }) =>
+      fetchJSON("/events", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      fetchJSON(`/events/${id}`, { method: "DELETE" }),
+  },
   scenarios: {
     run: (body: Record<string, number>) =>
       fetchJSON("/scenarios", {

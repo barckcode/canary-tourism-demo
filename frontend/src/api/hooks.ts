@@ -497,3 +497,43 @@ export function useFeatureImportance() {
     () => api.scenarios.featureImportance() as Promise<FeatureImportanceResponse>
   );
 }
+
+// ── Events ──
+
+export interface TourismEvent {
+  id: number;
+  name: string;
+  description?: string;
+  category: string;
+  start_date: string;
+  end_date?: string;
+  impact_estimate?: string;
+  location?: string;
+  source: string;
+  created_at: string;
+}
+
+export interface EventsResponse {
+  events: TourismEvent[];
+}
+
+export interface EventCategoriesResponse {
+  categories: string[];
+}
+
+export function useEvents(fromDate?: string, toDate?: string, category?: string) {
+  const params: Record<string, string> = {};
+  if (fromDate) params.from_date = fromDate;
+  if (toDate) params.to_date = toDate;
+  if (category) params.category = category;
+  return useQuery<EventsResponse>(
+    () => api.events.list(Object.keys(params).length > 0 ? params : undefined) as Promise<EventsResponse>,
+    [fromDate, toDate, category]
+  );
+}
+
+export function useEventCategories() {
+  return useQuery<EventCategoriesResponse>(
+    () => api.events.categories() as Promise<EventCategoriesResponse>
+  );
+}

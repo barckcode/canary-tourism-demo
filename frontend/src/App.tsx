@@ -9,6 +9,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const ForecastPage = lazy(() => import("./pages/ForecastPage"));
 const ProfilesPage = lazy(() => import("./pages/ProfilesPage"));
 const DataExplorerPage = lazy(() => import("./pages/DataExplorerPage"));
+const EventsPage = lazy(() => import("./pages/EventsPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 
 function PageLoader() {
@@ -59,6 +60,14 @@ function App() {
               element={
                 <ErrorBoundary>
                   <DataExplorerPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/events"
+              element={
+                <ErrorBoundary>
+                  <EventsPage />
                 </ErrorBoundary>
               }
             />
