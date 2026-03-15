@@ -57,5 +57,20 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    save: (body: { name: string; occupancy_change_pct: number; adr_change_pct: number; foreign_ratio_change_pct: number; horizon: number }) =>
+      fetchJSON("/scenarios/save", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    list: () => fetchJSON("/scenarios/saved"),
+    get: (id: number) => fetchJSON(`/scenarios/saved/${id}`),
+    delete: (id: number) =>
+      fetchJSON(`/scenarios/saved/${id}`, { method: "DELETE" }),
+    compare: (ids: number[]) =>
+      fetchJSON("/scenarios/compare", {
+        method: "POST",
+        body: JSON.stringify({ scenario_ids: ids }),
+      }),
+    featureImportance: () => fetchJSON("/scenarios/feature-importance"),
   },
 };

@@ -97,7 +97,20 @@
     "best": "Best",
     "periods": "periods",
     "yoyHeatmap": "YoY Heatmap",
-    "yoyHeatmapSubtitle": "Month x Year comparison -- hover any cell for details"
+    "yoyHeatmapSubtitle": "Month x Year comparison -- hover any cell for details",
+    "saveScenario": "Save Scenario",
+    "savedScenarios": "Saved Scenarios",
+    "compareScenarios": "Compare",
+    "scenarioName": "Scenario name",
+    "noSavedScenarios": "No saved scenarios",
+    "deleteScenario": "Delete",
+    "featureImportance": "Variable Impact",
+    "loadParams": "Load parameters",
+    "saving": "Saving...",
+    "scenarioSaved": "Scenario saved",
+    "comparing": "Comparing...",
+    "selectToCompare": "Select to compare",
+    "comparedScenarios": "Compared Scenarios"
   },
   "profiles": {
     "title": "Tourist Profiles",

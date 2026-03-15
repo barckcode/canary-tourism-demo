@@ -460,3 +460,40 @@ export function useScenarios() {
 
   return { data, loading, error, runScenario };
 }
+
+// ── Saved Scenarios ──
+
+export interface SavedScenarioSummary {
+  id: number;
+  name: string;
+  occupancy_change_pct: number;
+  adr_change_pct: number;
+  foreign_ratio_change_pct: number;
+  horizon: number;
+  created_at: string;
+}
+
+export interface SavedScenarioDetail extends SavedScenarioSummary {
+  result_json: ScenarioResponse;
+}
+
+export interface ScenarioCompareResponse {
+  scenarios: Record<string, ScenarioResponse>;
+}
+
+export interface FeatureImportanceResponse {
+  features: Record<string, number>;
+}
+
+export function useSavedScenarios() {
+  const result = useQuery<SavedScenarioSummary[]>(
+    () => api.scenarios.list() as Promise<SavedScenarioSummary[]>
+  );
+  return result;
+}
+
+export function useFeatureImportance() {
+  return useQuery<FeatureImportanceResponse>(
+    () => api.scenarios.featureImportance() as Promise<FeatureImportanceResponse>
+  );
+}

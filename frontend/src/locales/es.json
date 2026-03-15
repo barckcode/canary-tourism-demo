@@ -97,7 +97,20 @@
     "best": "Mejor",
     "periods": "periodos",
     "yoyHeatmap": "Mapa de calor interanual",
-    "yoyHeatmapSubtitle": "Comparacion Mes x Ano -- pasa el cursor sobre cualquier celda para ver detalles"
+    "yoyHeatmapSubtitle": "Comparacion Mes x Ano -- pasa el cursor sobre cualquier celda para ver detalles",
+    "saveScenario": "Guardar Escenario",
+    "savedScenarios": "Escenarios Guardados",
+    "compareScenarios": "Comparar",
+    "scenarioName": "Nombre del escenario",
+    "noSavedScenarios": "Sin escenarios guardados",
+    "deleteScenario": "Eliminar",
+    "featureImportance": "Impacto de Variables",
+    "loadParams": "Cargar parametros",
+    "saving": "Guardando...",
+    "scenarioSaved": "Escenario guardado",
+    "comparing": "Comparando...",
+    "selectToCompare": "Seleccionar para comparar",
+    "comparedScenarios": "Escenarios Comparados"
   },
   "profiles": {
     "title": "Perfiles de turistas",
