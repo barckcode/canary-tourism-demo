@@ -9,11 +9,11 @@ interface UseQueryResult<T> {
 }
 
 export function useQuery<T>(
-  fetcher: () => Promise<T>,
+  fetcher: (() => Promise<T>) | null,
   deps: unknown[] = []
 ): UseQueryResult<T> {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(fetcher !== null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -26,6 +26,14 @@ export function useQuery<T>(
     // Cancel any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+    }
+
+    // Skip fetch when fetcher is null (e.g. missing required params)
+    if (!fetcher) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return () => {};
     }
 
     const controller = new AbortController();
@@ -187,7 +195,7 @@ export function useTimeSeries(
   if (from) params.from = from;
   if (to) params.to = to;
   return useQuery<TimeSeriesResponse>(
-    () => api.timeseries.get(params) as Promise<TimeSeriesResponse>,
+    indicator ? () => api.timeseries.get(params) as Promise<TimeSeriesResponse> : null,
     [indicator, geo, from, to]
   );
 }

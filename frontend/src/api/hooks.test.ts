@@ -95,6 +95,63 @@ describe("useQuery", () => {
     expect(result.current.error).toBe("Network error");
   });
 
+  it("skips fetch and returns idle state when fetcher is null", async () => {
+    const { result } = renderHook(() => useQuery<{ value: number }>(null, ["key"]));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("transitions from skipped to active when fetcher changes from null to function", async () => {
+    let indicator = "";
+    const fetcher = vi.fn(() => Promise.resolve({ value: 99 }));
+
+    const { result, rerender } = renderHook(() =>
+      useQuery<{ value: number }>(
+        indicator ? fetcher : null,
+        [indicator]
+      )
+    );
+
+    // Initially skipped
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.data).toBeNull();
+    expect(fetcher).not.toHaveBeenCalled();
+
+    // Now provide an indicator
+    indicator = "turistas";
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ value: 99 });
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it("refetch is safe to call when fetcher is null", async () => {
+    const { result } = renderHook(() => useQuery<string>(null, []));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.refetch();
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
   it("refetches data when refetch is called", async () => {
     let callCount = 0;
     const fetcher = vi.fn(() => Promise.resolve({ count: ++callCount }));
@@ -221,6 +278,18 @@ describe("useTimeSeries", () => {
         to: "2024-12",
       });
     });
+  });
+
+  it("skips fetch when indicator is empty string", async () => {
+    const { result } = renderHook(() => useTimeSeries(""));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+    expect(mockedApi.timeseries.get).not.toHaveBeenCalled();
   });
 
   it("handles empty results", async () => {
