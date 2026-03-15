@@ -44,15 +44,14 @@ async def lifespan(app: FastAPI):
             seed_all(db)
             logger.info("Data seed complete.")
 
-        # Auto-train models if no predictions exist
-        pred_count = db.execute(text("SELECT COUNT(*) FROM predictions")).scalar()
-        if pred_count == 0:
-            logger.info("No predictions found — training models...")
-            from app.models.trainer import ModelTrainer
+        # Train or retrain models if needed (new data or no prior training)
+        from app.models.trainer import retrain_if_needed
 
-            trainer = ModelTrainer()
-            trainer.train_all(db)
-            logger.info("Model training complete.")
+        result = retrain_if_needed(db)
+        if result.get("retrained"):
+            logger.info("Model training complete (%.1fs).", result.get("duration_seconds", 0))
+        else:
+            logger.info("Models up to date: %s", result.get("reason", "unknown"))
     except Exception:
         logger.exception("Error during startup initialization.")
         raise

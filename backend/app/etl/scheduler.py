@@ -35,6 +35,22 @@ def _run_async(coro_func):
     return wrapper
 
 
+def _run_retrain_check():
+    """Sync job that checks if models need retraining and retrains if so."""
+    try:
+        from app.db.database import SessionLocal
+        from app.models.trainer import retrain_if_needed
+
+        db = SessionLocal()
+        try:
+            result = retrain_if_needed(db)
+            logger.info("Retrain check result: %s", result)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Retrain check job failed.")
+
+
 def setup_scheduler() -> BackgroundScheduler:
     """Configure and start APScheduler jobs.
 
@@ -102,6 +118,16 @@ def setup_scheduler() -> BackgroundScheduler:
         name="Fetch Cabildo datasets",
         replace_existing=True,
         misfire_grace_time=7200,
+    )
+
+    # Model retraining check: Daily at 04:00 UTC (after ETL jobs)
+    scheduler.add_job(
+        _run_retrain_check,
+        trigger=CronTrigger(hour=4, minute=0),
+        id="retrain_check",
+        name="Check if models need retraining",
+        replace_existing=True,
+        misfire_grace_time=3600,
     )
 
     # Health check: Daily at 06:00 UTC

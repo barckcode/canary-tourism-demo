@@ -3,9 +3,14 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.schemas import PredictionCompareResponse, PredictionResponse
+from app.api.schemas import (
+    PredictionCompareResponse,
+    PredictionResponse,
+    TrainingInfoResponse,
+    RetrainResponse,
+)
 from app.db.database import get_db
-from app.db.models import ModelMetric, Prediction
+from app.db.models import ModelMetric, Prediction, TrainingRun
 from app.rate_limit import limiter
 
 router = APIRouter()
@@ -129,4 +134,61 @@ def compare_models(
     return {
         "models": models,
         "metrics": all_metrics,
+    }
+
+
+@router.post("/retrain", response_model=RetrainResponse)
+@limiter.limit("2/minute")
+def retrain_models(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Force model retraining.
+
+    Triggers a full retraining of all ML models (SARIMA, HW, Naive,
+    Ensemble, K-Means profiler, GBR scenario engine) regardless of
+    whether new data has arrived.
+    """
+    from app.models.trainer import retrain_if_needed
+
+    result = retrain_if_needed(db, force=True)
+    return result
+
+
+@router.get("/training-info", response_model=TrainingInfoResponse)
+@limiter.limit("20/minute")
+def get_training_info(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Get information about when models were last trained.
+
+    Returns the timestamp of the last successful training run,
+    the data range it was trained on, and the list of models trained.
+    """
+    latest = (
+        db.query(TrainingRun)
+        .filter(TrainingRun.status == "success")
+        .order_by(TrainingRun.trained_at.desc())
+        .first()
+    )
+
+    if latest is None:
+        return {
+            "trained_at": None,
+            "data_up_to": None,
+            "status": "no_training",
+            "models_trained": [],
+            "duration_seconds": None,
+        }
+
+    import json
+    models = json.loads(latest.models_trained) if latest.models_trained else []
+
+    return {
+        "trained_at": latest.trained_at,
+        "data_up_to": latest.data_up_to,
+        "status": latest.status,
+        "models_trained": models,
+        "duration_seconds": latest.duration_seconds,
     }

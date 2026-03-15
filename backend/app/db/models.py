@@ -129,6 +129,23 @@ class ModelMetric(Base):
     )
 
 
+class TrainingRun(Base):
+    __tablename__ = "training_runs"
+
+    id = Column(Integer, primary_key=True)
+    trained_at = Column(String, server_default=func.now())
+    data_up_to = Column(String)
+    data_hash = Column(String)
+    models_trained = Column(Text)
+    status = Column(String, nullable=False)
+    error_message = Column(Text)
+    duration_seconds = Column(Float)
+
+    __table_args__ = (
+        Index("ix_training_runs_trained_at", "trained_at"),
+    )
+
+
 class PipelineRun(Base):
     __tablename__ = "pipeline_runs"
 

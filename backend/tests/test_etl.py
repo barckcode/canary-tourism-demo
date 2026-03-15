@@ -860,9 +860,10 @@ class TestScheduler:
         assert "fetch_ine_series" in job_ids
         assert "fetch_egt_microdata" in job_ids
         assert "fetch_cabildo_datasets" in job_ids
+        assert "retrain_check" in job_ids
         assert "health_check" in job_ids
 
-        assert len(jobs) == 5
+        assert len(jobs) == 6
 
         shutdown_scheduler()
 
@@ -878,7 +879,7 @@ class TestScheduler:
         status = get_scheduler_status()
 
         assert status["running"] is True
-        assert len(status["jobs"]) == 5
+        assert len(status["jobs"]) == 6
 
         for job in status["jobs"]:
             assert "id" in job

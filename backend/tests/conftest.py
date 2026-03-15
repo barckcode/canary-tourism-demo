@@ -19,6 +19,7 @@ from app.db.models import (
     Prediction,
     Profile,
     TimeSeries,
+    TrainingRun,
 )
 from app.main import app
 

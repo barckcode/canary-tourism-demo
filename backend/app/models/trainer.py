@@ -4,9 +4,12 @@ Coordinates training of all ML models (SARIMA, HW, GBR, K-Means),
 saves serialized models, and stores predictions in the database.
 """
 
+import hashlib
 import json
 import logging
 import re
+import time
+from datetime import datetime, timezone
 
 import joblib
 import numpy as np
@@ -15,6 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.db.models import TrainingRun
 from app.models.forecaster import Forecaster
 from app.models.profiler import TouristProfiler
 from app.models.scenario_engine import ScenarioEngine
@@ -224,3 +228,126 @@ class ModelTrainer:
         results["profiler"] = train_profiler(db)
         results["scenario_engine"] = train_scenario_engine(db)
         return results
+
+
+def _get_data_hash(db: Session) -> str:
+    """Compute a hash of key training data for change detection."""
+    row = db.execute(
+        text("""
+            SELECT COUNT(*) AS cnt, MAX(period) AS max_period, MAX(fetched_at) AS max_fetched
+            FROM time_series
+        """)
+    ).fetchone()
+    raw = f"{row.cnt}|{row.max_period}|{row.max_fetched}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _get_latest_data_period(db: Session) -> str | None:
+    """Get the latest period in the time_series table."""
+    row = db.execute(
+        text("SELECT MAX(fetched_at) AS latest FROM time_series")
+    ).fetchone()
+    return row.latest if row else None
+
+
+def _get_latest_training(db: Session) -> TrainingRun | None:
+    """Get the most recent successful training run."""
+    return (
+        db.query(TrainingRun)
+        .filter(TrainingRun.status == "success")
+        .order_by(TrainingRun.trained_at.desc())
+        .first()
+    )
+
+
+def needs_retraining(db: Session) -> bool:
+    """Check whether models need retraining.
+
+    Returns True if:
+    - No successful training run exists, or
+    - The data hash has changed since the last training (new data arrived).
+    """
+    latest_training = _get_latest_training(db)
+    if latest_training is None:
+        return True
+
+    current_hash = _get_data_hash(db)
+    return current_hash != latest_training.data_hash
+
+
+def retrain_if_needed(db: Session, force: bool = False) -> dict:
+    """Retrain models if new data has arrived or if forced.
+
+    Args:
+        db: Database session.
+        force: If True, retrain regardless of data changes.
+
+    Returns:
+        Dict with retraining status information.
+    """
+    should_retrain = force or needs_retraining(db)
+
+    if not should_retrain:
+        latest = _get_latest_training(db)
+        return {
+            "retrained": False,
+            "reason": "No new data since last training.",
+            "last_trained_at": latest.trained_at if latest else None,
+            "data_up_to": latest.data_up_to if latest else None,
+        }
+
+    logger.info("Starting model retraining (force=%s)...", force)
+    start = time.monotonic()
+    data_hash = _get_data_hash(db)
+    latest_period = _get_latest_data_period(db)
+    trained_at = datetime.now(timezone.utc).isoformat()
+
+    try:
+        trainer = ModelTrainer()
+        trainer.train_all(db)
+        duration = time.monotonic() - start
+
+        run = TrainingRun(
+            trained_at=trained_at,
+            data_up_to=latest_period,
+            data_hash=data_hash,
+            models_trained=json.dumps(["sarima", "holt_winters", "seasonal_naive",
+                                       "ensemble", "profiler", "scenario_engine"]),
+            status="success",
+            duration_seconds=round(duration, 2),
+        )
+        db.add(run)
+        db.commit()
+
+        logger.info("Model retraining completed in %.1fs.", duration)
+        return {
+            "retrained": True,
+            "trained_at": trained_at,
+            "data_up_to": latest_period,
+            "duration_seconds": round(duration, 2),
+            "models_trained": ["sarima", "holt_winters", "seasonal_naive",
+                               "ensemble", "profiler", "scenario_engine"],
+        }
+
+    except Exception as exc:
+        duration = time.monotonic() - start
+        error_msg = str(exc)
+        logger.exception("Model retraining failed after %.1fs.", duration)
+
+        run = TrainingRun(
+            trained_at=trained_at,
+            data_up_to=latest_period,
+            data_hash=data_hash,
+            models_trained=json.dumps([]),
+            status="error",
+            error_message=error_msg,
+            duration_seconds=round(duration, 2),
+        )
+        db.add(run)
+        db.commit()
+
+        return {
+            "retrained": False,
+            "reason": f"Training failed: {error_msg}",
+            "duration_seconds": round(duration, 2),
+        }

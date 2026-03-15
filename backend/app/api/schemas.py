@@ -152,6 +152,28 @@ class PredictionCompareResponse(BaseModel):
     metrics: dict[str, ModelMetrics]
 
 
+class RetrainResponse(BaseModel):
+    """Response from the retrain endpoint."""
+
+    retrained: bool
+    reason: str | None = None
+    trained_at: str | None = None
+    data_up_to: str | None = None
+    duration_seconds: float | None = None
+    models_trained: list[str] | None = None
+    last_trained_at: str | None = None
+
+
+class TrainingInfoResponse(BaseModel):
+    """Information about the latest model training run."""
+
+    trained_at: str | None = None
+    data_up_to: str | None = None
+    status: str
+    models_trained: list[str] = Field(default_factory=list)
+    duration_seconds: float | None = None
+
+
 # ---------------------------------------------------------------------------
 # Profiles
 # ---------------------------------------------------------------------------
