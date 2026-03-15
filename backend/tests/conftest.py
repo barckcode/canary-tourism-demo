@@ -20,6 +20,7 @@ from app.db.models import (
     Profile,
     SavedScenario,
     TimeSeries,
+    TourismEvent,
     TrainingRun,
 )
 from app.main import app

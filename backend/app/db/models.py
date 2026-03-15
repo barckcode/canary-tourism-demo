@@ -163,6 +163,26 @@ class SavedScenario(Base):
     )
 
 
+class TourismEvent(Base):
+    __tablename__ = "tourism_events"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    category = Column(String, nullable=False)
+    start_date = Column(String, nullable=False)
+    end_date = Column(String)
+    impact_estimate = Column(String)
+    location = Column(String)
+    source = Column(String)
+    created_at = Column(String, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_event_dates", "start_date", "end_date"),
+        Index("ix_event_category", "category"),
+    )
+
+
 class PipelineRun(Base):
     __tablename__ = "pipeline_runs"
 

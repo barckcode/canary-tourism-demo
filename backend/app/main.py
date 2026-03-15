@@ -44,6 +44,11 @@ async def lifespan(app: FastAPI):
             seed_all(db)
             logger.info("Data seed complete.")
 
+        # Seed tourism events if table is empty
+        from app.db.events_seed import seed_events
+
+        seed_events(db)
+
         # Train or retrain models if needed (new data or no prior training)
         from app.models.trainer import retrain_if_needed
 

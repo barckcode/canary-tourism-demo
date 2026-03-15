@@ -327,3 +327,40 @@ class FeatureImportanceResponse(BaseModel):
     """GBR model feature importances."""
 
     importances: dict[str, float]
+
+
+# ---------------------------------------------------------------------------
+# Events
+# ---------------------------------------------------------------------------
+
+class EventResponse(BaseModel):
+    """A single tourism event."""
+
+    id: int
+    name: str
+    description: str | None = None
+    category: str
+    start_date: str
+    end_date: str | None = None
+    impact_estimate: str | None = None
+    location: str | None = None
+    source: str | None = None
+    created_at: str | None = None
+
+
+class EventListResponse(BaseModel):
+    """List of tourism events."""
+
+    events: list[EventResponse]
+
+
+class CreateEventRequest(BaseModel):
+    """Request body to create a custom tourism event."""
+
+    name: str = Field(..., min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=1000)
+    category: str = Field(..., min_length=1, max_length=50)
+    start_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    impact_estimate: str | None = Field(None, max_length=200)
+    location: str | None = Field(None, max_length=200)
