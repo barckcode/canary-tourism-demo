@@ -142,6 +142,76 @@ def test_dashboard_top_markets_sorted(client):
         assert markets[i]["count"] >= markets[i + 1]["count"]
 
 
+# --- Map ---
+
+def test_dashboard_map_default_period(client):
+    """Map endpoint without period param should return latest available data."""
+    r = client.get("/api/dashboard/map")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data_available"] is True
+    assert data["period"] is not None
+    munis = data["municipalities"]
+    # Should have all 12 municipalities
+    assert len(munis) == 12
+    # Adeje, Arona, Puerto de la Cruz should have real data
+    assert munis["38001"]["source"] == "real"
+    assert munis["38006"]["source"] == "real"
+    assert munis["38028"]["source"] == "real"
+    # Adeje should have the highest intensity (highest base pernoctaciones)
+    assert munis["38001"]["tourism_intensity"] == 100
+    assert munis["38001"]["pernoctaciones"] is not None
+    # Other municipalities should be estimated
+    assert munis["38038"]["source"] == "estimated"
+    assert munis["38023"]["source"] == "estimated"
+
+
+def test_dashboard_map_specific_period(client):
+    """Map endpoint with specific period should return data for that period."""
+    r = client.get("/api/dashboard/map?period=2024-06")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data_available"] is True
+    assert data["period"] == "2024-06"
+    munis = data["municipalities"]
+    assert len(munis) == 12
+    assert munis["38001"]["source"] == "real"
+
+
+def test_dashboard_map_no_data_period(client):
+    """Map endpoint with a period having no data should return fallback."""
+    r = client.get("/api/dashboard/map?period=1999-01")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data_available"] is False
+    munis = data["municipalities"]
+    assert len(munis) == 12
+    # All should be estimated in fallback
+    for code, muni in munis.items():
+        assert muni["source"] == "estimated"
+
+
+def test_dashboard_map_intensity_range(client):
+    """All tourism_intensity values should be in 0-100 range."""
+    r = client.get("/api/dashboard/map")
+    assert r.status_code == 200
+    for code, muni in r.json()["municipalities"].items():
+        assert 0 <= muni["tourism_intensity"] <= 100, (
+            f"Municipality {code} intensity {muni['tourism_intensity']} out of range"
+        )
+
+
+def test_dashboard_map_municipality_names(client):
+    """All municipalities should have proper names."""
+    r = client.get("/api/dashboard/map")
+    assert r.status_code == 200
+    munis = r.json()["municipalities"]
+    assert munis["38001"]["name"] == "Adeje"
+    assert munis["38006"]["name"] == "Arona"
+    assert munis["38028"]["name"] == "Puerto de la Cruz"
+    assert munis["38038"]["name"] == "Santa Cruz de Tenerife"
+
+
 def test_dashboard_seasonal_position(client):
     """Seasonal position should return peak month and current position."""
     r = client.get("/api/dashboard/seasonal-position")

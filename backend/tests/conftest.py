@@ -109,6 +109,25 @@ def _seed_test_data(session: Session) -> None:
                     value=round(base_val * variation, 2),
                 ))
 
+    # --- Time Series: hotel_pernoctaciones by municipality ---
+    pernoctaciones_munis = {
+        "hotel_pernoctaciones_adeje": ("ES709_ADEJE", 450000.0),
+        "hotel_pernoctaciones_arona": ("ES709_ARONA", 380000.0),
+        "hotel_pernoctaciones_puerto_cruz": ("ES709_PCRUZ", 200000.0),
+    }
+    for ind, (geo, base_val) in pernoctaciones_munis.items():
+        for year in range(2024, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.02
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code=geo,
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation),
+                ))
+
     # --- Predictions: ensemble, sarima, holt_winters, seasonal_naive ---
     for model_name in ["ensemble", "sarima", "holt_winters", "seasonal_naive"]:
         for i in range(1, 13):

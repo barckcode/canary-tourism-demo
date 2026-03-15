@@ -3,13 +3,14 @@
 import calendar
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import (
     DashboardKPIsResponse,
     DashboardSummaryResponse,
+    MapDataResponse,
     SeasonalPositionResponse,
     TopMarketsResponse,
 )
@@ -367,6 +368,186 @@ def get_seasonal_position(request: Request, db: Session = Depends(get_db)):
             calendar.month_name[m]: round(v, 0)
             for m, v in sorted(monthly_avg.items())
         },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Map data: municipality-level tourism intensity
+# ---------------------------------------------------------------------------
+
+# Mapping from INE geo_codes (used in time_series) to municipality codes (GeoJSON)
+_GEO_TO_MUNICIPALITY: dict[str, str] = {
+    "ES709_ADEJE": "38001",
+    "ES709_ARONA": "38006",
+    "ES709_PCRUZ": "38028",
+}
+
+# Indicator names for hotel pernoctaciones by municipality
+_MUNICIPALITY_INDICATORS: dict[str, str] = {
+    "ES709_ADEJE": "hotel_pernoctaciones_adeje",
+    "ES709_ARONA": "hotel_pernoctaciones_arona",
+    "ES709_PCRUZ": "hotel_pernoctaciones_puerto_cruz",
+}
+
+# All 12 municipalities in the GeoJSON with their names and zones
+_ALL_MUNICIPALITIES: dict[str, dict[str, str]] = {
+    "38001": {"name": "Adeje", "zone": "south"},
+    "38006": {"name": "Arona", "zone": "south"},
+    "38028": {"name": "Puerto de la Cruz", "zone": "north"},
+    "38038": {"name": "Santa Cruz de Tenerife", "zone": "metro"},
+    "38023": {"name": "San Cristobal de La Laguna", "zone": "metro"},
+    "38026": {"name": "La Orotava", "zone": "north"},
+    "38017": {"name": "Granadilla de Abona", "zone": "south"},
+    "38042": {"name": "Santiago del Teide", "zone": "west"},
+    "38019": {"name": "Guia de Isora", "zone": "west"},
+    "38020": {"name": "Icod de los Vinos", "zone": "north"},
+    "38031": {"name": "Los Realejos", "zone": "north"},
+    "38035": {"name": "San Miguel de Abona", "zone": "south"},
+}
+
+# Estimation factors for municipalities without direct INE data,
+# expressed as a fraction of the max municipality's pernoctaciones.
+_ZONE_FACTORS: dict[str, float] = {
+    "south": 0.60,
+    "north": 0.30,
+    "west": 0.40,
+    "metro": 0.25,
+}
+
+# Hardcoded fallback values when no data is available at all
+_FALLBACK_INTENSITIES: dict[str, int] = {
+    "38001": 95,   # Adeje
+    "38006": 88,   # Arona
+    "38028": 65,   # Puerto de la Cruz
+    "38038": 23,   # Santa Cruz
+    "38023": 20,   # La Laguna
+    "38026": 30,   # La Orotava
+    "38017": 55,   # Granadilla
+    "38042": 40,   # Santiago del Teide
+    "38019": 38,   # Guia de Isora
+    "38020": 25,   # Icod
+    "38031": 28,   # Los Realejos
+    "38035": 50,   # San Miguel
+}
+
+
+@router.get("/map", response_model=MapDataResponse)
+@limiter.limit("60/minute")
+def get_map_data(
+    request: Request,
+    period: str = Query(
+        None,
+        description="Period in YYYY-MM format. If omitted, the latest available period is used.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Return municipality-level tourism intensity data for the map.
+
+    Uses real INE hotel pernoctaciones data for Adeje, Arona, and Puerto de la
+    Cruz. For municipalities without direct data, intensity is estimated based
+    on their geographic zone relative to the maximum observed value.
+
+    When no data exists for the requested period (or the database is empty),
+    a hardcoded fallback is returned with ``data_available=false``.
+    """
+    # Collect all relevant indicators
+    indicator_names = list(_MUNICIPALITY_INDICATORS.values())
+
+    # Determine which period to use
+    if period is None:
+        # Find the latest available period across all municipality indicators
+        latest_row = (
+            db.query(TimeSeries.period)
+            .filter(
+                TimeSeries.indicator.in_(indicator_names),
+                TimeSeries.measure == "ABSOLUTE",
+                TimeSeries.value.isnot(None),
+            )
+            .order_by(desc(TimeSeries.period))
+            .first()
+        )
+        if latest_row is None:
+            # No data at all -- return fallback
+            return _fallback_response()
+        period = latest_row.period
+
+    # Query real data for the requested period
+    rows = (
+        db.query(TimeSeries.indicator, TimeSeries.geo_code, TimeSeries.value)
+        .filter(
+            TimeSeries.indicator.in_(indicator_names),
+            TimeSeries.measure == "ABSOLUTE",
+            TimeSeries.period == period,
+            TimeSeries.value.isnot(None),
+        )
+        .all()
+    )
+
+    if not rows:
+        # No data for this specific period
+        return _fallback_response()
+
+    # Build a lookup: municipality_code -> pernoctaciones value
+    real_data: dict[str, float] = {}
+    for row in rows:
+        for geo_code, indicator in _MUNICIPALITY_INDICATORS.items():
+            if row.indicator == indicator:
+                muni_code = _GEO_TO_MUNICIPALITY[geo_code]
+                real_data[muni_code] = row.value
+                break
+
+    if not real_data:
+        return _fallback_response()
+
+    # Compute max pernoctaciones for normalization
+    max_pernoctaciones = max(real_data.values())
+
+    municipalities: dict[str, dict] = {}
+    for muni_code, info in _ALL_MUNICIPALITIES.items():
+        if muni_code in real_data:
+            pernoctaciones = real_data[muni_code]
+            if max_pernoctaciones > 0:
+                intensity = round(pernoctaciones / max_pernoctaciones * 100)
+            else:
+                intensity = 0
+            municipalities[muni_code] = {
+                "name": info["name"],
+                "tourism_intensity": min(intensity, 100),
+                "pernoctaciones": pernoctaciones,
+                "source": "real",
+            }
+        else:
+            # Estimate based on zone
+            zone = info["zone"]
+            factor = _ZONE_FACTORS.get(zone, 0.25)
+            estimated_pernoctaciones = max_pernoctaciones * factor
+            intensity = round(factor * 100)
+            municipalities[muni_code] = {
+                "name": info["name"],
+                "tourism_intensity": min(intensity, 100),
+                "source": "estimated",
+            }
+
+    return {
+        "period": period,
+        "municipalities": municipalities,
+        "data_available": True,
+    }
+
+
+def _fallback_response() -> dict:
+    """Return hardcoded fallback data when no real data is available."""
+    municipalities = {}
+    for muni_code, info in _ALL_MUNICIPALITIES.items():
+        municipalities[muni_code] = {
+            "name": info["name"],
+            "tourism_intensity": _FALLBACK_INTENSITIES.get(muni_code, 25),
+            "source": "estimated",
+        }
+    return {
+        "period": None,
+        "municipalities": municipalities,
+        "data_available": False,
     }
 
 

@@ -67,6 +67,23 @@ class SeasonalPositionResponse(BaseModel):
     monthly_averages: dict[str, float]
 
 
+class MunicipalityData(BaseModel):
+    """Tourism data for a single municipality."""
+
+    name: str
+    tourism_intensity: int
+    pernoctaciones: float | None = None
+    source: str = Field(description="'real' if from INE data, 'estimated' otherwise")
+
+
+class MapDataResponse(BaseModel):
+    """Municipality-level tourism intensity data for the map."""
+
+    period: str | None = None
+    municipalities: dict[str, MunicipalityData]
+    data_available: bool
+
+
 # ---------------------------------------------------------------------------
 # Time Series
 # ---------------------------------------------------------------------------
