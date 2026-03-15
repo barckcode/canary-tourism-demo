@@ -3,6 +3,7 @@ import { GeoJsonLayer } from "@deck.gl/layers";
 import { DeckGL } from "@deck.gl/react";
 import { Map } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useMapData, MapMunicipality } from "../../api/hooks";
 
 const INITIAL_VIEW_STATE = {
   longitude: -16.55,
@@ -25,8 +26,13 @@ interface MunicipalityProperties {
   tourism_intensity: number;
 }
 
+interface HoveredMunicipality extends MunicipalityProperties {
+  pernoctaciones?: number;
+  source?: "real" | "estimated";
+}
+
 function intensityToColor(intensity: number): [number, number, number, number] {
-  // Gradient from dark blue (low) → ocean blue → orange (high)
+  // Gradient from dark blue (low) -> ocean blue -> orange (high)
   if (intensity < 30) return [0, 30, 60, 160];
   if (intensity < 50) return [0, 80, 140, 180];
   if (intensity < 70) return [0, 135, 185, 200];
@@ -34,29 +40,28 @@ function intensityToColor(intensity: number): [number, number, number, number] {
   return [255, 100, 20, 220];
 }
 
+function formatNumber(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
 interface TenerifeMapProps {
   className?: string;
   period?: string;
 }
 
-// Seasonal multiplier by month index (0=Jan..11=Dec), peak in Oct
-const SEASONAL_FACTOR = [
-  0.77, 0.75, 0.80, 0.82, 0.74, 0.75, 0.86, 0.84, 0.89, 1.0, 0.95, 0.91,
-];
-
-function getSeasonalMultiplier(period?: string): number {
-  if (!period) return 1;
-  const month = parseInt(period.split("-")[1], 10);
-  if (isNaN(month) || month < 1 || month > 12) return 1;
-  return SEASONAL_FACTOR[month - 1];
-}
-
 export default function TenerifeMap({ className = "", period }: TenerifeMapProps) {
   const [geojsonData, setGeojsonData] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [hovered, setHovered] = useState<MunicipalityProperties | null>(null);
+  const [hovered, setHovered] = useState<HoveredMunicipality | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
-  const seasonalMult = useMemo(() => getSeasonalMultiplier(period), [period]);
+  const { data: mapData } = useMapData(period);
+
+  const apiMunicipalities = useMemo(() => {
+    if (mapData?.data_available && mapData.municipalities) {
+      return mapData.municipalities;
+    }
+    return null;
+  }, [mapData]);
 
   useEffect(() => {
     fetch("/tenerife.geojson")
@@ -64,6 +69,27 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
       .then(setGeojsonData)
       .catch(console.error);
   }, []);
+
+  const getIntensity = useCallback(
+    (f: GeoJSON.Feature): number => {
+      const props = f.properties as MunicipalityProperties;
+      if (apiMunicipalities && props.code && apiMunicipalities[props.code]) {
+        return apiMunicipalities[props.code].tourism_intensity;
+      }
+      return props?.tourism_intensity || 0;
+    },
+    [apiMunicipalities]
+  );
+
+  const getApiData = useCallback(
+    (code: string): MapMunicipality | null => {
+      if (apiMunicipalities && code && apiMunicipalities[code]) {
+        return apiMunicipalities[code];
+      }
+      return null;
+    },
+    [apiMunicipalities]
+  );
 
   const layers = geojsonData
     ? [
@@ -74,16 +100,14 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
           stroked: true,
           extruded: true,
           updateTriggers: {
-            getElevation: seasonalMult,
-            getFillColor: seasonalMult,
+            getElevation: apiMunicipalities,
+            getFillColor: apiMunicipalities,
           },
           getElevation: (f: GeoJSON.Feature) => {
-            const base = (f.properties as MunicipalityProperties)?.tourism_intensity || 0;
-            return Math.round(base * seasonalMult) * 50;
+            return getIntensity(f) * 50;
           },
           getFillColor: (f: GeoJSON.Feature) => {
-            const base = (f.properties as MunicipalityProperties)?.tourism_intensity || 0;
-            return intensityToColor(Math.round(base * seasonalMult));
+            return intensityToColor(getIntensity(f));
           },
           getLineColor: [255, 255, 255, 40],
           getLineWidth: 1,
@@ -93,7 +117,17 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
           highlightColor: [0, 135, 185, 100],
           onHover: (info: { object?: GeoJSON.Feature; x?: number; y?: number }) => {
             if (info.object) {
-              setHovered(info.object.properties as MunicipalityProperties);
+              const props = info.object.properties as MunicipalityProperties;
+              const apiEntry = getApiData(props.code);
+              const hoveredData: HoveredMunicipality = {
+                ...props,
+                tourism_intensity: apiEntry
+                  ? apiEntry.tourism_intensity
+                  : props.tourism_intensity,
+                pernoctaciones: apiEntry?.pernoctaciones,
+                source: apiEntry?.source,
+              };
+              setHovered(hoveredData);
               setTooltipPos({ x: info.x || 0, y: info.y || 0 });
             } else {
               setHovered(null);
@@ -135,7 +169,15 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
           </div>
           <div className="text-xs text-ocean-400 mt-0.5">
             Tourism intensity: {hovered.tourism_intensity}%
+            {hovered.source === "estimated" && (
+              <span className="text-gray-500 ml-1">(estimated)</span>
+            )}
           </div>
+          {hovered.pernoctaciones != null && (
+            <div className="text-xs text-gray-300 mt-0.5">
+              Overnight stays: {formatNumber(hovered.pernoctaciones)}
+            </div>
+          )}
         </div>
       )}
 

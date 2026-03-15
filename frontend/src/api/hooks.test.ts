@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import {
   useDashboardKPIs,
+  useMapData,
   usePredictions,
   useProfiles,
   useTimeSeries,
@@ -17,6 +18,7 @@ vi.mock("./client", () => ({
       summary: vi.fn(),
       topMarkets: vi.fn(),
       seasonalPosition: vi.fn(),
+      mapData: vi.fn(),
     },
     timeseries: {
       get: vi.fn(),
@@ -371,6 +373,99 @@ describe("useProfiles", () => {
     });
 
     expect(result.current.data?.clusters).toEqual([]);
+  });
+});
+
+describe("useMapData", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches map data with real municipality values", async () => {
+    const mockMapData = {
+      period: "2025-06",
+      municipalities: {
+        "38001": {
+          name: "Adeje",
+          tourism_intensity: 95,
+          pernoctaciones: 450000,
+          source: "real" as const,
+        },
+        "38038": {
+          name: "Santa Cruz",
+          tourism_intensity: 23,
+          source: "estimated" as const,
+        },
+      },
+      data_available: true,
+    };
+
+    mockedApi.dashboard.mapData.mockResolvedValueOnce(mockMapData);
+
+    const { result } = renderHook(() => useMapData("2025-06"));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toEqual(mockMapData);
+    expect(result.current.data?.data_available).toBe(true);
+    expect(result.current.data?.municipalities["38001"].tourism_intensity).toBe(95);
+    expect(result.current.data?.municipalities["38038"].source).toBe("estimated");
+    expect(mockedApi.dashboard.mapData).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles data_available false response", async () => {
+    const mockMapData = {
+      period: "2020-01",
+      municipalities: {},
+      data_available: false,
+    };
+
+    mockedApi.dashboard.mapData.mockResolvedValueOnce(mockMapData);
+
+    const { result } = renderHook(() => useMapData("2020-01"));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data?.data_available).toBe(false);
+    expect(result.current.data?.municipalities).toEqual({});
+  });
+
+  it("handles API errors gracefully", async () => {
+    mockedApi.dashboard.mapData.mockRejectedValueOnce(
+      new Error("API error: 500 Internal Server Error")
+    );
+
+    const { result } = renderHook(() => useMapData("2025-06"));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBe("API error: 500 Internal Server Error");
+  });
+
+  it("fetches without period parameter", async () => {
+    const mockMapData = {
+      period: "2025-03",
+      municipalities: {},
+      data_available: true,
+    };
+
+    mockedApi.dashboard.mapData.mockResolvedValueOnce(mockMapData);
+
+    const { result } = renderHook(() => useMapData());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toEqual(mockMapData);
+    expect(mockedApi.dashboard.mapData).toHaveBeenCalledTimes(1);
   });
 });
 

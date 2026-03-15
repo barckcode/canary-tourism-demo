@@ -17,6 +17,10 @@ export const api = {
     summary: () => fetchJSON("/dashboard/summary"),
     topMarkets: () => fetchJSON("/dashboard/top-markets"),
     seasonalPosition: () => fetchJSON("/dashboard/seasonal-position"),
+    mapData: (period?: string) => {
+      const params = period ? `?period=${period}` : "";
+      return fetchJSON(`/dashboard/map${params}`);
+    },
   },
   timeseries: {
     get: (params: Record<string, string>) => {

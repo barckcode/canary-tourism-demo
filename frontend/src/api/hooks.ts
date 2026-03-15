@@ -138,6 +138,28 @@ export function useSeasonalPosition() {
   );
 }
 
+// ── Map Data ──
+
+export interface MapMunicipality {
+  name: string;
+  tourism_intensity: number;
+  pernoctaciones?: number;
+  source: "real" | "estimated";
+}
+
+export interface MapDataResponse {
+  period: string;
+  municipalities: Record<string, MapMunicipality>;
+  data_available: boolean;
+}
+
+export function useMapData(period?: string) {
+  return useQuery<MapDataResponse>(
+    () => api.dashboard.mapData(period) as Promise<MapDataResponse>,
+    [period]
+  );
+}
+
 // ── Time Series ──
 
 export interface TimeSeriesPoint {
