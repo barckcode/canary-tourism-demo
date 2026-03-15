@@ -38,6 +38,7 @@ export const api = {
       const qs = params ? new URLSearchParams(params).toString() : "";
       return fetchJSON(`/predictions/compare?${qs}`);
     },
+    trainingInfo: () => fetchJSON("/predictions/training-info"),
   },
   profiles: {
     list: () => fetchJSON("/profiles"),

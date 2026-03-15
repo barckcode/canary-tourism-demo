@@ -20,6 +20,7 @@ import {
   usePredictions,
   usePredictionCompare,
   useScenarios,
+  useTrainingInfo,
   type ScenarioInput,
   type ModelAccuracyMetrics,
 } from "../api/hooks";
@@ -32,6 +33,7 @@ export default function ForecastPage() {
   const { data: predData, error: predError, refetch: refetchPred } = usePredictions();
   const { data: scenarioData, runScenario, loading: scenarioLoading, error: scenarioError } = useScenarios();
   const { data: compareData, loading: compareLoading, error: compareError, refetch: refetchCompare } = usePredictionCompare();
+  const { data: trainingInfo } = useTrainingInfo();
 
   // Determine if we are using mock data (backend unavailable)
   const isMockData = !tsData?.data || !predData?.forecast;
@@ -136,6 +138,18 @@ export default function ForecastPage() {
           <p className="text-sm text-gray-400 mt-1">
             AI-powered tourism demand forecasting
           </p>
+          {trainingInfo?.last_trained_at && (
+            <p className="text-xs text-gray-500 mt-1">
+              Model trained on{" "}
+              <time dateTime={trainingInfo.last_trained_at}>
+                {new Date(trainingInfo.last_trained_at).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </time>
+            </p>
+          )}
         </div>
         <ExportCSVButton
           headers={["Period", "Forecast", "CI Lower 80", "CI Upper 80", "CI Lower 95", "CI Upper 95"]}

@@ -276,6 +276,22 @@ export function usePredictionCompare(
   );
 }
 
+// ── Training Info ──
+
+export interface TrainingInfo {
+  last_trained_at: string;
+  data_up_to: string;
+  status: string;
+  models_trained: string[];
+  duration_seconds: number;
+}
+
+export function useTrainingInfo() {
+  return useQuery<TrainingInfo>(
+    () => api.predictions.trainingInfo() as Promise<TrainingInfo>
+  );
+}
+
 // ── Profiles ──
 
 export interface NationalityEntry {
