@@ -7,13 +7,10 @@ saves serialized models, and stores predictions in the database.
 import hashlib
 import json
 import logging
-import re
 import time
 from datetime import datetime, timezone
 
 import joblib
-import numpy as np
-import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -22,27 +19,9 @@ from app.db.models import TrainingRun
 from app.models.forecaster import Forecaster
 from app.models.profiler import TouristProfiler
 from app.models.scenario_engine import ScenarioEngine
+from app.utils.queries import load_arrivals_series
 
 logger = logging.getLogger(__name__)
-
-
-def _load_arrivals_series(db: Session) -> pd.Series:
-    """Load monthly tourist arrivals from DB as a pandas Series with PeriodIndex."""
-    rows = db.execute(
-        text("""
-            SELECT period, value FROM time_series
-            WHERE indicator='turistas' AND geo_code='ES709' AND measure='ABSOLUTE'
-            ORDER BY period
-        """)
-    ).fetchall()
-
-    # Filter only YYYY-MM format (exclude annual totals)
-    monthly = [(r.period, r.value) for r in rows if re.match(r"^\d{4}-\d{2}$", r.period)]
-
-    periods = pd.PeriodIndex([p for p, _ in monthly], freq="M")
-    values = np.array([v for _, v in monthly], dtype=float)
-
-    return pd.Series(values, index=periods, name="turistas")
 
 
 def _store_predictions(db: Session, model_name: str, indicator: str,
@@ -114,7 +93,7 @@ def _store_metrics(db: Session, metrics: dict, indicator: str, geo_code: str,
 def train_forecaster(db: Session, horizon: int = 12) -> dict:
     """Train SARIMA + HW + Naive forecaster and store predictions."""
     logger.info("Loading arrivals time series...")
-    series = _load_arrivals_series(db)
+    series = load_arrivals_series(db)
     logger.info("Loaded %d monthly observations (%s to %s).",
                 len(series), series.index[0], series.index[-1])
 

@@ -17,6 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.utils.constants import COVID_END, COVID_START
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,6 @@ def _safe_numeric(value: object, default: float = 0.0) -> float:
         return default
     return fval
 
-
-# COVID exclusion range
-COVID_START = "2020-03"
-COVID_END = "2021-06"
-
 # Accommodation indicators used as features
 ACCOM_INDICATORS = {
     "alojatur_habitaciones_ocupacion": "room_occ",
@@ -54,17 +50,11 @@ ACCOM_INDICATORS = {
 
 def _load_feature_data(db: Session) -> pd.DataFrame:
     """Load arrivals + accommodation metrics aligned by period."""
-    # Arrivals
-    rows = db.execute(
-        text("""
-            SELECT period, value FROM time_series
-            WHERE indicator='turistas' AND geo_code='ES709' AND measure='ABSOLUTE'
-            ORDER BY period
-        """)
-    ).fetchall()
-    monthly = [(r.period, r.value) for r in rows if re.match(r"^\d{4}-\d{2}$", r.period)]
-    df = pd.DataFrame(monthly, columns=["period", "arrivals"])
-    df = df.set_index("period")
+    from app.utils.queries import load_arrivals_series
+
+    # Arrivals — reuse the shared query helper
+    arrivals = load_arrivals_series(db)
+    df = pd.DataFrame({"arrivals": arrivals.values}, index=[str(p) for p in arrivals.index])
 
     # Foreign tourists
     rows = db.execute(

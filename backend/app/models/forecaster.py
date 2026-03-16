@@ -18,11 +18,9 @@ import pandas as pd
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-logger = logging.getLogger(__name__)
+from app.utils.constants import COVID_END, COVID_START
 
-# COVID exclusion range indices (relative to 2010-01 start)
-COVID_START = "2020-03"
-COVID_END = "2021-06"
+logger = logging.getLogger(__name__)
 
 # Ensemble weights: SARIMA(0.5), HW(0.3), Seasonal Naive(0.2)
 WEIGHTS_MEDIUM = {"sarima": 0.5, "hw": 0.3, "naive": 0.2}
