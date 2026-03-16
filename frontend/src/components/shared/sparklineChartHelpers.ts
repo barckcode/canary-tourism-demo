@@ -50,9 +50,6 @@ export function parsePoints(data: SparklineDataPoint[]): ParsedPoint[] {
   }));
 }
 
-/** @deprecated Use `formatCompactNumber` from `utils/format` directly. */
-export const formatValue = formatCompactNumber;
-
 export function computeDimensions(
   width: number,
   height: number
@@ -319,7 +316,7 @@ export function setupTooltip(
       focusDot.attr("cx", cx).attr("cy", cy);
 
       const formattedDate = d3.timeFormat("%b %Y")(d.date);
-      const formattedValue = formatValue(d.value);
+      const formattedValue = formatCompactNumber(d.value);
 
       tooltipPeriod.text(formattedDate);
       tooltipValue.text(formattedValue);

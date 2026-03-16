@@ -57,9 +57,6 @@ export const COLORS = {
 // Pure helpers
 // ---------------------------------------------------------------------------
 
-/** @deprecated Use `formatCompactNumber` from `utils/format` directly. */
-export const formatValue = formatCompactNumber;
-
 export function parseScenarioData(data: ScenarioResultData): {
   baselineData: ParsedPoint[];
   scenarioData: ParsedPoint[];
@@ -172,7 +169,7 @@ export function renderAxes(
       d3
         .axisLeft(scales.y)
         .ticks(6)
-        .tickFormat((d) => formatValue(d as number))
+        .tickFormat((d) => formatCompactNumber(d as number))
     )
     .call((sel) =>
       sel.select(".domain").attr("stroke", "rgba(255,255,255,0.1)")
@@ -389,8 +386,8 @@ export function setupTooltip(
       const diffPositive = d.scenario >= d.baseline;
 
       tooltipDate.text(formattedDate);
-      tooltipBaseline.text(`Baseline: ${formatValue(d.baseline)}`);
-      tooltipScenario.text(`Scenario: ${formatValue(d.scenario)}`);
+      tooltipBaseline.text(`Baseline: ${formatCompactNumber(d.baseline)}`);
+      tooltipScenario.text(`Scenario: ${formatCompactNumber(d.scenario)}`);
       tooltipDiff
         .text(`${diffPositive ? "+" : ""}${diffPct}%`)
         .attr("fill", diffPositive ? COLORS.positive : COLORS.negative);

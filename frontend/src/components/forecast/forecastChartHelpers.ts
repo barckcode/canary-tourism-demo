@@ -48,9 +48,6 @@ export const MARGIN = { top: 20, right: 30, bottom: 40, left: 65 };
 // Pure helpers
 // ---------------------------------------------------------------------------
 
-/** @deprecated Use `formatCompactNumber` from `utils/format` directly. */
-export const formatValue = formatCompactNumber;
-
 export function computeDimensions(width: number, height: number): Dimensions {
   return {
     width,
@@ -147,7 +144,7 @@ export function renderAxes(
       d3
         .axisLeft(scales.y)
         .ticks(6)
-        .tickFormat((d) => formatValue(d as number))
+        .tickFormat((d) => formatCompactNumber(d as number))
     )
     .call((sel) =>
       sel.select(".domain").attr("stroke", "rgba(255,255,255,0.1)")
@@ -386,7 +383,7 @@ export function setupTooltip(
         .attr("y2", 0);
 
       const formattedDate = d3.timeFormat("%b %Y")(d.date);
-      const formattedValue = formatValue(d.value);
+      const formattedValue = formatCompactNumber(d.value);
 
       let typeLabel: string;
       let typeColor: string;
