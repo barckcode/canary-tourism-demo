@@ -1,14 +1,32 @@
 """Time series data endpoints."""
 
+import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api.schemas import IndicatorInfo, TimeSeriesResponse, YoYResponse
 from app.db.database import get_db
 from app.db.models import TimeSeries
 from app.rate_limit import limiter
+
+PERIOD_PATTERN = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+
+
+def _validate_period(value: str | None, name: str) -> str | None:
+    """Validate that a period string matches YYYY-MM format.
+
+    Raises HTTPException(400) if the format is invalid.
+    """
+    if value is None:
+        return None
+    if not PERIOD_PATTERN.match(value):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {name} format. Use YYYY-MM (e.g., 2026-03)",
+        )
+    return value
 
 router = APIRouter()
 
@@ -34,6 +52,9 @@ def get_timeseries(
     db: Session = Depends(get_db),
 ):
     """Return time series data for a given indicator and geography."""
+    _validate_period(from_period, "from_period")
+    _validate_period(to_period, "to_period")
+
     q = db.query(TimeSeries).filter(
         TimeSeries.indicator == indicator,
         TimeSeries.geo_code == geo,

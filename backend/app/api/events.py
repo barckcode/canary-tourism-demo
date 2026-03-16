@@ -4,6 +4,8 @@ Provides CRUD operations for tourism events that can be overlaid on
 time series charts to correlate arrivals data with known events.
 """
 
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import distinct
 from sqlalchemy.orm import Session
@@ -16,6 +18,24 @@ from app.api.schemas import (
 from app.db.database import get_db
 from app.db.models import TourismEvent
 from app.rate_limit import limiter
+
+DATE_PATTERN = re.compile(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$")
+
+
+def _validate_date(value: str | None, name: str) -> str | None:
+    """Validate that a date string matches YYYY-MM-DD format.
+
+    Raises HTTPException(400) if the format is invalid.
+    """
+    if value is None:
+        return None
+    if not DATE_PATTERN.match(value):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {name} format. Use YYYY-MM-DD (e.g., 2026-03-15)",
+        )
+    return value
+
 
 router = APIRouter()
 
@@ -50,6 +70,9 @@ def list_events(
     - **to_date**: filter events whose start_date <= this value (YYYY-MM-DD)
     - **category**: filter by event category (cultural, connectivity, regulation, external)
     """
+    _validate_date(from_date, "from_date")
+    _validate_date(to_date, "to_date")
+
     query = db.query(TourismEvent)
 
     if from_date:

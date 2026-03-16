@@ -637,3 +637,83 @@ def test_predictions_invalid_model(client):
     data = r.json()
     assert data["forecast"] == []
     assert data["model_info"]["name"] == "nonexistent_model"
+
+
+# --- RevPAR KPI uses correct indicator (Issue #121) ---
+
+def test_kpi_revpar_uses_correct_indicator(client):
+    """RevPAR KPI should use alojatur_revpar, not alojatur_ingresos."""
+    r = client.get("/api/dashboard/kpis")
+    assert r.status_code == 200
+    data = r.json()
+    assert "revpar" in data
+    # The test seed data sets alojatur_revpar base = 65.0 and alojatur_ingresos base = 62.0.
+    # With variation = 1.0 + (month - 6) * 0.01, the latest period (2025-12) has
+    # variation = 1.06, so revpar ~ 65 * 1.06 = 68.9 and ingresos ~ 62 * 1.06 = 65.72.
+    # If the code incorrectly uses alojatur_ingresos, the value would be ~65.72.
+    # With the fix using alojatur_revpar, the value should be ~68.9.
+    assert data["revpar"] > 67.0, (
+        f"RevPAR value {data['revpar']} is too low; "
+        "likely still reading alojatur_ingresos instead of alojatur_revpar"
+    )
+
+
+# --- Period format validation (Issue #122) ---
+
+def test_timeseries_invalid_from_period_returns_400(client):
+    """Invalid from_period format should return HTTP 400."""
+    r = client.get("/api/timeseries?indicator=turistas&from=2026-13")
+    assert r.status_code == 400
+    assert "from_period" in r.json()["detail"]
+
+
+def test_timeseries_invalid_to_period_returns_400(client):
+    """Invalid to_period format should return HTTP 400."""
+    r = client.get("/api/timeseries?indicator=turistas&to=not-a-date")
+    assert r.status_code == 400
+    assert "to_period" in r.json()["detail"]
+
+
+def test_timeseries_valid_period_passes(client):
+    """Valid period format should not trigger validation error."""
+    r = client.get("/api/timeseries?indicator=turistas&from=2023-01&to=2024-12")
+    assert r.status_code == 200
+
+
+def test_timeseries_invalid_period_month_zero(client):
+    """Month 00 is not valid in YYYY-MM format."""
+    r = client.get("/api/timeseries?indicator=turistas&from=2024-00")
+    assert r.status_code == 400
+
+
+def test_map_invalid_period_returns_400(client):
+    """Invalid period format on /map should return HTTP 400."""
+    r = client.get("/api/dashboard/map?period=2026-13")
+    assert r.status_code == 400
+    assert "period" in r.json()["detail"]
+
+
+def test_map_valid_period_passes(client):
+    """Valid period on /map should not trigger validation error."""
+    r = client.get("/api/dashboard/map?period=2024-06")
+    assert r.status_code == 200
+
+
+def test_events_invalid_from_date_returns_400(client):
+    """Invalid from_date format on /events should return HTTP 400."""
+    r = client.get("/api/events?from_date=2026-13-01")
+    assert r.status_code == 400
+    assert "from_date" in r.json()["detail"]
+
+
+def test_events_invalid_to_date_returns_400(client):
+    """Invalid to_date format on /events should return HTTP 400."""
+    r = client.get("/api/events?to_date=not-valid")
+    assert r.status_code == 400
+    assert "to_date" in r.json()["detail"]
+
+
+def test_events_valid_dates_pass(client):
+    """Valid date format on /events should not trigger validation error."""
+    r = client.get("/api/events?from_date=2026-01-01&to_date=2026-12-31")
+    assert r.status_code == 200

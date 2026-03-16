@@ -1,6 +1,7 @@
 """Dashboard KPI and summary endpoints."""
 
 import calendar
+import re
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -42,6 +43,24 @@ NATIONALITY_LABELS = {
     "208": "Denmark",
     "578": "Norway",
 }
+
+PERIOD_PATTERN = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+
+
+def _validate_period(value: str | None, name: str) -> str | None:
+    """Validate that a period string matches YYYY-MM format.
+
+    Raises HTTPException(400) if the format is invalid.
+    """
+    if value is None:
+        return None
+    if not PERIOD_PATTERN.match(value):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {name} format. Use YYYY-MM (e.g., 2026-03)",
+        )
+    return value
+
 
 router = APIRouter()
 
@@ -113,11 +132,11 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
     if adr:
         kpis["adr"] = adr.value
 
-    # RevPAR (income per available room)
+    # RevPAR = Revenue Per Available Room (ISTAC: ALOJATUR_REVPAR)
     revpar = (
         db.query(TimeSeries)
         .filter(
-            TimeSeries.indicator == "alojatur_ingresos",
+            TimeSeries.indicator == "alojatur_revpar",
             TimeSeries.geo_code == "ES709",
             TimeSeries.measure == "ABSOLUTE",
         )
@@ -450,6 +469,8 @@ def get_map_data(
     When no data exists for the requested period (or the database is empty),
     a hardcoded fallback is returned with ``data_available=false``.
     """
+    _validate_period(period, "period")
+
     # Collect all relevant indicators
     indicator_names = list(_MUNICIPALITY_INDICATORS.values())
 
