@@ -11,6 +11,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+import httpx
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -274,7 +275,7 @@ async def run_health_check() -> dict[str, Any]:
 
     # Check ISTAC API
     try:
-        async with __import__("httpx").AsyncClient() as client:
+        async with httpx.AsyncClient() as client:
             resp = await client.get(
                 f"{istac.BASE_URL}/indicators",
                 timeout=10.0,
@@ -288,7 +289,7 @@ async def run_health_check() -> dict[str, Any]:
 
     # Check INE API
     try:
-        async with __import__("httpx").AsyncClient() as client:
+        async with httpx.AsyncClient() as client:
             resp = await client.get(
                 f"{ine.BASE_URL}/OPERACIONES_DISPONIBLES",
                 timeout=10.0,
@@ -330,11 +331,8 @@ async def run_health_check() -> dict[str, Any]:
             }
     except Exception as exc:
         results["checks"]["database"] = {"status": "error", "error": str(exc)}
-    finally:
-        db.close()
 
-    # Log health check
-    db = SessionLocal()
+    # Log health check (reuse the same session)
     try:
         overall = "success" if all(
             c.get("status") == "ok"
