@@ -77,6 +77,98 @@ async def _fetch_indicator_data(
         return None
 
 
+def _extract_dimension_codes(
+    dim_values: Any, default_id: str = ""
+) -> dict[int, str]:
+    """Build an {index: code} mapping from ISTAC dimension values.
+
+    Handles both the ``{"value": [...]}`` dict form and the plain list form
+    that the ISTAC API may return.
+    """
+    if isinstance(dim_values, list):
+        return {idx: entry.get("id", default_id) for idx, entry in enumerate(dim_values)}
+    if isinstance(dim_values, dict):
+        entries = dim_values.get("value", [])
+        return {
+            entry.get("order", idx): entry.get("id", default_id)
+            for idx, entry in enumerate(entries)
+        }
+    return {}
+
+
+def _parse_list_observations(
+    observations: list,
+    indicator_code: str,
+    time_codes: dict[int, str],
+    geo_codes: dict[int, str],
+    measure_codes: dict[int, str],
+) -> list[dict[str, Any]]:
+    """Parse observations when they arrive as a list of dicts."""
+    records: list[dict[str, Any]] = []
+    for obs in observations:
+        time_idx = obs.get("timeIndex", obs.get("dimensionCodes", {}).get("TIME"))
+        geo_idx = obs.get("geographicalIndex", 0)
+        measure_idx = obs.get("measureIndex", 0)
+
+        period = time_codes.get(time_idx, "")
+        geo_code = geo_codes.get(geo_idx, TENERIFE_GEO)
+        measure = measure_codes.get(measure_idx, "ABSOLUTE")
+
+        value = obs.get("value")
+        if value is None:
+            primary = obs.get("primaryMeasure")
+            if primary is not None:
+                value = primary
+
+        if value is not None and period:
+            records.append({
+                "source": "istac",
+                "indicator": indicator_code.lower(),
+                "geo_code": geo_code,
+                "period": period,
+                "measure": measure,
+                "value": float(value),
+            })
+    return records
+
+
+def _parse_dict_observations(
+    observations: dict,
+    indicator_code: str,
+    time_codes: dict[int, str],
+    geo_codes: dict[int, str],
+    measure_codes: dict[int, str],
+) -> list[dict[str, Any]]:
+    """Parse observations when they arrive as a dict keyed by composite index."""
+    records: list[dict[str, Any]] = []
+    for key, value in observations.items():
+        if value is None:
+            continue
+        parts = str(key).split("|")
+        time_idx = int(parts[0]) if len(parts) > 0 and parts[0].isdigit() else 0
+        geo_idx = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+        measure_idx = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
+
+        period = time_codes.get(time_idx, "")
+        geo_code = geo_codes.get(geo_idx, TENERIFE_GEO)
+        measure = measure_codes.get(measure_idx, "ABSOLUTE")
+
+        obs_value = value if isinstance(value, (int, float)) else None
+        if isinstance(value, dict):
+            obs_value = value.get("value")
+
+        if obs_value is not None and period:
+            records.append({
+                "source": "istac",
+                "indicator": indicator_code.lower(),
+                "geo_code": geo_code,
+                "period": period,
+                "measure": measure,
+                "value": float(obs_value),
+            })
+    return records
+
+
 def _parse_observations(
     data: dict[str, Any], indicator_code: str
 ) -> list[dict[str, Any]]:
@@ -86,112 +178,31 @@ def _parse_observations(
     indices mapping to codes. We flatten this into records with source,
     indicator, geo_code, period, measure, and value fields.
     """
-    records: list[dict[str, Any]] = []
-
-    # Extract dimension values for lookup
     dimensions = data.get("dimension", {})
 
-    # Time dimension values
     time_dim = dimensions.get("TIME", dimensions.get("time", {}))
-    time_values = time_dim.get("dimensionValues", {})
-    time_codes = {
-        entry.get("order", idx): entry.get("id", "")
-        for idx, entry in enumerate(
-            time_values.get("value", []) if isinstance(time_values, dict) else []
-        )
-    }
-    # If time_values is a list directly
-    if isinstance(time_values, list):
-        time_codes = {
-            idx: entry.get("id", "") for idx, entry in enumerate(time_values)
-        }
+    time_codes = _extract_dimension_codes(time_dim.get("dimensionValues", {}))
 
-    # Geographic dimension values
     geo_dim = dimensions.get("GEOGRAPHICAL", dimensions.get("geographical", {}))
-    geo_values = geo_dim.get("dimensionValues", {})
-    geo_list = (
-        geo_values.get("value", []) if isinstance(geo_values, dict) else []
+    geo_codes = _extract_dimension_codes(
+        geo_dim.get("dimensionValues", {}), default_id=TENERIFE_GEO
     )
-    if isinstance(geo_values, list):
-        geo_list = geo_values
-    geo_codes = {
-        idx: entry.get("id", TENERIFE_GEO) for idx, entry in enumerate(geo_list)
-    }
 
-    # Measure dimension values
     measure_dim = dimensions.get("MEASURE", dimensions.get("measure", {}))
-    measure_values = measure_dim.get("dimensionValues", {})
-    measure_list = (
-        measure_values.get("value", []) if isinstance(measure_values, dict) else []
+    measure_codes = _extract_dimension_codes(
+        measure_dim.get("dimensionValues", {}), default_id="ABSOLUTE"
     )
-    if isinstance(measure_values, list):
-        measure_list = measure_values
-    measure_codes = {
-        idx: entry.get("id", "ABSOLUTE") for idx, entry in enumerate(measure_list)
-    }
 
-    # Parse observations
     observations = data.get("observation", [])
     if isinstance(observations, list):
-        for obs in observations:
-            time_idx = obs.get("timeIndex", obs.get("dimensionCodes", {}).get("TIME"))
-            geo_idx = obs.get("geographicalIndex", 0)
-            measure_idx = obs.get("measureIndex", 0)
-
-            period = time_codes.get(time_idx, "")
-            geo_code = geo_codes.get(geo_idx, TENERIFE_GEO)
-            measure = measure_codes.get(measure_idx, "ABSOLUTE")
-
-            value = obs.get("value")
-            if value is None:
-                # Try primary/secondary value fields
-                primary = obs.get("primaryMeasure")
-                if primary is not None:
-                    value = primary
-
-            if value is not None and period:
-                records.append(
-                    {
-                        "source": "istac",
-                        "indicator": indicator_code.lower(),
-                        "geo_code": geo_code,
-                        "period": period,
-                        "measure": measure,
-                        "value": float(value),
-                    }
-                )
-    elif isinstance(observations, dict):
-        # Some endpoints return observations as a dict keyed by composite index
-        for key, value in observations.items():
-            if value is None:
-                continue
-            # Key format can be "time_idx|geo_idx|measure_idx" or similar
-            parts = str(key).split("|")
-            time_idx = int(parts[0]) if len(parts) > 0 and parts[0].isdigit() else 0
-            geo_idx = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
-            measure_idx = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
-
-            period = time_codes.get(time_idx, "")
-            geo_code = geo_codes.get(geo_idx, TENERIFE_GEO)
-            measure = measure_codes.get(measure_idx, "ABSOLUTE")
-
-            obs_value = value if isinstance(value, (int, float)) else None
-            if isinstance(value, dict):
-                obs_value = value.get("value")
-
-            if obs_value is not None and period:
-                records.append(
-                    {
-                        "source": "istac",
-                        "indicator": indicator_code.lower(),
-                        "geo_code": geo_code,
-                        "period": period,
-                        "measure": measure,
-                        "value": float(obs_value),
-                    }
-                )
-
-    return records
+        return _parse_list_observations(
+            observations, indicator_code, time_codes, geo_codes, measure_codes
+        )
+    if isinstance(observations, dict):
+        return _parse_dict_observations(
+            observations, indicator_code, time_codes, geo_codes, measure_codes
+        )
+    return []
 
 
 def get_last_update(metadata: dict[str, Any]) -> str | None:

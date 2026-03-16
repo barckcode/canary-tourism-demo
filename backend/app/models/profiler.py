@@ -139,6 +139,27 @@ class TouristProfiler:
 
         return self.labels
 
+    @staticmethod
+    def _compute_cluster_stats(cluster_df: pd.DataFrame) -> dict:
+        """Compute basic numeric averages for a single cluster.
+
+        Returns a dict with avg_age, avg_spend, and avg_nights (raw floats,
+        possibly NaN).
+        """
+        return {
+            "avg_age": pd.to_numeric(cluster_df.get("EDAD"), errors="coerce").mean(),
+            "avg_spend": pd.to_numeric(cluster_df.get("GASTO_EUROS"), errors="coerce").mean(),
+            "avg_nights": pd.to_numeric(cluster_df.get("NOCHES"), errors="coerce").mean(),
+        }
+
+    @staticmethod
+    def _top_items(series, n: int = 5) -> list:
+        """Return the top *n* most common non-placeholder values from *series*."""
+        counts = Counter(
+            v for v in series if v and v not in ("_Z", "_U", "_N")
+        )
+        return [k for k, _ in counts.most_common(n)]
+
     def get_profiles(self) -> list[dict]:
         """Return cluster profile summaries."""
         if not self.is_fitted:
@@ -152,22 +173,10 @@ class TouristProfiler:
             cluster_df = self.raw_df[mask]
             size = mask.sum()
 
-            # Numeric averages
-            avg_age = pd.to_numeric(cluster_df.get("EDAD"), errors="coerce").mean()
-            avg_spend = pd.to_numeric(cluster_df.get("GASTO_EUROS"), errors="coerce").mean()
-            avg_nights = pd.to_numeric(cluster_df.get("NOCHES"), errors="coerce").mean()
+            stats = self._compute_cluster_stats(cluster_df)
 
-            # Top nationalities
-            nat_counts = Counter(
-                v for v in cluster_df.get("NACIONALIDAD", []) if v and v not in ("_Z", "_U", "_N")
-            )
-            top_nat = [k for k, _ in nat_counts.most_common(5)]
-
-            # Top accommodations
-            acc_counts = Counter(
-                v for v in cluster_df.get("ALOJ_CATEG", []) if v and v not in ("_Z", "_U", "_N")
-            )
-            top_acc = [k for k, _ in acc_counts.most_common(5)]
+            top_nat = self._top_items(cluster_df.get("NACIONALIDAD", []), 5)
+            top_acc = self._top_items(cluster_df.get("ALOJ_CATEG", []), 5)
 
             # Top activities (columns where > 30% of cluster did it)
             top_activities = []
@@ -202,10 +211,8 @@ class TouristProfiler:
                     spending[name] = round(mean_val, 2)
 
             # Purpose distribution
-            purpose_counts = Counter(
-                v for v in cluster_df.get("PROPOSITO", []) if v and v not in ("_Z", "_U", "_N")
-            )
-            top_purpose = purpose_counts.most_common(1)[0][0] if purpose_counts else None
+            top_purpose = self._top_items(cluster_df.get("PROPOSITO", []), 1)
+            top_purpose = top_purpose[0] if top_purpose else None
 
             characteristics = {
                 "purpose": top_purpose,
@@ -218,8 +225,11 @@ class TouristProfiler:
                 ) if "PERSONAS_TOTAL" in cluster_df.columns else None,
             }
 
-            # Assign meaningful name based on ordering
             name = CLUSTER_NAMES.get(cluster_id, f"Cluster {cluster_id}")
+
+            avg_age = stats["avg_age"]
+            avg_spend = stats["avg_spend"]
+            avg_nights = stats["avg_nights"]
 
             profiles.append({
                 "cluster_id": cluster_id,

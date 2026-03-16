@@ -166,6 +166,94 @@ class ScenarioEngine:
 
         return self
 
+    def _ensure_fitted(self, db: Session) -> None:
+        """Load model from disk or train from scratch if not already fitted."""
+        if self.is_fitted:
+            return
+        model_path = settings.models_dir / "scenario_engine.pkl"
+        if model_path.exists():
+            saved = joblib.load(model_path)
+            self.model = saved.model
+            self.feature_names = saved.feature_names
+            self.latest_df = saved.latest_df
+            self.latest_features = saved.latest_features
+            self.is_fitted = True
+        else:
+            self.fit(db)
+
+    def _build_period_features(
+        self, ext_df: pd.DataFrame, period: pd.Period
+    ) -> dict:
+        """Build a single-row feature dict for a future period.
+
+        Uses the extended DataFrame (which grows each iteration) to compute
+        lagged arrivals, rolling means, foreign ratio, accommodation lags,
+        and month encodings.
+        """
+        feat: dict = {}
+        arrivals_series = pd.Series(
+            {p: ext_df.loc[p, "arrivals"] for p in ext_df.index},
+        )
+
+        for lag in [1, 3, 6, 12]:
+            idx = len(arrivals_series) - lag
+            feat[f"y_lag{lag}"] = arrivals_series.iloc[idx] if idx >= 0 else np.nan
+
+        feat["rolling_3m"] = arrivals_series.iloc[-3:].mean()
+        feat["rolling_12m"] = arrivals_series.iloc[-12:].mean()
+
+        last_arrivals = _safe_numeric(ext_df["arrivals"].iloc[-1])
+        last_foreign = _safe_numeric(ext_df["foreign"].iloc[-1])
+        feat["foreign_ratio"] = (
+            last_foreign / last_arrivals if last_arrivals != 0 else 0.5
+        )
+
+        for col_name in ACCOM_INDICATORS.values():
+            feat[f"{col_name}_lag1"] = _safe_numeric(ext_df[col_name].iloc[-1])
+
+        feat["month"] = period.month
+        feat["month_sin"] = np.sin(2 * np.pi * period.month / 12)
+        feat["month_cos"] = np.cos(2 * np.pi * period.month / 12)
+
+        return feat
+
+    @staticmethod
+    def _apply_scenario(
+        feat: dict,
+        occupancy_change_pct: float,
+        adr_change_pct: float,
+        foreign_ratio_change_pct: float,
+    ) -> dict:
+        """Return a copy of *feat* with what-if modifications applied."""
+        feat_sc = feat.copy()
+        if occupancy_change_pct:
+            feat_sc["room_occ_lag1"] = _safe_numeric(feat_sc["room_occ_lag1"]) * (1 + occupancy_change_pct / 100)
+            feat_sc["bed_occ_lag1"] = _safe_numeric(feat_sc["bed_occ_lag1"]) * (1 + occupancy_change_pct / 100)
+        if adr_change_pct:
+            feat_sc["adr_lag1"] = _safe_numeric(feat_sc["adr_lag1"]) * (1 + adr_change_pct / 100)
+            feat_sc["revpar_lag1"] = _safe_numeric(feat_sc["revpar_lag1"]) * (1 + adr_change_pct / 100)
+        if foreign_ratio_change_pct:
+            feat_sc["foreign_ratio"] = _safe_numeric(feat_sc["foreign_ratio"], 0.5) * (1 + foreign_ratio_change_pct / 100)
+        return feat_sc
+
+    @staticmethod
+    def _compute_impact(
+        baseline: list[dict], scenario: list[dict]
+    ) -> dict:
+        """Compute delta/impact metrics between baseline and scenario."""
+        avg_baseline = np.mean([b["value"] for b in baseline])
+        avg_scenario = np.mean([s["value"] for s in scenario])
+        avg_change_pct = (
+            round((avg_scenario - avg_baseline) / avg_baseline * 100, 2)
+            if avg_baseline != 0
+            else 0.0
+        )
+        return {
+            "avg_baseline": round(avg_baseline),
+            "avg_scenario": round(avg_scenario),
+            "avg_change_pct": avg_change_pct,
+        }
+
     def predict_scenario(
         self,
         db: Session,
@@ -178,84 +266,37 @@ class ScenarioEngine:
 
         Returns baseline and scenario forecasts.
         """
-        if not self.is_fitted:
-            # Try loading from disk
-            model_path = settings.models_dir / "scenario_engine.pkl"
-            if model_path.exists():
-                saved = joblib.load(model_path)
-                self.model = saved.model
-                self.feature_names = saved.feature_names
-                self.latest_df = saved.latest_df
-                self.latest_features = saved.latest_features
-                self.is_fitted = True
-            else:
-                self.fit(db)
+        self._ensure_fitted(db)
 
         df = self.latest_df
-        features = self.latest_features
-
         last_period = pd.Period(df.index[-1], freq="M")
         future_periods = pd.period_range(last_period + 1, periods=horizon, freq="M")
 
-        baseline = []
-        scenario = []
+        baseline: list[dict] = []
+        scenario: list[dict] = []
 
-        # Extend data iteratively
         ext_df = df.copy()
         for period in future_periods:
             period_str = str(period)
 
-            # Build feature row for this period
-            feat = {}
-            arrivals_series = pd.Series(
-                {p: ext_df.loc[p, "arrivals"] for p in ext_df.index},
-            )
-
-            for lag in [1, 3, 6, 12]:
-                idx = len(arrivals_series) - lag
-                feat[f"y_lag{lag}"] = arrivals_series.iloc[idx] if idx >= 0 else np.nan
-
-            feat["rolling_3m"] = arrivals_series.iloc[-3:].mean()
-            feat["rolling_12m"] = arrivals_series.iloc[-12:].mean()
-
-            last_arrivals = _safe_numeric(ext_df["arrivals"].iloc[-1])
-            last_foreign = _safe_numeric(ext_df["foreign"].iloc[-1])
-            last_foreign_ratio = (
-                last_foreign / last_arrivals if last_arrivals != 0 else 0.5
-            )
-            feat["foreign_ratio"] = last_foreign_ratio
-
-            for col_name in ACCOM_INDICATORS.values():
-                feat[f"{col_name}_lag1"] = _safe_numeric(ext_df[col_name].iloc[-1])
-
-            feat["month"] = period.month
-            feat["month_sin"] = np.sin(2 * np.pi * period.month / 12)
-            feat["month_cos"] = np.cos(2 * np.pi * period.month / 12)
+            feat = self._build_period_features(ext_df, period)
 
             # Baseline prediction
-            X_base = pd.DataFrame([feat], columns=self.feature_names)
-            X_base = X_base.fillna(0)
+            X_base = pd.DataFrame([feat], columns=self.feature_names).fillna(0)
             base_pred = float(self.model.predict(X_base)[0])
             baseline.append({"period": period_str, "value": round(base_pred)})
 
-            # Scenario prediction (modify features)
-            feat_sc = feat.copy()
-            if occupancy_change_pct:
-                feat_sc["room_occ_lag1"] = _safe_numeric(feat_sc["room_occ_lag1"]) * (1 + occupancy_change_pct / 100)
-                feat_sc["bed_occ_lag1"] = _safe_numeric(feat_sc["bed_occ_lag1"]) * (1 + occupancy_change_pct / 100)
-            if adr_change_pct:
-                feat_sc["adr_lag1"] = _safe_numeric(feat_sc["adr_lag1"]) * (1 + adr_change_pct / 100)
-                feat_sc["revpar_lag1"] = _safe_numeric(feat_sc["revpar_lag1"]) * (1 + adr_change_pct / 100)
-            if foreign_ratio_change_pct:
-                feat_sc["foreign_ratio"] = _safe_numeric(feat_sc["foreign_ratio"], 0.5) * (1 + foreign_ratio_change_pct / 100)
-
-            X_sc = pd.DataFrame([feat_sc], columns=self.feature_names)
-            X_sc = X_sc.fillna(0)
+            # Scenario prediction
+            feat_sc = self._apply_scenario(
+                feat, occupancy_change_pct, adr_change_pct, foreign_ratio_change_pct
+            )
+            X_sc = pd.DataFrame([feat_sc], columns=self.feature_names).fillna(0)
             sc_pred = float(self.model.predict(X_sc)[0])
             scenario.append({"period": period_str, "value": round(sc_pred)})
 
             # Extend for next iteration
-            new_row = {
+            last_foreign_ratio = feat["foreign_ratio"]
+            new_row: dict = {
                 "arrivals": base_pred,
                 "foreign": base_pred * last_foreign_ratio,
             }
@@ -263,23 +304,10 @@ class ScenarioEngine:
                 new_row[col_name] = _safe_numeric(ext_df[col_name].iloc[-1])
             ext_df.loc[period_str] = new_row
 
-        avg_baseline = np.mean([b["value"] for b in baseline])
-        avg_scenario = np.mean([s["value"] for s in scenario])
-        avg_change_pct = (
-            round((avg_scenario - avg_baseline) / avg_baseline * 100, 2)
-            if avg_baseline != 0
-            else 0.0
-        )
-        impact = {
-            "avg_baseline": round(avg_baseline),
-            "avg_scenario": round(avg_scenario),
-            "avg_change_pct": avg_change_pct,
-        }
-
         return {
             "baseline_forecast": baseline,
             "scenario_forecast": scenario,
-            "impact_summary": impact,
+            "impact_summary": self._compute_impact(baseline, scenario),
             "params": {
                 "occupancy_change_pct": occupancy_change_pct,
                 "adr_change_pct": adr_change_pct,
