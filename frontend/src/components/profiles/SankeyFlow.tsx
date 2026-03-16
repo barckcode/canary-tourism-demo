@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 import {
   sankey as d3Sankey,
@@ -127,6 +128,8 @@ function convertApiData(apiData: {
 
 export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const [isMockData, setIsMockData] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!svgRef.current || width <= 0 || height <= 0) return;
@@ -146,6 +149,15 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
     // Use API data if available, otherwise fall back to mock
     const useApiData = apiData && apiData.nodes.length > 0;
     const data = useApiData ? convertApiData(apiData) : getMockSankeyData();
+    setIsMockData(!useApiData);
+
+    // Filter out orphan nodes -- keep only nodes referenced in at least one link
+    const connectedNodeIds = new Set<number>();
+    data.links.forEach(link => {
+      connectedNodeIds.add(link.source);
+      connectedNodeIds.add(link.target);
+    });
+    data.nodes = data.nodes.filter(node => connectedNodeIds.has(node.id));
 
     const sankeyGenerator = d3Sankey<NodeData, LinkData>()
       .nodeId((d: SankeyNode<NodeData, LinkData>) => d.id)
@@ -241,5 +253,12 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
       .text((d) => d.label);
   }, [width, height, apiData]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Sankey flow diagram showing tourist distribution from countries of origin through zones to accommodation types" />;
+  return (
+    <div>
+      <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Sankey flow diagram showing tourist distribution from countries of origin through zones to accommodation types" />
+      {isMockData && (
+        <p className="text-xs text-gray-500 mt-1">{t('profiles.sampleData')}</p>
+      )}
+    </div>
+  );
 }

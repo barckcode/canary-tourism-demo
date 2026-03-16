@@ -145,7 +145,8 @@
     "avgStayByMarketSubtitle": "Average nights per nationality",
     "touristFlow": "Tourist Flow",
     "touristFlowSubtitle": "Top 6 source markets \u2192 preferred accommodation type",
-    "couldNotLoadFlow": "Could not load tourist flow data."
+    "couldNotLoadFlow": "Could not load tourist flow data.",
+    "sampleData": "Sample data — real data unavailable"
   },
   "dataExplorer": {
     "title": "Data Explorer",

@@ -73,6 +73,13 @@ export default function ClusterViz({
   const svgRef = useRef<SVGSVGElement>(null);
   const [selected, setSelected] = useState<number | null>(null);
 
+  // Reset selected state when clusters change to avoid stale selection
+  useEffect(() => {
+    if (clusters.length > 0 && !clusters.some(c => c.id === selected)) {
+      setSelected(clusters[0]?.id ?? null);
+    }
+  }, [clusters]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!svgRef.current || width <= 0 || height <= 0) return;
 

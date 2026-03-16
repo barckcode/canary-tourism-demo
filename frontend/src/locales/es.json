@@ -145,7 +145,8 @@
     "avgStayByMarketSubtitle": "Noches medias por nacionalidad",
     "touristFlow": "Flujo de turistas",
     "touristFlowSubtitle": "Top 6 mercados de origen \u2192 tipo de alojamiento preferido",
-    "couldNotLoadFlow": "No se pudieron cargar los datos de flujo de turistas."
+    "couldNotLoadFlow": "No se pudieron cargar los datos de flujo de turistas.",
+    "sampleData": "Datos de ejemplo — datos reales no disponibles"
   },
   "dataExplorer": {
     "title": "Explorador de datos",
