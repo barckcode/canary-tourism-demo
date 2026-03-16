@@ -168,7 +168,11 @@
     "selectIndicatorAbove": "Selecciona un indicador arriba para visualizar",
     "couldNotLoadTimeSeries": "No se pudieron cargar los datos de la serie temporal.",
     "noDataForIndicator": "No hay datos disponibles para este indicador",
-    "selectIndicator": "Selecciona un indicador para ver su serie temporal"
+    "selectIndicator": "Selecciona un indicador para ver su serie temporal",
+    "compare": "Comparar",
+    "selectedCount": "seleccionados",
+    "maxIndicators": "Maximo 3 indicadores",
+    "clearSelection": "Limpiar seleccion"
   },
   "events": {
     "title": "Calendario de Eventos Turisticos",

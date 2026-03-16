@@ -168,7 +168,11 @@
     "selectIndicatorAbove": "Select an indicator above to visualize",
     "couldNotLoadTimeSeries": "Could not load time series data.",
     "noDataForIndicator": "No data available for this indicator",
-    "selectIndicator": "Select an indicator to view its time series"
+    "selectIndicator": "Select an indicator to view its time series",
+    "compare": "Compare",
+    "selectedCount": "selected",
+    "maxIndicators": "Max 3 indicators",
+    "clearSelection": "Clear selection"
   },
   "events": {
     "title": "Tourism Events Calendar",
