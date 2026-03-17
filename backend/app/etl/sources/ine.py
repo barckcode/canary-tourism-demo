@@ -9,6 +9,7 @@ from typing import Any
 
 import httpx
 
+from app.etl.retry import async_fetch_with_retry
 from app.utils.parsing import INE_MONTHLY_PERIOD, INE_QUARTERLY_PERIOD  # noqa: F401
 
 logger = logging.getLogger(__name__)
@@ -54,8 +55,9 @@ async def _fetch_series_data(
     """Fetch full data for an INE series."""
     url = f"{BASE_URL}/DATOS_SERIE/{series_id}"
     try:
-        resp = await client.get(url, timeout=60.0)
-        resp.raise_for_status()
+        resp = await async_fetch_with_retry(
+            client, url, timeout=60.0, source_name="INE",
+        )
         return resp.json()
     except httpx.HTTPStatusError as exc:
         logger.warning(
@@ -74,8 +76,9 @@ async def _fetch_latest_period(
     url = f"{BASE_URL}/DATOS_SERIE/{series_id}"
     params = {"nult": 1}
     try:
-        resp = await client.get(url, params=params, timeout=30.0)
-        resp.raise_for_status()
+        resp = await async_fetch_with_retry(
+            client, url, params=params, timeout=30.0, source_name="INE",
+        )
         data = resp.json()
         if isinstance(data, list) and len(data) > 0:
             return data[0]

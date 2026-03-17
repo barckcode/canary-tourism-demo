@@ -108,6 +108,7 @@ class IndicatorInfo(BaseModel):
     available_from: str
     available_to: str
     total_points: int
+    last_updated: str | None = None
 
 
 class YoYCell(BaseModel):

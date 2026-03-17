@@ -9,6 +9,8 @@ from typing import Any
 
 import httpx
 
+from app.etl.retry import async_fetch_with_retry
+
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://datos.canarias.es/api/estadisticas/indicators/v1.0"
@@ -41,8 +43,9 @@ async def _fetch_indicator_metadata(
     """Fetch indicator metadata including lastUpdate timestamp."""
     url = f"{BASE_URL}/indicators/{code}"
     try:
-        resp = await client.get(url, timeout=30.0)
-        resp.raise_for_status()
+        resp = await async_fetch_with_retry(
+            client, url, timeout=30.0, source_name="ISTAC",
+        )
         return resp.json()
     except httpx.HTTPStatusError as exc:
         logger.warning(
@@ -64,8 +67,9 @@ async def _fetch_indicator_data(
         "granularity": "MONTHLY",
     }
     try:
-        resp = await client.get(url, params=params, timeout=60.0)
-        resp.raise_for_status()
+        resp = await async_fetch_with_retry(
+            client, url, params=params, timeout=60.0, source_name="ISTAC",
+        )
         return resp.json()
     except httpx.HTTPStatusError as exc:
         logger.warning(

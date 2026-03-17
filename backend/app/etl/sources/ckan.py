@@ -12,6 +12,7 @@ from typing import Any
 
 import httpx
 
+from app.etl.retry import async_fetch_with_retry
 from app.utils.parsing import PLACEHOLDER_CODES, safe_float, safe_int
 
 logger = logging.getLogger(__name__)
@@ -38,8 +39,9 @@ async def _ckan_package_show(
     url = f"{base_url}/api/3/action/package_show"
     params = {"id": package_name}
     try:
-        resp = await client.get(url, params=params, timeout=30.0)
-        resp.raise_for_status()
+        resp = await async_fetch_with_retry(
+            client, url, params=params, timeout=30.0, source_name="CKAN",
+        )
         result = resp.json()
         if result.get("success"):
             return result.get("result")
@@ -66,8 +68,9 @@ async def _ckan_package_search(
     url = f"{base_url}/api/3/action/package_search"
     params = {"q": query, "rows": rows}
     try:
-        resp = await client.get(url, params=params, timeout=30.0)
-        resp.raise_for_status()
+        resp = await async_fetch_with_retry(
+            client, url, params=params, timeout=30.0, source_name="CKAN",
+        )
         result = resp.json()
         if result.get("success"):
             return result.get("result", {}).get("results", [])
@@ -82,8 +85,9 @@ async def _download_csv_resource(
 ) -> list[dict[str, str]]:
     """Download and parse a CSV resource from CKAN."""
     try:
-        resp = await client.get(url, timeout=120.0, follow_redirects=True)
-        resp.raise_for_status()
+        resp = await async_fetch_with_retry(
+            client, url, timeout=120.0, follow_redirects=True, source_name="CKAN",
+        )
         content = resp.content.decode(encoding, errors="replace")
         reader = csv.DictReader(io.StringIO(content))
         return list(reader)

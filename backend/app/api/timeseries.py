@@ -81,7 +81,12 @@ def get_timeseries(
 @router.get("/indicators", response_model=list[IndicatorInfo])
 @limiter.limit("60/minute")
 def list_indicators(request: Request, db: Session = Depends(get_db)):
-    """Return list of available indicators with metadata."""
+    """Return list of available indicators with metadata.
+
+    Each indicator includes a ``last_updated`` field derived from the most
+    recent ``fetched_at`` timestamp in the time_series table, indicating
+    when data for that indicator was last refreshed by the ETL pipeline.
+    """
     from sqlalchemy import func
 
     rows = (
@@ -91,6 +96,7 @@ def list_indicators(request: Request, db: Session = Depends(get_db)):
             func.min(TimeSeries.period).label("available_from"),
             func.max(TimeSeries.period).label("available_to"),
             func.count(TimeSeries.id).label("total_points"),
+            func.max(TimeSeries.fetched_at).label("last_updated"),
         )
         .group_by(TimeSeries.indicator, TimeSeries.source)
         .all()
@@ -103,6 +109,7 @@ def list_indicators(request: Request, db: Session = Depends(get_db)):
             "available_from": r.available_from,
             "available_to": r.available_to,
             "total_points": r.total_points,
+            "last_updated": r.last_updated,
         }
         for r in rows
     ]
