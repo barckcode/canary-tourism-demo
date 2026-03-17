@@ -165,11 +165,21 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
     kpis["last_updated"] = last_fetched
 
     if not kpis or "latest_arrivals" not in kpis:
-        raise HTTPException(
-            status_code=404,
-            detail="No KPI data available. The database may not have been populated yet.",
-        )
+        return {
+            "latest_arrivals": None,
+            "latest_period": None,
+            "yoy_change": None,
+            "occupancy_rate": None,
+            "adr": None,
+            "revpar": None,
+            "avg_stay": None,
+            "last_updated": kpis.get("last_updated"),
+            "data_available": False,
+            "reason": "no_data_available",
+        }
 
+    kpis["data_available"] = True
+    kpis["reason"] = None
     return kpis
 
 
@@ -227,15 +237,20 @@ def get_summary(request: Request, db: Session = Depends(get_db)):
     ]
 
     if not arrivals_trend:
-        raise HTTPException(
-            status_code=404,
-            detail="No arrivals trend data available. The database may not have been populated yet.",
-        )
+        return {
+            "arrivals_trend_24m": [],
+            "occupancy_trend_12m": [],
+            "forecast": [],
+            "data_available": False,
+            "reason": "no_data_available",
+        }
 
     return {
         "arrivals_trend_24m": arrivals_trend,
         "occupancy_trend_12m": occupancy_trend,
         "forecast": forecast_trend,
+        "data_available": True,
+        "reason": None,
     }
 
 
@@ -259,10 +274,12 @@ def get_top_markets(request: Request, db: Session = Depends(get_db)):
     )
 
     if not results:
-        raise HTTPException(
-            status_code=404,
-            detail="No microdata available to compute top markets.",
-        )
+        return {
+            "markets": [],
+            "total": 0,
+            "data_available": False,
+            "reason": "no_data_available",
+        }
 
     total = sum(r.count for r in results)
     markets = []
@@ -275,7 +292,7 @@ def get_top_markets(request: Request, db: Session = Depends(get_db)):
             "count": r.count,
         })
 
-    return {"markets": markets, "total": total}
+    return {"markets": markets, "total": total, "data_available": True, "reason": None}
 
 
 @router.get("/seasonal-position", response_model=SeasonalPositionResponse)
@@ -301,11 +318,19 @@ def get_seasonal_position(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
+    _empty_seasonal = {
+        "peak_month": None,
+        "peak_month_number": None,
+        "current_position": None,
+        "current_month": None,
+        "next_3_months": None,
+        "next_months": [],
+        "monthly_averages": {},
+        "data_available": False,
+    }
+
     if not arrivals:
-        raise HTTPException(
-            status_code=404,
-            detail="No arrivals data available for seasonal analysis.",
-        )
+        return {**_empty_seasonal, "reason": "no_data_available"}
 
     # Group values by month number (1-12)
     monthly_sums: dict[int, float] = {}
@@ -320,10 +345,7 @@ def get_seasonal_position(request: Request, db: Session = Depends(get_db)):
                 monthly_counts[month] = monthly_counts.get(month, 0) + 1
 
     if not monthly_sums:
-        raise HTTPException(
-            status_code=404,
-            detail="Could not parse monthly data for seasonal analysis.",
-        )
+        return {**_empty_seasonal, "reason": "no_data_available"}
 
     # Compute monthly averages
     monthly_avg: dict[int, float] = {
@@ -387,6 +409,8 @@ def get_seasonal_position(request: Request, db: Session = Depends(get_db)):
             calendar.month_name[m]: round(v, 0)
             for m, v in sorted(monthly_avg.items())
         },
+        "data_available": True,
+        "reason": None,
     }
 
 

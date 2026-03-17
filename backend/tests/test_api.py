@@ -717,3 +717,227 @@ def test_events_valid_dates_pass(client):
     """Valid date format on /events should not trigger validation error."""
     r = client.get("/api/events?from_date=2026-01-01&to_date=2026-12-31")
     assert r.status_code == 200
+
+
+# --- API Response Consistency (Issue #154) ---
+
+
+def test_dashboard_kpis_data_available_field(client):
+    """KPIs endpoint should include data_available=True when data exists."""
+    r = client.get("/api/dashboard/kpis")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data_available"] is True
+    assert data["reason"] is None
+
+
+def test_dashboard_summary_data_available_field(client):
+    """Summary endpoint should include data_available=True when data exists."""
+    r = client.get("/api/dashboard/summary")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data_available"] is True
+    assert data["reason"] is None
+
+
+def test_dashboard_top_markets_data_available_field(client):
+    """Top markets endpoint should include data_available=True when data exists."""
+    r = client.get("/api/dashboard/top-markets")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data_available"] is True
+    assert data["reason"] is None
+
+
+def test_dashboard_seasonal_position_data_available_field(client):
+    """Seasonal position should include data_available=True when data exists."""
+    r = client.get("/api/dashboard/seasonal-position")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data_available"] is True
+    assert data["reason"] is None
+
+
+def test_predictions_ci_available_field(client):
+    """Prediction forecast points should include ci_available=True when CIs exist."""
+    r = client.get("/api/predictions?indicator=turistas&model=ensemble&horizon=12")
+    assert r.status_code == 200
+    data = r.json()
+    for point in data["forecast"]:
+        assert "ci_available" in point
+        # Test data has CIs populated, so ci_available should be True
+        assert point["ci_available"] is True
+
+
+def test_predictions_compare_ci_available_field(client):
+    """Compare endpoint forecast points should include ci_available field."""
+    r = client.get("/api/predictions/compare?indicator=turistas")
+    assert r.status_code == 200
+    data = r.json()
+    for model_name, points in data["models"].items():
+        for point in points:
+            assert "ci_available" in point
+
+
+def test_dashboard_kpis_no_data_returns_200(db):
+    """KPIs should return 200 with data_available=False when no data exists."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from app.db.database import Base, get_db
+    from app.main import app
+
+    # Create a separate empty in-memory database
+    empty_engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=empty_engine)
+    EmptySession = sessionmaker(bind=empty_engine, autocommit=False, autoflush=False)
+
+    def _override():
+        s = EmptySession()
+        try:
+            yield s
+        finally:
+            s.close()
+
+    app.dependency_overrides[get_db] = _override
+    try:
+        c = TestClient(app)
+        r = c.get("/api/dashboard/kpis")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["data_available"] is False
+        assert data["reason"] == "no_data_available"
+        assert data["latest_arrivals"] is None
+        assert data["latest_period"] is None
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_dashboard_summary_no_data_returns_200(db):
+    """Summary should return 200 with empty arrays when no data exists."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from app.db.database import Base, get_db
+    from app.main import app
+
+    empty_engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=empty_engine)
+    EmptySession = sessionmaker(bind=empty_engine, autocommit=False, autoflush=False)
+
+    def _override():
+        s = EmptySession()
+        try:
+            yield s
+        finally:
+            s.close()
+
+    app.dependency_overrides[get_db] = _override
+    try:
+        c = TestClient(app)
+        r = c.get("/api/dashboard/summary")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["data_available"] is False
+        assert data["reason"] == "no_data_available"
+        assert data["arrivals_trend_24m"] == []
+        assert data["occupancy_trend_12m"] == []
+        assert data["forecast"] == []
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_dashboard_top_markets_no_data_returns_200(db):
+    """Top markets should return 200 with empty markets when no microdata."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from app.db.database import Base, get_db
+    from app.main import app
+
+    empty_engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=empty_engine)
+    EmptySession = sessionmaker(bind=empty_engine, autocommit=False, autoflush=False)
+
+    def _override():
+        s = EmptySession()
+        try:
+            yield s
+        finally:
+            s.close()
+
+    app.dependency_overrides[get_db] = _override
+    try:
+        c = TestClient(app)
+        r = c.get("/api/dashboard/top-markets")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["data_available"] is False
+        assert data["reason"] == "no_data_available"
+        assert data["markets"] == []
+        assert data["total"] == 0
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_dashboard_seasonal_no_data_returns_200(db):
+    """Seasonal position should return 200 with empty data when no arrivals."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from app.db.database import Base, get_db
+    from app.main import app
+
+    empty_engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=empty_engine)
+    EmptySession = sessionmaker(bind=empty_engine, autocommit=False, autoflush=False)
+
+    def _override():
+        s = EmptySession()
+        try:
+            yield s
+        finally:
+            s.close()
+
+    app.dependency_overrides[get_db] = _override
+    try:
+        c = TestClient(app)
+        r = c.get("/api/dashboard/seasonal-position")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["data_available"] is False
+        assert data["reason"] == "no_data_available"
+        assert data["peak_month"] is None
+        assert data["monthly_averages"] == {}
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_profile_not_found_still_404(client):
+    """Specific resource lookups should still return 404."""
+    r = client.get("/api/profiles/999")
+    assert r.status_code == 404

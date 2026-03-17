@@ -27,22 +27,26 @@ class PeriodValue(BaseModel):
 class DashboardKPIsResponse(BaseModel):
     """Latest KPI values for the dashboard."""
 
-    latest_arrivals: float
-    latest_period: str
+    latest_arrivals: float | None = None
+    latest_period: str | None = None
     yoy_change: float | None = None
     occupancy_rate: float | None = None
     adr: float | None = None
     revpar: float | None = None
     avg_stay: float | None = None
     last_updated: str | None = None
+    data_available: bool = True
+    reason: str | None = None
 
 
 class DashboardSummaryResponse(BaseModel):
     """24-month arrivals trend, 12-month occupancy trend, and forecast."""
 
-    arrivals_trend_24m: list[PeriodValue]
-    occupancy_trend_12m: list[PeriodValue]
-    forecast: list[PeriodValue]
+    arrivals_trend_24m: list[PeriodValue] = Field(default_factory=list)
+    occupancy_trend_12m: list[PeriodValue] = Field(default_factory=list)
+    forecast: list[PeriodValue] = Field(default_factory=list)
+    data_available: bool = True
+    reason: str | None = None
 
 
 class MarketEntry(BaseModel):
@@ -53,18 +57,22 @@ class MarketEntry(BaseModel):
 
 
 class TopMarketsResponse(BaseModel):
-    markets: list[MarketEntry]
-    total: int
+    markets: list[MarketEntry] = Field(default_factory=list)
+    total: int = 0
+    data_available: bool = True
+    reason: str | None = None
 
 
 class SeasonalPositionResponse(BaseModel):
-    peak_month: str
-    peak_month_number: int
-    current_position: str
-    current_month: str
-    next_3_months: str
-    next_months: list[str]
-    monthly_averages: dict[str, float]
+    peak_month: str | None = None
+    peak_month_number: int | None = None
+    current_position: str | None = None
+    current_month: str | None = None
+    next_3_months: str | None = None
+    next_months: list[str] = Field(default_factory=list)
+    monthly_averages: dict[str, float] = Field(default_factory=dict)
+    data_available: bool = True
+    reason: str | None = None
 
 
 class MunicipalityData(BaseModel):
@@ -141,6 +149,7 @@ class ForecastPoint(BaseModel):
     ci_upper_80: float | None = None
     ci_lower_95: float | None = None
     ci_upper_95: float | None = None
+    ci_available: bool = True
 
 
 class ModelMetrics(BaseModel):

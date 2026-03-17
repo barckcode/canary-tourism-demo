@@ -77,6 +77,7 @@ def get_predictions(
                 "ci_upper_80": r.ci_upper_80,
                 "ci_lower_95": r.ci_lower_95,
                 "ci_upper_95": r.ci_upper_95,
+                "ci_available": r.ci_lower_80 is not None and r.ci_upper_80 is not None,
             }
             for r in results
         ],
@@ -127,6 +128,7 @@ def compare_models(
                     "ci_upper_80": r.ci_upper_80,
                     "ci_lower_95": r.ci_lower_95,
                     "ci_upper_95": r.ci_upper_95,
+                    "ci_available": r.ci_lower_80 is not None and r.ci_upper_80 is not None,
                 }
                 for r in results
             ]
