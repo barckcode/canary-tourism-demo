@@ -364,3 +364,69 @@ class CreateEventRequest(BaseModel):
     end_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     impact_estimate: str | None = Field(None, max_length=200)
     location: str | None = Field(None, max_length=200)
+
+
+# ---------------------------------------------------------------------------
+# Health
+# ---------------------------------------------------------------------------
+
+class DatabaseHealth(BaseModel):
+    """Database connectivity and record counts."""
+
+    status: str = Field(description="'ok' or 'error'")
+    time_series_count: int = 0
+    predictions_count: int = 0
+    profiles_count: int = 0
+
+
+class ForecasterHealth(BaseModel):
+    """Forecaster model status."""
+
+    status: str = Field(description="'ok' or 'not_trained'")
+    last_training: str | None = None
+
+
+class ProfilerHealth(BaseModel):
+    """Profiler model status."""
+
+    status: str = Field(description="'ok' or 'not_trained'")
+    clusters: int = 0
+
+
+class ModelsHealth(BaseModel):
+    """Aggregated ML model health."""
+
+    forecaster: ForecasterHealth
+    profiler: ProfilerHealth
+
+
+class ETLHealth(BaseModel):
+    """ETL pipeline freshness."""
+
+    last_success: str | None = None
+    last_failure: str | None = None
+
+
+class DataFreshness(BaseModel):
+    """Latest data availability information."""
+
+    latest_period: str | None = None
+    days_since_update: int | None = None
+
+
+class DetailedHealthResponse(BaseModel):
+    """Full system health check response."""
+
+    status: str = Field(description="'ok', 'degraded', or 'unhealthy'")
+    timestamp: str
+    database: DatabaseHealth
+    models: ModelsHealth
+    etl: ETLHealth
+    data_freshness: DataFreshness
+
+
+class ReadinessResponse(BaseModel):
+    """Readiness probe response for orchestrators."""
+
+    ready: bool
+    reason: str | None = None
