@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
@@ -47,8 +48,30 @@ function useMultiTimeSeries(indicators: string[]) {
 
 export default function DataExplorerPage() {
   const { t } = useTranslation();
-  const [selectedIndicators, setSelectedIndicators] = useState<string[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize selected indicators from URL params
+  const initialIndicators = useMemo(() => {
+    const param = searchParams.get("indicator");
+    if (!param) return [];
+    return param.split(",").filter(Boolean).slice(0, MAX_INDICATORS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [selectedIndicators, setSelectedIndicators] = useState<string[]>(initialIndicators);
   const { data: apiIndicators, error: indicatorsError, refetch: refetchIndicators } = useIndicators();
+
+  // Sync selected indicators to URL
+  useEffect(() => {
+    setSearchParams((prev) => {
+      if (selectedIndicators.length === 0) {
+        prev.delete("indicator");
+      } else {
+        prev.set("indicator", selectedIndicators.join(","));
+      }
+      return prev;
+    }, { replace: true });
+  }, [selectedIndicators, setSearchParams]);
 
   const { results: tsResults, loading: tsLoading, errors: tsErrors } = useMultiTimeSeries(selectedIndicators);
 

@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
@@ -36,11 +37,25 @@ const COMPARE_COLORS = ["#38bdf8", "#f472b6", "#a78bfa"]; // sky-400, pink-400, 
 
 export default function ForecastPage() {
   const { t, i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const mockData = useMemo(() => generateMockData(), []);
+
+  // Model selection persisted in URL
+  const selectedModel = searchParams.get("model") || "ensemble";
+  const handleModelChange = useCallback((model: string) => {
+    setSearchParams((prev) => {
+      if (model === "ensemble") {
+        prev.delete("model");
+      } else {
+        prev.set("model", model);
+      }
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Real API data (will fail gracefully if backend not running)
   const { data: tsData, error: tsError, refetch: refetchTs } = useTimeSeries("turistas");
-  const { data: predData, error: predError, refetch: refetchPred } = usePredictions();
+  const { data: predData, error: predError, refetch: refetchPred } = usePredictions("turistas", "ES709", 12, selectedModel);
   const { data: scenarioData, runScenario, loading: scenarioLoading, error: scenarioError } = useScenarios();
   const { data: compareData, loading: compareLoading, error: compareError, refetch: refetchCompare } = usePredictionCompare();
   const { data: trainingInfo } = useTrainingInfo();
@@ -540,13 +555,19 @@ export default function ForecastPage() {
                   ))}
                 </>
               ) : (
-                modelList.map(({ name, periods, active, best, metrics }) => (
-                  <div
+                modelList.map(({ key, name, periods, active, best, metrics }) => {
+                  const isActive = key === selectedModel;
+                  return (
+                  <button
                     key={name}
-                    className={`flex items-center justify-between py-2.5 px-3 rounded-lg ${
-                      best
-                        ? "bg-tropical-500/10 ring-1 ring-tropical-500/30"
-                        : "bg-gray-800/40"
+                    onClick={() => handleModelChange(key)}
+                    aria-pressed={isActive}
+                    className={`w-full flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors text-left ${
+                      isActive
+                        ? "bg-ocean-500/15 ring-1 ring-ocean-500/40"
+                        : best
+                          ? "bg-tropical-500/10 ring-1 ring-tropical-500/30 hover:bg-tropical-500/15"
+                          : "bg-gray-800/40 hover:bg-gray-800/60"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -580,8 +601,9 @@ export default function ForecastPage() {
                         </span>
                       )}
                     </div>
-                  </div>
-                ))
+                  </button>
+                  );
+                })
               )}
             </div>
           </Panel>

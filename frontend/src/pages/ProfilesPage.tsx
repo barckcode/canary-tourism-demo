@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
@@ -17,7 +18,10 @@ const CLUSTER_COLORS = ["#0087b9", "#f69b1a", "#28c066", "#a855f7"];
 
 export default function ProfilesPage() {
   const { t } = useTranslation();
-  const [selectedCluster, setSelectedCluster] = useState<ClusterData | null>(
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialClusterId = searchParams.get("cluster");
+
+  const [selectedCluster, setSelectedClusterState] = useState<ClusterData | null>(
     null
   );
   const { data: profilesData, error: profilesError, refetch: refetchProfiles } = useProfiles();
@@ -61,6 +65,29 @@ export default function ProfilesPage() {
       description: `${c.top_nationalities?.[0]?.nationality || "Various"} tourists, avg \u20AC${c.avg_spend}`,
     }));
   }, [profilesData]);
+
+  // Wrap setSelectedCluster to also update URL
+  const setSelectedCluster = useCallback((cluster: ClusterData | null) => {
+    setSelectedClusterState(cluster);
+    setSearchParams((prev) => {
+      if (cluster === null) {
+        prev.delete("cluster");
+      } else {
+        prev.set("cluster", String(cluster.id));
+      }
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Resolve initial cluster from URL param once data is available
+  useEffect(() => {
+    if (initialClusterId != null && apiClusters && !selectedCluster) {
+      const match = apiClusters.find((c) => String(c.id) === initialClusterId);
+      if (match) {
+        setSelectedClusterState(match);
+      }
+    }
+  }, [initialClusterId, apiClusters, selectedCluster]);
 
   const profilesCsvRows = useMemo<(string | number)[][]>(() => {
     if (!profilesData?.clusters) return [];
