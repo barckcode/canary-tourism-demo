@@ -131,6 +131,12 @@ export default function ForecastChart({
     renderLines(g, historical, forecast, scales);
     setupTooltip(svg, g, historical, forecast, scales, dims, isMock);
     renderLegend(g, dims);
+
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, [historical, forecast, width, height, yLabel, isMock]);
 
   return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={`${yLabel} forecast chart showing historical data and predicted values with confidence intervals`} />;

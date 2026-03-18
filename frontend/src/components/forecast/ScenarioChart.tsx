@@ -149,6 +149,12 @@ export default function ScenarioChart({
     renderLines(g, baselineData, scenarioData, scales);
     setupTooltip(svg, g, combinedData, scales, dims);
     renderLegend(g, dims);
+
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, [data, width, height]);
 
   return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Scenario comparison chart showing baseline forecast versus scenario forecast with impact differences" />;

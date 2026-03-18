@@ -251,6 +251,12 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
       .attr("font-size", "10px")
       .attr("text-transform", "uppercase")
       .text((d) => d.label);
+
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, [width, height, apiData]);
 
   return (

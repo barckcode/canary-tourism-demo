@@ -67,6 +67,12 @@ export default function SparklineChart({
     renderAreaFill(svg, g, historicalPoints, scales, dims);
     renderLines(g, historicalPoints, forecastPoints, scales);
     setupTooltip(svg, g, allPoints, scales, dims);
+
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, [data, forecast, containerWidth, containerHeight]);
 
   return (

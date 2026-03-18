@@ -158,6 +158,12 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
           ? `${d.yoyChange > 0 ? "+" : ""}${d.yoyChange.toFixed(0)}%`
           : ""
       );
+
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, [width, height, cellData]);
 
   // Loading state

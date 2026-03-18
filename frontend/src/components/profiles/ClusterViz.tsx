@@ -240,6 +240,12 @@ export default function ClusterViz({
             `translate(${d.x},${d.y}) scale(1)`
           );
       });
+
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, [width, height, clusters, selected, onSelect]);
 
   return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Tourist cluster visualization showing bubble sizes proportional to segment share" />;

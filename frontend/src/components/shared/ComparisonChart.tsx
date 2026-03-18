@@ -366,6 +366,12 @@ export default function ComparisonChart({
       const textLen = textEl.node()?.getComputedTextLength() ?? s.name.length * 6;
       legendX += 26 + textLen + 20;
     });
+
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, [series, width, height]);
 
   const ariaLabel = series.map((s) => s.name).join(", ");
