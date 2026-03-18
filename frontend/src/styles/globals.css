@@ -48,3 +48,63 @@ body {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-ocean-400 to-tropical-400;
   }
 }
+
+@media print {
+  /* Override dark background */
+  body, html, #root, main {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide navigation sidebar */
+  nav, aside, [aria-label="Main navigation"], [aria-label="Navigation menu"] {
+    display: none !important;
+  }
+
+  /* Hide interactive elements that don't make sense in print */
+  button, input[type="range"], .mobile-drawer-overlay {
+    display: none !important;
+  }
+
+  /* Make all text dark */
+  * {
+    color: black !important;
+    background: white !important;
+    border-color: #ccc !important;
+  }
+
+  /* Ensure SVG charts are visible */
+  svg {
+    background: white !important;
+  }
+  svg text {
+    fill: black !important;
+  }
+  svg line, svg path {
+    stroke: currentColor !important;
+  }
+
+  /* Make charts and data use full width */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Avoid page breaks inside charts and cards */
+  svg, .chart-container, [role="img"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Show link URLs */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666 !important;
+  }
+  a[href^="#"]::after, a[href^="javascript"]::after {
+    content: none;
+  }
+}
