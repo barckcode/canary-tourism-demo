@@ -241,6 +241,23 @@ export default function ClusterViz({
           );
       });
 
+    // Touch support: trigger selection on tap (same as click)
+    bubbleGroup.each(function () {
+      const node = this as SVGGElement;
+      node.addEventListener(
+        "touchstart",
+        (event: TouchEvent) => {
+          event.preventDefault();
+          // Trigger the click handler via a synthetic approach
+          const d = d3.select<SVGGElement, SimNode>(node).datum();
+          const newId = selected === d.cluster.id ? null : d.cluster.id;
+          setSelected(newId);
+          onSelect?.(newId !== null ? d.cluster : null);
+        },
+        { passive: false }
+      );
+    });
+
     return () => {
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();

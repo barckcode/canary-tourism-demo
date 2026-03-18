@@ -339,78 +339,116 @@ export function setupTooltip(
     .attr("stroke-width", 1)
     .attr("stroke-dasharray", "3,3");
 
-  svg
+  // Shared logic for updating tooltip position and content
+  function updateTooltipAt(mx: number): void {
+    const dateAtMouse = x.invert(mx);
+    const idx = Math.min(
+      bisect(combinedData, dateAtMouse),
+      combinedData.length - 1
+    );
+    const d = combinedData[idx];
+    if (!d) return;
+
+    const cx = x(d.date);
+    const cyBase = y(d.baseline);
+    const cyScen = y(d.scenario);
+
+    focus.select(".dot-baseline").attr("cx", cx).attr("cy", cyBase);
+    focus.select(".dot-scenario").attr("cx", cx).attr("cy", cyScen);
+
+    crosshairLine
+      .attr("x1", cx)
+      .attr("x2", cx)
+      .attr("y1", 0)
+      .attr("y2", h);
+
+    const formattedDate = d3.timeFormat("%b %Y")(d.date);
+    const diffPct =
+      d.baseline !== 0
+        ? (((d.scenario - d.baseline) / d.baseline) * 100).toFixed(1)
+        : "0.0";
+    const diffPositive = d.scenario >= d.baseline;
+
+    tooltipDate.text(formattedDate);
+    tooltipBaseline.text(`Baseline: ${formatCompactNumber(d.baseline)}`);
+    tooltipScenario.text(`Scenario: ${formatCompactNumber(d.scenario)}`);
+    tooltipDiff
+      .text(`${diffPositive ? "+" : ""}${diffPct}%`)
+      .attr("fill", diffPositive ? COLORS.positive : COLORS.negative);
+
+    const tooltipW = 140;
+    const tooltipH = 72;
+    const tooltipX =
+      cx + 14 > w - tooltipW ? cx - tooltipW - 14 : cx + 14;
+    const tooltipY = Math.min(
+      Math.max(0, Math.min(cyBase, cyScen) - tooltipH / 2),
+      h - tooltipH
+    );
+
+    tooltipG.attr("transform", `translate(${tooltipX},${tooltipY})`);
+    tooltipG
+      .select("rect")
+      .attr("width", tooltipW)
+      .attr("height", tooltipH);
+    tooltipDate.attr("x", 8).attr("y", 16);
+    tooltipBaseline.attr("x", 8).attr("y", 32);
+    tooltipScenario.attr("x", 8).attr("y", 48);
+    tooltipDiff.attr("x", 8).attr("y", 64);
+  }
+
+  function showTooltip(): void {
+    focus.style("display", null);
+    tooltipG.style("display", null);
+    crosshairLine.style("display", null);
+  }
+
+  function hideTooltip(): void {
+    focus.style("display", "none");
+    tooltipG.style("display", "none");
+    crosshairLine.style("display", "none");
+  }
+
+  const overlayRect = svg
     .append("rect")
     .attr("width", w)
     .attr("height", h)
     .attr("transform", `translate(${dims.margin.left},${dims.margin.top})`)
     .attr("fill", "transparent")
-    .on("mouseover", () => {
-      focus.style("display", null);
-      tooltipG.style("display", null);
-      crosshairLine.style("display", null);
-    })
-    .on("mouseout", () => {
-      focus.style("display", "none");
-      tooltipG.style("display", "none");
-      crosshairLine.style("display", "none");
-    })
+    .on("mouseover", showTooltip)
+    .on("mouseout", hideTooltip)
     .on("mousemove", (event) => {
       const [mx] = d3.pointer(event);
-      const dateAtMouse = x.invert(mx);
-      const idx = Math.min(
-        bisect(combinedData, dateAtMouse),
-        combinedData.length - 1
-      );
-      const d = combinedData[idx];
-      if (!d) return;
-
-      const cx = x(d.date);
-      const cyBase = y(d.baseline);
-      const cyScen = y(d.scenario);
-
-      focus.select(".dot-baseline").attr("cx", cx).attr("cy", cyBase);
-      focus.select(".dot-scenario").attr("cx", cx).attr("cy", cyScen);
-
-      crosshairLine
-        .attr("x1", cx)
-        .attr("x2", cx)
-        .attr("y1", 0)
-        .attr("y2", h);
-
-      const formattedDate = d3.timeFormat("%b %Y")(d.date);
-      const diffPct =
-        d.baseline !== 0
-          ? (((d.scenario - d.baseline) / d.baseline) * 100).toFixed(1)
-          : "0.0";
-      const diffPositive = d.scenario >= d.baseline;
-
-      tooltipDate.text(formattedDate);
-      tooltipBaseline.text(`Baseline: ${formatCompactNumber(d.baseline)}`);
-      tooltipScenario.text(`Scenario: ${formatCompactNumber(d.scenario)}`);
-      tooltipDiff
-        .text(`${diffPositive ? "+" : ""}${diffPct}%`)
-        .attr("fill", diffPositive ? COLORS.positive : COLORS.negative);
-
-      const tooltipW = 140;
-      const tooltipH = 72;
-      const tooltipX =
-        cx + 14 > w - tooltipW ? cx - tooltipW - 14 : cx + 14;
-      const tooltipY = Math.min(
-        Math.max(0, Math.min(cyBase, cyScen) - tooltipH / 2),
-        h - tooltipH
-      );
-
-      tooltipG.attr("transform", `translate(${tooltipX},${tooltipY})`);
-      tooltipG
-        .select("rect")
-        .attr("width", tooltipW)
-        .attr("height", tooltipH);
-      tooltipDate.attr("x", 8).attr("y", 16);
-      tooltipBaseline.attr("x", 8).attr("y", 32);
-      tooltipScenario.attr("x", 8).attr("y", 48);
-      tooltipDiff.attr("x", 8).attr("y", 64);
+      updateTooltipAt(mx);
     });
+
+  // Touch support for tablets and mobile devices
+  const overlayNode = overlayRect.node();
+  if (overlayNode) {
+    overlayNode.addEventListener(
+      "touchstart",
+      (event: TouchEvent) => {
+        event.preventDefault();
+        showTooltip();
+        const touch = event.touches[0];
+        const [mx] = d3.pointer(touch, overlayNode);
+        updateTooltipAt(mx);
+      },
+      { passive: false }
+    );
+    overlayNode.addEventListener(
+      "touchmove",
+      (event: TouchEvent) => {
+        event.preventDefault();
+        const touch = event.touches[0];
+        const [mx] = d3.pointer(touch, overlayNode);
+        updateTooltipAt(mx);
+      },
+      { passive: false }
+    );
+    overlayNode.addEventListener("touchend", () => {
+      hideTooltip();
+    });
+  }
 }
 
 export function renderLegend(

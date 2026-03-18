@@ -250,94 +250,132 @@ export default function ComparisonChart({
     // Build bisector from first series dates
     const bisect = d3.bisector<ParsedPoint, Date>((d) => d.date).left;
 
-    svg
+    // Shared logic for updating tooltip position and content
+    function updateTooltipAt(mx: number): void {
+      const dateAtMouse = x.invert(mx);
+
+      // Update each series dot
+      parsed.forEach((s, i) => {
+        const idx = Math.min(
+          bisect(s.points, dateAtMouse),
+          s.points.length - 1
+        );
+        const pt = s.points[idx];
+        if (!pt) return;
+
+        const cx = x(pt.date);
+        const cy = yScales[i](pt.value);
+        focus
+          .select(`.dot-${s.name}`)
+          .attr("cx", cx)
+          .attr("cy", cy);
+      });
+
+      // Use first series for date reference
+      const refIdx = Math.min(
+        bisect(parsed[0].points, dateAtMouse),
+        parsed[0].points.length - 1
+      );
+      const refPt = parsed[0].points[refIdx];
+      if (!refPt) return;
+
+      const cx = x(refPt.date);
+
+      // Vertical crosshair
+      focus
+        .select(".crosshair-x")
+        .attr("x1", cx)
+        .attr("x2", cx)
+        .attr("y1", 0)
+        .attr("y2", innerHeight);
+
+      const formattedDate = d3.timeFormat("%b %Y")(refPt.date);
+      tooltipDate.text(formattedDate);
+
+      // Update value text for each series
+      parsed.forEach((s, i) => {
+        const idx = Math.min(
+          bisect(s.points, dateAtMouse),
+          s.points.length - 1
+        );
+        const pt = s.points[idx];
+        if (!pt) return;
+        tooltipLines[i]
+          .text(`${s.name}: ${formatCompactNumber(pt.value)}`)
+          .attr("x", 8);
+      });
+
+      const tooltipW = 160;
+      const tooltipH = 24 + parsed.length * 16;
+      const tooltipX =
+        cx + 12 > innerWidth - tooltipW ? cx - tooltipW - 12 : cx + 12;
+      const tooltipY = Math.max(
+        0,
+        Math.min(
+          innerHeight - tooltipH,
+          yScales[0](refPt.value) - tooltipH / 2
+        )
+      );
+
+      tooltip.attr("transform", `translate(${tooltipX},${tooltipY})`);
+      tooltip
+        .select("rect")
+        .attr("width", tooltipW)
+        .attr("height", tooltipH);
+      tooltipDate.attr("x", 8).attr("y", 16);
+    }
+
+    function showTooltip(): void {
+      focus.style("display", null);
+      tooltip.style("display", null);
+    }
+
+    function hideTooltip(): void {
+      focus.style("display", "none");
+      tooltip.style("display", "none");
+    }
+
+    const overlayRect = svg
       .append("rect")
       .attr("width", innerWidth)
       .attr("height", innerHeight)
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
       .attr("fill", "transparent")
-      .on("mouseover", () => {
-        focus.style("display", null);
-        tooltip.style("display", null);
-      })
-      .on("mouseout", () => {
-        focus.style("display", "none");
-        tooltip.style("display", "none");
-      })
+      .on("mouseover", showTooltip)
+      .on("mouseout", hideTooltip)
       .on("mousemove", (event) => {
         const [mx] = d3.pointer(event);
-        const dateAtMouse = x.invert(mx);
-
-        // Update each series dot
-        parsed.forEach((s, i) => {
-          const idx = Math.min(
-            bisect(s.points, dateAtMouse),
-            s.points.length - 1
-          );
-          const pt = s.points[idx];
-          if (!pt) return;
-
-          const cx = x(pt.date);
-          const cy = yScales[i](pt.value);
-          focus
-            .select(`.dot-${s.name}`)
-            .attr("cx", cx)
-            .attr("cy", cy);
-        });
-
-        // Use first series for date reference
-        const refIdx = Math.min(
-          bisect(parsed[0].points, dateAtMouse),
-          parsed[0].points.length - 1
-        );
-        const refPt = parsed[0].points[refIdx];
-        if (!refPt) return;
-
-        const cx = x(refPt.date);
-
-        // Vertical crosshair
-        focus
-          .select(".crosshair-x")
-          .attr("x1", cx)
-          .attr("x2", cx)
-          .attr("y1", 0)
-          .attr("y2", innerHeight);
-
-        const formattedDate = d3.timeFormat("%b %Y")(refPt.date);
-        tooltipDate.text(formattedDate);
-
-        // Update value text for each series
-        parsed.forEach((s, i) => {
-          const idx = Math.min(
-            bisect(s.points, dateAtMouse),
-            s.points.length - 1
-          );
-          const pt = s.points[idx];
-          if (!pt) return;
-          tooltipLines[i]
-            .text(`${s.name}: ${formatCompactNumber(pt.value)}`)
-            .attr("x", 8);
-        });
-
-        const tooltipW = 160;
-        const tooltipH = 24 + parsed.length * 16;
-        const tooltipX =
-          cx + 12 > innerWidth - tooltipW ? cx - tooltipW - 12 : cx + 12;
-        const tooltipY = Math.max(
-          0,
-          Math.min(
-            innerHeight - tooltipH,
-            yScales[0](refPt.value) - tooltipH / 2
-          )
-        );
-
-        tooltip.attr("transform", `translate(${tooltipX},${tooltipY})`);
-        tooltip
-          .select("rect")
-          .attr("width", tooltipW)
-          .attr("height", tooltipH);
-        tooltipDate.attr("x", 8).attr("y", 16);
+        updateTooltipAt(mx);
       });
+
+    // Touch support for tablets and mobile devices
+    const overlayNode = overlayRect.node();
+    if (overlayNode) {
+      overlayNode.addEventListener(
+        "touchstart",
+        (event: TouchEvent) => {
+          event.preventDefault();
+          showTooltip();
+          const touch = event.touches[0];
+          const [mx] = d3.pointer(touch, overlayNode);
+          updateTooltipAt(mx);
+        },
+        { passive: false }
+      );
+      overlayNode.addEventListener(
+        "touchmove",
+        (event: TouchEvent) => {
+          event.preventDefault();
+          const touch = event.touches[0];
+          const [mx] = d3.pointer(touch, overlayNode);
+          updateTooltipAt(mx);
+        },
+        { passive: false }
+      );
+      overlayNode.addEventListener("touchend", () => {
+        hideTooltip();
+      });
+    }
 
     // Legend at top
     const legend = g

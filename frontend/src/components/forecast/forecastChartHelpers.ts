@@ -347,76 +347,114 @@ export function setupTooltip(
 
   const bisect = d3.bisector<DataPointWithType, Date>((d) => d.date).left;
 
-  svg
+  // Shared logic for updating tooltip position and content
+  function updateTooltipAt(mx: number): void {
+    const dateAtMouse = x.invert(mx);
+    const idx = Math.min(
+      bisect(allDataPoints, dateAtMouse),
+      allDataPoints.length - 1
+    );
+    const d = allDataPoints[idx];
+    if (!d) return;
+
+    const cx = x(d.date);
+    const cy = y(d.value);
+
+    focus.attr("transform", `translate(${cx},${cy})`);
+    focus
+      .select(".crosshair-y")
+      .attr("x1", -cx)
+      .attr("x2", w - cx)
+      .attr("y1", 0)
+      .attr("y2", 0);
+
+    const formattedDate = d3.timeFormat("%b %Y")(d.date);
+    const formattedValue = formatCompactNumber(d.value);
+
+    let typeLabel: string;
+    let typeColor: string;
+    if (isMock) {
+      typeLabel = "DEMO";
+      typeColor = "rgba(245, 158, 11, 0.8)";
+    } else if (d.isForecast) {
+      typeLabel = "Forecast";
+      typeColor = "rgba(40, 192, 102, 0.8)";
+    } else {
+      typeLabel = "Actual";
+      typeColor = "rgba(0, 135, 185, 0.8)";
+    }
+
+    tooltipDate.text(formattedDate);
+    tooltipValue.text(formattedValue);
+    tooltipType.text(typeLabel).attr("fill", typeColor);
+
+    const tooltipW = 90;
+    const tooltipH = 54;
+    const tooltipX =
+      cx + 12 > w - tooltipW ? cx - tooltipW - 12 : cx + 12;
+    const tooltipY = cy - tooltipH / 2;
+
+    tooltip.attr("transform", `translate(${tooltipX},${tooltipY})`);
+    tooltip
+      .select("rect")
+      .attr("width", tooltipW)
+      .attr("height", tooltipH);
+    tooltipDate.attr("x", 8).attr("y", 16);
+    tooltipValue.attr("x", 8).attr("y", 32);
+    tooltipType.attr("x", 8).attr("y", 46);
+  }
+
+  function showTooltip(): void {
+    focus.style("display", null);
+    tooltip.style("display", null);
+  }
+
+  function hideTooltip(): void {
+    focus.style("display", "none");
+    tooltip.style("display", "none");
+  }
+
+  const overlayRect = svg
     .append("rect")
     .attr("width", w)
     .attr("height", h)
     .attr("transform", `translate(${dims.margin.left},${dims.margin.top})`)
     .attr("fill", "transparent")
-    .on("mouseover", () => {
-      focus.style("display", null);
-      tooltip.style("display", null);
-    })
-    .on("mouseout", () => {
-      focus.style("display", "none");
-      tooltip.style("display", "none");
-    })
+    .on("mouseover", showTooltip)
+    .on("mouseout", hideTooltip)
     .on("mousemove", (event) => {
       const [mx] = d3.pointer(event);
-      const dateAtMouse = x.invert(mx);
-      const idx = Math.min(
-        bisect(allDataPoints, dateAtMouse),
-        allDataPoints.length - 1
-      );
-      const d = allDataPoints[idx];
-      if (!d) return;
-
-      const cx = x(d.date);
-      const cy = y(d.value);
-
-      focus.attr("transform", `translate(${cx},${cy})`);
-      focus
-        .select(".crosshair-y")
-        .attr("x1", -cx)
-        .attr("x2", w - cx)
-        .attr("y1", 0)
-        .attr("y2", 0);
-
-      const formattedDate = d3.timeFormat("%b %Y")(d.date);
-      const formattedValue = formatCompactNumber(d.value);
-
-      let typeLabel: string;
-      let typeColor: string;
-      if (isMock) {
-        typeLabel = "DEMO";
-        typeColor = "rgba(245, 158, 11, 0.8)";
-      } else if (d.isForecast) {
-        typeLabel = "Forecast";
-        typeColor = "rgba(40, 192, 102, 0.8)";
-      } else {
-        typeLabel = "Actual";
-        typeColor = "rgba(0, 135, 185, 0.8)";
-      }
-
-      tooltipDate.text(formattedDate);
-      tooltipValue.text(formattedValue);
-      tooltipType.text(typeLabel).attr("fill", typeColor);
-
-      const tooltipW = 90;
-      const tooltipH = 54;
-      const tooltipX =
-        cx + 12 > w - tooltipW ? cx - tooltipW - 12 : cx + 12;
-      const tooltipY = cy - tooltipH / 2;
-
-      tooltip.attr("transform", `translate(${tooltipX},${tooltipY})`);
-      tooltip
-        .select("rect")
-        .attr("width", tooltipW)
-        .attr("height", tooltipH);
-      tooltipDate.attr("x", 8).attr("y", 16);
-      tooltipValue.attr("x", 8).attr("y", 32);
-      tooltipType.attr("x", 8).attr("y", 46);
+      updateTooltipAt(mx);
     });
+
+  // Touch support for tablets and mobile devices
+  const overlayNode = overlayRect.node();
+  if (overlayNode) {
+    overlayNode.addEventListener(
+      "touchstart",
+      (event: TouchEvent) => {
+        event.preventDefault();
+        showTooltip();
+        const touch = event.touches[0];
+        const [mx] = d3.pointer(touch, overlayNode);
+        updateTooltipAt(mx);
+      },
+      { passive: false }
+    );
+    overlayNode.addEventListener(
+      "touchmove",
+      (event: TouchEvent) => {
+        event.preventDefault();
+        const touch = event.touches[0];
+        const [mx] = d3.pointer(touch, overlayNode);
+        updateTooltipAt(mx);
+      },
+      { passive: false }
+    );
+    overlayNode.addEventListener("touchend", () => {
+      hideTooltip();
+    });
+  }
 }
 
 export function renderLegend(

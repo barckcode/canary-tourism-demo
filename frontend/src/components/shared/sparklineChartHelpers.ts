@@ -277,68 +277,106 @@ export function setupTooltip(
 
   const bisect = d3.bisector<ParsedPoint, Date>((d) => d.date).left;
 
-  svg
+  // Shared logic for updating tooltip position and content
+  function updateTooltipAt(mx: number): void {
+    const dateAtMouse = x.invert(mx);
+    let idx = bisect(allPoints, dateAtMouse);
+    if (idx >= allPoints.length) idx = allPoints.length - 1;
+    if (idx > 0) {
+      const d0 = allPoints[idx - 1];
+      const d1 = allPoints[idx];
+      if (
+        dateAtMouse.getTime() - d0.date.getTime() <
+        d1.date.getTime() - dateAtMouse.getTime()
+      ) {
+        idx = idx - 1;
+      }
+    }
+    const d = allPoints[idx];
+    if (!d) return;
+
+    const cx = x(d.date);
+    const cy = y(d.value);
+
+    focusDot.attr("cx", cx).attr("cy", cy);
+
+    const formattedDate = d3.timeFormat("%b %Y")(d.date);
+    const formattedValue = formatCompactNumber(d.value);
+
+    tooltipPeriod.text(formattedDate);
+    tooltipValue.text(formattedValue);
+
+    const tooltipW = 72;
+    const tooltipH = 36;
+    const tooltipX =
+      cx + 14 + tooltipW > w ? cx - tooltipW - 10 : cx + 14;
+    const tooltipY = Math.max(
+      0,
+      Math.min(cy - tooltipH / 2, h - tooltipH)
+    );
+
+    tooltipGroup.attr(
+      "transform",
+      `translate(${tooltipX},${tooltipY})`
+    );
+    tooltipGroup
+      .select("rect")
+      .attr("width", tooltipW)
+      .attr("height", tooltipH);
+    tooltipPeriod.attr("x", 8).attr("y", 14);
+    tooltipValue.attr("x", 8).attr("y", 28);
+  }
+
+  function showTooltip(): void {
+    focusDot.style("display", null);
+    tooltipGroup.style("display", null);
+  }
+
+  function hideTooltip(): void {
+    focusDot.style("display", "none");
+    tooltipGroup.style("display", "none");
+  }
+
+  const overlayRect = svg
     .append("rect")
     .attr("width", w)
     .attr("height", h)
     .attr("transform", `translate(${dims.margin.left},${dims.margin.top})`)
     .attr("fill", "transparent")
     .style("cursor", "crosshair")
-    .on("mouseover", () => {
-      focusDot.style("display", null);
-      tooltipGroup.style("display", null);
-    })
-    .on("mouseout", () => {
-      focusDot.style("display", "none");
-      tooltipGroup.style("display", "none");
-    })
+    .on("mouseover", showTooltip)
+    .on("mouseout", hideTooltip)
     .on("mousemove", (event) => {
       const [mx] = d3.pointer(event);
-      const dateAtMouse = x.invert(mx);
-      let idx = bisect(allPoints, dateAtMouse);
-      if (idx >= allPoints.length) idx = allPoints.length - 1;
-      if (idx > 0) {
-        const d0 = allPoints[idx - 1];
-        const d1 = allPoints[idx];
-        if (
-          dateAtMouse.getTime() - d0.date.getTime() <
-          d1.date.getTime() - dateAtMouse.getTime()
-        ) {
-          idx = idx - 1;
-        }
-      }
-      const d = allPoints[idx];
-      if (!d) return;
-
-      const cx = x(d.date);
-      const cy = y(d.value);
-
-      focusDot.attr("cx", cx).attr("cy", cy);
-
-      const formattedDate = d3.timeFormat("%b %Y")(d.date);
-      const formattedValue = formatCompactNumber(d.value);
-
-      tooltipPeriod.text(formattedDate);
-      tooltipValue.text(formattedValue);
-
-      const tooltipW = 72;
-      const tooltipH = 36;
-      const tooltipX =
-        cx + 14 + tooltipW > w ? cx - tooltipW - 10 : cx + 14;
-      const tooltipY = Math.max(
-        0,
-        Math.min(cy - tooltipH / 2, h - tooltipH)
-      );
-
-      tooltipGroup.attr(
-        "transform",
-        `translate(${tooltipX},${tooltipY})`
-      );
-      tooltipGroup
-        .select("rect")
-        .attr("width", tooltipW)
-        .attr("height", tooltipH);
-      tooltipPeriod.attr("x", 8).attr("y", 14);
-      tooltipValue.attr("x", 8).attr("y", 28);
+      updateTooltipAt(mx);
     });
+
+  // Touch support for tablets and mobile devices
+  const overlayNode = overlayRect.node();
+  if (overlayNode) {
+    overlayNode.addEventListener(
+      "touchstart",
+      (event: TouchEvent) => {
+        event.preventDefault();
+        showTooltip();
+        const touch = event.touches[0];
+        const [mx] = d3.pointer(touch, overlayNode);
+        updateTooltipAt(mx);
+      },
+      { passive: false }
+    );
+    overlayNode.addEventListener(
+      "touchmove",
+      (event: TouchEvent) => {
+        event.preventDefault();
+        const touch = event.touches[0];
+        const [mx] = d3.pointer(touch, overlayNode);
+        updateTooltipAt(mx);
+      },
+      { passive: false }
+    );
+    overlayNode.addEventListener("touchend", () => {
+      hideTooltip();
+    });
+  }
 }

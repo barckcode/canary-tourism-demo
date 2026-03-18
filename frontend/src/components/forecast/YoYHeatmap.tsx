@@ -137,6 +137,32 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
         setTooltip(null);
       });
 
+    // Touch support for heatmap cells
+    g.selectAll<SVGRectElement, CellData>(".cell")
+      .each(function () {
+        const node = this;
+        node.addEventListener(
+          "touchstart",
+          (event: TouchEvent) => {
+            event.preventDefault();
+            d3.select(node).attr("stroke", "rgba(255,255,255,0.4)").attr("stroke-width", 1.5);
+            const cellRect = node.getBoundingClientRect();
+            const svgRect = svgRef.current!.getBoundingClientRect();
+            const d = d3.select<SVGRectElement, CellData>(node).datum();
+            setTooltip({
+              x: cellRect.left - svgRect.left + cellRect.width / 2,
+              y: cellRect.top - svgRect.top - 8,
+              data: d,
+            });
+          },
+          { passive: false }
+        );
+        node.addEventListener("touchend", () => {
+          d3.select(node).attr("stroke", "rgba(255,255,255,0.05)").attr("stroke-width", 0.5);
+          setTooltip(null);
+        });
+      });
+
     // Cell text (YoY % for non-null)
     g.selectAll(".cell-text")
       .data(data.filter((d) => d.yoyChange !== null))
