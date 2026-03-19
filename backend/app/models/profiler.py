@@ -11,6 +11,7 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
@@ -99,11 +100,56 @@ class TouristProfiler:
 
         return features, df
 
-    def fit(self, raw_jsons: list[str]) -> np.ndarray:
+    def _find_optimal_k(self, X: np.ndarray, max_k: int = 8) -> int:
+        """Select the optimal number of clusters using silhouette analysis.
+
+        Tests K values from 2 to *max_k* and returns the K with the highest
+        silhouette score.  If the dataset has fewer than *max_k* samples the
+        search range is reduced accordingly; with fewer than 3 samples the
+        method falls back to K=2.
+
+        Args:
+            X: Scaled feature matrix (n_samples, n_features).
+            max_k: Upper bound of K values to evaluate (inclusive).
+
+        Returns:
+            The K value that maximises the silhouette score.
+        """
+        n_samples = X.shape[0]
+
+        if n_samples < 3:
+            logger.warning("Dataset has only %d samples; falling back to K=2.", n_samples)
+            return 2
+
+        # Upper bound cannot exceed n_samples - 1 (silhouette requires K < n)
+        upper = min(max_k, n_samples - 1)
+        if upper < 2:
+            upper = 2
+
+        best_k = 2
+        best_score = -1.0
+
+        for k in range(2, upper + 1):
+            km = KMeans(n_clusters=k, n_init=10, max_iter=300, random_state=42)
+            labels = km.fit_predict(X)
+            score = silhouette_score(X, labels)
+            logger.info("Silhouette score for K=%d: %.4f", k, score)
+            if score > best_score:
+                best_score = score
+                best_k = k
+
+        logger.info("Optimal K selected: %d (silhouette=%.4f)", best_k, best_score)
+        return best_k
+
+    def fit(self, raw_jsons: list[str], auto_k: bool = False,
+            max_k: int = 8) -> np.ndarray:
         """Train K-Means on preprocessed microdata features.
 
         Args:
             raw_jsons: List of raw_json strings from microdata table.
+            auto_k: If True, use silhouette analysis to find the optimal K,
+                overriding the *n_clusters* value supplied at init time.
+            max_k: Maximum K to evaluate when *auto_k* is True.
 
         Returns:
             Cluster labels array.
@@ -118,6 +164,10 @@ class TouristProfiler:
         # Scale
         self.scaler = StandardScaler()
         X = self.scaler.fit_transform(features)
+
+        # Optionally determine K via silhouette analysis
+        if auto_k:
+            self.n_clusters = self._find_optimal_k(X, max_k=max_k)
 
         # K-Means
         logger.info("Fitting K-Means with K=%d on %d records, %d features.",

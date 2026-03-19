@@ -160,7 +160,7 @@ def train_profiler(db: Session, n_clusters: int = 4) -> dict:
     logger.info("Loaded %d microdata records.", len(raw_jsons))
 
     profiler = TouristProfiler(n_clusters=n_clusters)
-    labels = profiler.fit(raw_jsons)
+    labels = profiler.fit(raw_jsons, auto_k=True)
 
     # Update microdata with cluster assignments
     ids = db.execute(text("SELECT id FROM microdata ORDER BY id")).fetchall()
@@ -205,7 +205,7 @@ def train_profiler(db: Session, n_clusters: int = 4) -> dict:
     joblib.dump(profiler, model_path)
     logger.info("Saved profiler to %s", model_path)
 
-    return {"n_clusters": n_clusters, "n_records": len(labels), "profiles": len(profiles)}
+    return {"n_clusters": profiler.n_clusters, "n_records": len(labels), "profiles": len(profiles)}
 
 
 def train_scenario_engine(db: Session) -> dict:

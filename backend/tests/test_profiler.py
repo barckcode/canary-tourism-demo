@@ -2,6 +2,7 @@
 
 import json
 
+import numpy as np
 from sqlalchemy import text
 
 from app.models.profiler import CLUSTER_NAMES, TouristProfiler
@@ -177,3 +178,82 @@ def test_profiles_db_has_valid_json(db):
         assert isinstance(nat, list)
         acc = json.loads(r[1])
         assert isinstance(acc, list)
+
+
+# ---------------------------------------------------------------------------
+# Tests for auto-K selection via silhouette analysis (Issue #194)
+# ---------------------------------------------------------------------------
+
+def test_profiler_auto_k_selects_valid_k(db):
+    """auto_k=True should select a K between 2 and max_k."""
+    raw_jsons = _load_raw_jsons(db)
+    profiler = TouristProfiler(n_clusters=4)
+    labels = profiler.fit(raw_jsons, auto_k=True, max_k=6)
+
+    assert 2 <= profiler.n_clusters <= 6
+    assert len(labels) == len(raw_jsons)
+    assert profiler.is_fitted
+    # Number of unique labels should match the chosen K
+    assert len(set(labels)) == profiler.n_clusters
+
+
+def test_profiler_auto_k_false_preserves_default(db):
+    """auto_k=False should keep the original n_clusters value."""
+    raw_jsons = _load_raw_jsons(db)
+    profiler = TouristProfiler(n_clusters=3)
+    labels = profiler.fit(raw_jsons, auto_k=False)
+
+    assert profiler.n_clusters == 3
+    assert len(set(labels)) == 3
+
+
+def test_profiler_auto_k_profiles_consistent(db):
+    """Profiles returned after auto_k should match the chosen K."""
+    raw_jsons = _load_raw_jsons(db)
+    profiler = TouristProfiler(n_clusters=4)
+    profiler.fit(raw_jsons, auto_k=True, max_k=6)
+    profiles = profiler.get_profiles()
+
+    assert len(profiles) == profiler.n_clusters
+    total_pct = sum(p["size_pct"] for p in profiles)
+    assert abs(total_pct - 100.0) < 1.0
+
+
+def test_find_optimal_k_small_dataset():
+    """With very few samples, _find_optimal_k should handle gracefully."""
+    profiler = TouristProfiler(n_clusters=4)
+    # 2 samples: should fall back to K=2
+    X_tiny = np.array([[1.0, 2.0], [3.0, 4.0]])
+    k = profiler._find_optimal_k(X_tiny, max_k=8)
+    assert k == 2
+
+
+def test_find_optimal_k_fewer_than_three_samples():
+    """With fewer than 3 samples, should return K=2 without error."""
+    profiler = TouristProfiler(n_clusters=4)
+    X_tiny = np.array([[1.0, 2.0]])
+    k = profiler._find_optimal_k(X_tiny, max_k=8)
+    assert k == 2
+
+
+def test_find_optimal_k_respects_max_k():
+    """Optimal K should never exceed max_k."""
+    profiler = TouristProfiler(n_clusters=4)
+    # Create a dataset with clear cluster structure
+    rng = np.random.RandomState(42)
+    X = np.vstack([
+        rng.randn(30, 2) + [0, 0],
+        rng.randn(30, 2) + [5, 5],
+        rng.randn(30, 2) + [10, 0],
+    ])
+    k = profiler._find_optimal_k(X, max_k=3)
+    assert 2 <= k <= 3
+
+
+def test_find_optimal_k_limited_by_samples():
+    """When max_k exceeds n_samples-1, search range should be clamped."""
+    profiler = TouristProfiler(n_clusters=4)
+    # 5 samples: max K should be clamped to 4 (n_samples - 1)
+    X = np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]], dtype=float)
+    k = profiler._find_optimal_k(X, max_k=10)
+    assert 2 <= k <= 4
