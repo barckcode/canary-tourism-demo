@@ -172,7 +172,8 @@
     "compare": "Compare",
     "selectedCount": "selected",
     "maxIndicators": "Max 3 indicators",
-    "clearSelection": "Clear selection"
+    "clearSelection": "Clear selection",
+    "tableCaption": "Available tourism indicators with source, date range, and data points"
   },
   "events": {
     "title": "Tourism Events Calendar",

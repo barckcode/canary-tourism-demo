@@ -172,7 +172,8 @@
     "compare": "Comparar",
     "selectedCount": "seleccionados",
     "maxIndicators": "Maximo 3 indicadores",
-    "clearSelection": "Limpiar seleccion"
+    "clearSelection": "Limpiar seleccion",
+    "tableCaption": "Indicadores turisticos disponibles con fuente, rango de fechas y puntos de datos"
   },
   "events": {
     "title": "Calendario de Eventos Turisticos",

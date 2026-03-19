@@ -198,6 +198,8 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
       <div
         className="flex items-center justify-center"
         style={{ width, height }}
+        role="status"
+        aria-live="polite"
       >
         <div className="text-gray-400 text-sm animate-pulse">
           Loading heatmap data...

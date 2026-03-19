@@ -399,7 +399,7 @@ export default function EventsPage() {
           </Panel>
         ) : eventsLoading ? (
           <Panel>
-            <div className="flex items-center justify-center py-12" role="status">
+            <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
               <div className="flex flex-col items-center gap-3">
                 <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-sm text-gray-400">{t("common.loading")}</span>

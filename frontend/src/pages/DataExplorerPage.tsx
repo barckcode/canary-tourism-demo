@@ -214,6 +214,7 @@ export default function DataExplorerPage() {
             )}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
+                <caption className="sr-only">{t("dataExplorer.tableCaption")}</caption>
                 <thead>
                   <tr className="text-left text-gray-400 border-b border-gray-700/50">
                     <th scope="col" className="pb-3 font-medium">{t("dataExplorer.indicator")}</th>
@@ -331,6 +332,7 @@ export default function DataExplorerPage() {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
