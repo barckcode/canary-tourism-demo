@@ -1,7 +1,9 @@
 """SQLAlchemy ORM models matching the project schema."""
 
 from sqlalchemy import (
+    Boolean,
     Column,
+    DateTime,
     Float,
     Index,
     Integer,
@@ -81,10 +83,14 @@ class Prediction(Base):
     ci_lower_95 = Column(Float)
     ci_upper_95 = Column(Float)
     generated_at = Column(String, server_default=func.now())
+    trained_at = Column(DateTime, default=func.now(), server_default=func.now())
+    version = Column(Integer, default=1, server_default="1")
+    is_current = Column(Boolean, default=True, server_default="1")
 
     __table_args__ = (
         Index("ix_pred_model_indicator_geo", "model", "indicator", "geo_code"),
         Index("ix_pred_period", "period"),
+        Index("ix_pred_is_current", "is_current"),
     )
 
 

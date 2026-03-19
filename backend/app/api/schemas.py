@@ -201,6 +201,25 @@ class TrainingInfoResponse(BaseModel):
     duration_seconds: float | None = None
 
 
+class PredictionVersionEntry(BaseModel):
+    """A single version of predictions for a model/indicator."""
+
+    version: int
+    trained_at: str | None = None
+    is_current: bool = False
+    forecast: list[ForecastPoint]
+
+
+class PredictionHistoryResponse(BaseModel):
+    """History of prediction versions for a model/indicator."""
+
+    model: str
+    indicator: str
+    geo_code: str
+    total_versions: int
+    versions: list[PredictionVersionEntry]
+
+
 # ---------------------------------------------------------------------------
 # Profiles
 # ---------------------------------------------------------------------------

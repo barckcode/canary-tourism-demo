@@ -26,25 +26,46 @@ logger = logging.getLogger(__name__)
 
 def _store_predictions(db: Session, model_name: str, indicator: str,
                        geo_code: str, forecast) -> int:
-    """Store forecast results in the predictions table."""
-    # Clear old predictions for this model/indicator
+    """Store forecast results in the predictions table.
+
+    Instead of deleting old predictions, marks them as superseded
+    (is_current=False) and inserts new ones with an incremented version number.
+    This preserves prediction history for auditing how forecasts change over time.
+    """
+    # Determine the next version number
+    row = db.execute(
+        text("""
+            SELECT COALESCE(MAX(version), 0) AS max_version
+            FROM predictions
+            WHERE model=:model AND indicator=:indicator AND geo_code=:geo
+        """),
+        {"model": model_name, "indicator": indicator, "geo": geo_code},
+    ).fetchone()
+    next_version = row.max_version + 1
+
+    # Mark existing current predictions as superseded
     db.execute(
         text("""
-            DELETE FROM predictions
+            UPDATE predictions
+            SET is_current = 0
             WHERE model=:model AND indicator=:indicator AND geo_code=:geo
+              AND is_current = 1
         """),
         {"model": model_name, "indicator": indicator, "geo": geo_code},
     )
 
+    now = datetime.now(timezone.utc).isoformat()
     count = 0
     for i, period in enumerate(forecast.periods):
         db.execute(
             text("""
                 INSERT INTO predictions
                     (model, indicator, geo_code, period, value_predicted,
-                     ci_lower_80, ci_upper_80, ci_lower_95, ci_upper_95)
+                     ci_lower_80, ci_upper_80, ci_lower_95, ci_upper_95,
+                     trained_at, version, is_current)
                 VALUES (:model, :indicator, :geo, :period, :value,
-                        :ci_lo80, :ci_hi80, :ci_lo95, :ci_hi95)
+                        :ci_lo80, :ci_hi80, :ci_lo95, :ci_hi95,
+                        :trained_at, :version, 1)
             """),
             {
                 "model": model_name,
@@ -56,6 +77,8 @@ def _store_predictions(db: Session, model_name: str, indicator: str,
                 "ci_hi80": float(forecast.ci_upper_80[i]),
                 "ci_lo95": float(forecast.ci_lower_95[i]),
                 "ci_hi95": float(forecast.ci_upper_95[i]),
+                "trained_at": now,
+                "version": next_version,
             },
         )
         count += 1

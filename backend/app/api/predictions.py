@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.schemas import (
     PredictionCompareResponse,
+    PredictionHistoryResponse,
     PredictionResponse,
     TrainingInfoResponse,
     RetrainResponse,
@@ -58,6 +59,7 @@ def get_predictions(
             Prediction.model == model,
             Prediction.indicator == indicator,
             Prediction.geo_code == geo,
+            Prediction.is_current == True,  # noqa: E712
         )
         .order_by(Prediction.period)
         .limit(horizon)
@@ -114,6 +116,7 @@ def compare_models(
                 Prediction.model == model_name,
                 Prediction.indicator == indicator,
                 Prediction.geo_code == geo,
+                Prediction.is_current == True,  # noqa: E712
             )
             .order_by(Prediction.period)
             .limit(horizon)
@@ -193,4 +196,75 @@ def get_training_info(
         "status": latest.status,
         "models_trained": models,
         "duration_seconds": latest.duration_seconds,
+    }
+
+
+@router.get("/history", response_model=PredictionHistoryResponse)
+@limiter.limit("20/minute")
+def get_prediction_history(
+    request: Request,
+    model: str = Query("ensemble", description="Model name"),
+    indicator: str = Query("turistas", description="Indicator"),
+    geo: str = Query("ES709", description="Geographic code"),
+    limit: int = Query(5, ge=1, le=20, description="Number of past versions to return"),
+    db: Session = Depends(get_db),
+):
+    """Return the last N versions of predictions for a model/indicator.
+
+    Allows comparison of how forecasts have changed across training runs.
+    Each version includes the forecast points and the version metadata
+    (version number and trained_at timestamp).
+    """
+    from sqlalchemy import distinct
+
+    # Get the last N distinct versions, ordered newest first
+    version_rows = (
+        db.query(distinct(Prediction.version), Prediction.trained_at)
+        .filter(
+            Prediction.model == model,
+            Prediction.indicator == indicator,
+            Prediction.geo_code == geo,
+        )
+        .order_by(Prediction.version.desc())
+        .limit(limit)
+        .all()
+    )
+
+    versions = []
+    for version_num, trained_at in version_rows:
+        rows = (
+            db.query(Prediction)
+            .filter(
+                Prediction.model == model,
+                Prediction.indicator == indicator,
+                Prediction.geo_code == geo,
+                Prediction.version == version_num,
+            )
+            .order_by(Prediction.period)
+            .all()
+        )
+        versions.append({
+            "version": version_num,
+            "trained_at": str(trained_at) if trained_at else None,
+            "is_current": rows[0].is_current if rows else False,
+            "forecast": [
+                {
+                    "period": r.period,
+                    "value": r.value_predicted,
+                    "ci_lower_80": r.ci_lower_80,
+                    "ci_upper_80": r.ci_upper_80,
+                    "ci_lower_95": r.ci_lower_95,
+                    "ci_upper_95": r.ci_upper_95,
+                    "ci_available": r.ci_lower_80 is not None and r.ci_upper_80 is not None,
+                }
+                for r in rows
+            ],
+        })
+
+    return {
+        "model": model,
+        "indicator": indicator,
+        "geo_code": geo,
+        "total_versions": len(versions),
+        "versions": versions,
     }
