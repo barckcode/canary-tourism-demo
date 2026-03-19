@@ -144,6 +144,137 @@ def test_evaluate_returns_metrics_for_all_models(db):
         assert 0 < m.mape < 100, f"{name} MAPE {m.mape}% outside 0-100 range"
 
 
+def test_hw_ci_ordering(db):
+    """Holt-Winters CIs should be properly ordered: 95_lo < 80_lo < value < 80_hi < 95_hi."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_hw(horizon=12)
+
+    for i in range(12):
+        assert result.ci_lower_95[i] <= result.ci_lower_80[i], (
+            f"HW period {i}: 95% lower > 80% lower"
+        )
+        assert result.ci_lower_80[i] <= result.values[i], (
+            f"HW period {i}: 80% lower > value"
+        )
+        assert result.values[i] <= result.ci_upper_80[i], (
+            f"HW period {i}: value > 80% upper"
+        )
+        assert result.ci_upper_80[i] <= result.ci_upper_95[i], (
+            f"HW period {i}: 80% upper > 95% upper"
+        )
+
+
+def test_hw_ci_expands_with_horizon(db):
+    """Holt-Winters CI width should increase with forecast horizon."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_hw(horizon=12)
+
+    widths_95 = result.ci_upper_95 - result.ci_lower_95
+    # Each subsequent width should be >= the previous one
+    for i in range(1, 12):
+        assert widths_95[i] >= widths_95[i - 1], (
+            f"HW CI width at step {i} ({widths_95[i]}) < step {i-1} ({widths_95[i-1]})"
+        )
+
+
+def test_hw_ci_non_negative(db):
+    """Holt-Winters CI lower bounds should never be negative."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_hw(horizon=24)
+
+    assert np.all(result.ci_lower_80 >= 0), "HW 80% CI lower bound went negative"
+    assert np.all(result.ci_lower_95 >= 0), "HW 95% CI lower bound went negative"
+
+
+def test_naive_ci_ordering(db):
+    """Seasonal Naive CIs should be properly ordered."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_naive(horizon=12)
+
+    for i in range(12):
+        assert result.ci_lower_95[i] <= result.ci_lower_80[i], (
+            f"Naive period {i}: 95% lower > 80% lower"
+        )
+        assert result.ci_lower_80[i] <= result.values[i], (
+            f"Naive period {i}: 80% lower > value"
+        )
+        assert result.values[i] <= result.ci_upper_80[i], (
+            f"Naive period {i}: value > 80% upper"
+        )
+        assert result.ci_upper_80[i] <= result.ci_upper_95[i], (
+            f"Naive period {i}: 80% upper > 95% upper"
+        )
+
+
+def test_naive_ci_expands_with_horizon(db):
+    """Seasonal Naive CI width should increase with forecast horizon."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_naive(horizon=12)
+
+    widths_95 = result.ci_upper_95 - result.ci_lower_95
+    for i in range(1, 12):
+        assert widths_95[i] >= widths_95[i - 1], (
+            f"Naive CI width at step {i} ({widths_95[i]}) < step {i-1} ({widths_95[i-1]})"
+        )
+
+
+def test_naive_ci_non_negative(db):
+    """Seasonal Naive CI lower bounds should never be negative."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_naive(horizon=24)
+
+    assert np.all(result.ci_lower_80 >= 0), "Naive 80% CI lower bound went negative"
+    assert np.all(result.ci_lower_95 >= 0), "Naive 95% CI lower bound went negative"
+
+
+def test_hw_ci_not_hardcoded(db):
+    """HW CIs should NOT be simple percentage multipliers of mean."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_hw(horizon=12)
+
+    # If CIs were hardcoded as mean*0.9 / mean*1.1, the ratio would be constant
+    ratios_lower = result.ci_lower_80 / result.values
+    ratios_upper = result.ci_upper_80 / result.values
+    # With proper expanding CIs, ratios should vary across horizon steps
+    assert not np.allclose(ratios_lower, ratios_lower[0], atol=1e-6), (
+        "HW lower CI ratios are constant — CIs may still be hardcoded"
+    )
+    assert not np.allclose(ratios_upper, ratios_upper[0], atol=1e-6), (
+        "HW upper CI ratios are constant — CIs may still be hardcoded"
+    )
+
+
+def test_naive_ci_not_hardcoded(db):
+    """Naive CIs should NOT be simple percentage multipliers of mean."""
+    series = _load_series(db)
+    f = Forecaster()
+    f.fit(series, exclude_covid=True)
+    result = f.predict_naive(horizon=12)
+
+    ratios_lower = result.ci_lower_80 / result.values
+    ratios_upper = result.ci_upper_80 / result.values
+    assert not np.allclose(ratios_lower, ratios_lower[0], atol=1e-6), (
+        "Naive lower CI ratios are constant — CIs may still be hardcoded"
+    )
+    assert not np.allclose(ratios_upper, ratios_upper[0], atol=1e-6), (
+        "Naive upper CI ratios are constant — CIs may still be hardcoded"
+    )
+
+
 def test_evaluate_ensemble_best_or_competitive(db):
     """Ensemble MAPE should be reasonable (< 50%) and not drastically worse than best model."""
     series = _load_series(db)

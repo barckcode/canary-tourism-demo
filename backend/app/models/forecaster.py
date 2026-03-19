@@ -306,7 +306,11 @@ class Forecaster:
         )
 
     def predict_hw(self, horizon: int = 12) -> ForecastResult:
-        """Holt-Winters-only forecast (no CI bands)."""
+        """Holt-Winters-only forecast with residual-based confidence intervals.
+
+        Computes CIs using in-sample residual standard error with expanding
+        uncertainty proportional to sqrt(h) for each forecast step h.
+        """
         if not self.hw_result:
             raise RuntimeError("Holt-Winters not fitted.")
 
@@ -316,28 +320,71 @@ class Forecaster:
         )
         mean = self.hw_result.forecast(horizon).values
 
+        # Residual-based confidence intervals
+        residuals = self.hw_result.resid
+        se = float(np.std(residuals, ddof=1))
+
+        z_80 = 1.28  # ~80% CI
+        z_95 = 1.96  # ~95% CI
+
+        steps = np.arange(1, horizon + 1, dtype=float)
+        width_80 = z_80 * se * np.sqrt(steps)
+        width_95 = z_95 * se * np.sqrt(steps)
+
+        ci_lower_80 = np.maximum(mean - width_80, 0.0)
+        ci_upper_80 = mean + width_80
+        ci_lower_95 = np.maximum(mean - width_95, 0.0)
+        ci_upper_95 = mean + width_95
+
         return ForecastResult(
             periods=[str(p) for p in future_periods],
             values=mean,
-            ci_lower_80=mean * 0.9,
-            ci_upper_80=mean * 1.1,
-            ci_lower_95=mean * 0.85,
-            ci_upper_95=mean * 1.15,
+            ci_lower_80=ci_lower_80,
+            ci_upper_80=ci_upper_80,
+            ci_lower_95=ci_lower_95,
+            ci_upper_95=ci_upper_95,
         )
 
     def predict_naive(self, horizon: int = 12) -> ForecastResult:
-        """Seasonal Naive forecast (no CI bands)."""
+        """Seasonal Naive forecast with residual-based confidence intervals.
+
+        Computes CIs from seasonal naive residuals (each observation vs the
+        same month one year prior) with expanding uncertainty proportional to
+        sqrt(h / seasonal_period).
+        """
         last_period = self.series.index[-1]
         future_periods = pd.period_range(
             last_period + 1, periods=horizon, freq="M"
         )
         mean = self._seasonal_naive(horizon)
 
+        # Compute seasonal naive residuals from historical data
+        vals = self.series.values
+        seasonal_period = 12
+        if len(vals) > seasonal_period:
+            residuals = vals[seasonal_period:] - vals[:-seasonal_period]
+            se = float(np.std(residuals, ddof=1))
+        else:
+            # Fallback: not enough data for seasonal residuals
+            se = float(np.std(vals, ddof=1))
+
+        z_80 = 1.28  # ~80% CI
+        z_95 = 1.96  # ~95% CI
+
+        steps = np.arange(1, horizon + 1, dtype=float)
+        width_80 = z_80 * se * np.sqrt(steps / seasonal_period)
+        width_95 = z_95 * se * np.sqrt(steps / seasonal_period)
+
+        ci_lower_80 = np.maximum(mean - width_80, 0.0)
+        ci_upper_80 = mean + width_80
+        ci_lower_95 = np.maximum(mean - width_95, 0.0)
+        ci_upper_95 = mean + width_95
+
         return ForecastResult(
             periods=[str(p) for p in future_periods],
             values=mean,
-            ci_lower_80=mean * 0.9,
-            ci_upper_80=mean * 1.1,
-            ci_lower_95=mean * 0.85,
-            ci_upper_95=mean * 1.15,
+            ci_lower_80=ci_lower_80,
+            ci_upper_80=ci_upper_80,
+            ci_lower_95=ci_lower_95,
+            ci_upper_95=ci_upper_95,
         )
