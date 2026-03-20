@@ -6,9 +6,17 @@ from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
+def _read_version() -> str:
+    """Read version from the VERSION file at the repository root."""
+    version_file = Path(__file__).resolve().parent.parent.parent / "VERSION"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "0.0.0"
+
+
 class Settings(BaseSettings):
     app_name: str = "Tenerife Tourism Intelligence"
-    app_version: str = "0.1.0"
+    app_version: str = _read_version()
     debug: bool = False
 
     # Paths
