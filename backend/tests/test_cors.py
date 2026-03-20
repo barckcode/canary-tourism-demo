@@ -72,6 +72,26 @@ def test_cors_headers_on_actual_get(client):
     assert r.headers.get("access-control-allow-credentials") == "true"
 
 
+def test_cors_allows_only_restricted_headers(client):
+    """CORS preflight should list only Content-Type, Accept, and Authorization headers."""
+    origin = settings.cors_origins[0]
+    r = client.options(
+        "/health",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "Content-Type",
+        },
+    )
+    allowed = r.headers.get("access-control-allow-headers", "")
+    for header in ["Content-Type", "Accept", "Authorization"]:
+        assert header.lower() in allowed.lower(), (
+            f"Header {header} not in allowed headers: {allowed}"
+        )
+    # Ensure wildcard is not used
+    assert allowed.strip() != "*", "allow_headers should not be wildcard"
+
+
 def test_cors_each_configured_origin_is_allowed(client):
     """Every origin in settings.cors_origins should receive proper CORS headers."""
     for origin in settings.cors_origins:
