@@ -197,6 +197,11 @@
     "userCreated": "Evento personalizado",
     "category": "Categoria"
   },
+  "notFound": {
+    "title": "Pagina no encontrada",
+    "message": "La pagina que buscas no existe",
+    "backHome": "Volver al Dashboard"
+  },
   "about": {
     "title": "Acerca de este proyecto",
     "subtitle": "Un experimento de IA autonoma",

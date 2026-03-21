@@ -11,6 +11,7 @@ const ProfilesPage = lazy(() => import("./pages/ProfilesPage"));
 const DataExplorerPage = lazy(() => import("./pages/DataExplorerPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function PageLoader() {
   const { t } = useTranslation();
@@ -79,6 +80,7 @@ function App() {
                 </ErrorBoundary>
               }
             />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </AppShell>
