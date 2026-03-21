@@ -70,6 +70,8 @@ def get_predictions(
     all_metrics = _get_metrics(db, indicator, geo)
     model_metrics = all_metrics.get(model)
 
+    actual_horizon = len(results)
+
     return {
         "forecast": [
             {
@@ -85,9 +87,12 @@ def get_predictions(
         ],
         "model_info": {
             "name": model,
-            "total_periods": len(results),
+            "total_periods": actual_horizon,
             "metrics": model_metrics,
         },
+        "requested_horizon": horizon,
+        "actual_horizon": actual_horizon,
+        "complete": actual_horizon >= horizon,
     }
 
 

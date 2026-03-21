@@ -47,8 +47,14 @@ def test_prediction_response():
     r = PredictionResponse(
         forecast=[{"period": "2025-01", "value": 1000, "ci_lower_80": 900, "ci_upper_80": 1100}],
         model_info={"name": "ensemble", "total_periods": 1, "metrics": None},
+        requested_horizon=12,
+        actual_horizon=1,
+        complete=False,
     )
     assert r.model_info.name == "ensemble"
+    assert r.requested_horizon == 12
+    assert r.actual_horizon == 1
+    assert r.complete is False
 
 
 def test_prediction_compare_response():

@@ -170,6 +170,9 @@ class PredictionResponse(BaseModel):
 
     forecast: list[ForecastPoint]
     model_info: ModelInfo
+    requested_horizon: int = Field(description="Horizon requested by the client")
+    actual_horizon: int = Field(description="Number of forecast points actually returned")
+    complete: bool = Field(description="True if actual_horizon >= requested_horizon")
 
 
 class PredictionCompareResponse(BaseModel):
