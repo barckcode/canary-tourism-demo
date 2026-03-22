@@ -1,12 +1,18 @@
 """Time series data endpoints."""
 
+import math
 import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.schemas import IndicatorInfo, TimeSeriesResponse, YoYResponse
+from app.api.schemas import (
+    IndicatorInfo,
+    TimeSeriesPaginatedResponse,
+    TimeSeriesResponse,
+    YoYResponse,
+)
 from app.db.database import get_db
 from app.db.models import TimeSeries
 from app.rate_limit import limiter
@@ -40,7 +46,7 @@ YOY_INDICATORS = [
 ]
 
 
-@router.get("", response_model=TimeSeriesResponse)
+@router.get("", response_model=TimeSeriesPaginatedResponse)
 @limiter.limit("60/minute")
 def get_timeseries(
     request: Request,
@@ -49,9 +55,16 @@ def get_timeseries(
     from_period: str = Query(None, alias="from", description="Start period YYYY-MM"),
     to_period: str = Query(None, alias="to", description="End period YYYY-MM"),
     measure: str = Query("ABSOLUTE", description="Measure type"),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(100, ge=1, le=500, description="Items per page (1-500)"),
     db: Session = Depends(get_db),
 ):
-    """Return time series data for a given indicator and geography."""
+    """Return paginated time series data for a given indicator and geography.
+
+    Supports pagination via ``page`` and ``page_size`` query parameters.
+    The response includes a ``pagination`` object with total count,
+    current page, page size, and total pages.
+    """
     _validate_period(from_period, "from_period")
     _validate_period(to_period, "to_period")
 
@@ -65,15 +78,23 @@ def get_timeseries(
     if to_period:
         q = q.filter(TimeSeries.period <= to_period)
 
-    results = q.order_by(TimeSeries.period).all()
+    total = q.count()
+    total_pages = math.ceil(total / page_size) if total > 0 else 0
+
+    results = (
+        q.order_by(TimeSeries.period)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
 
     return {
         "data": [{"period": r.period, "value": r.value} for r in results],
-        "metadata": {
-            "indicator": indicator,
-            "geo": geo,
-            "measure": measure,
-            "total_points": len(results),
+        "pagination": {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
         },
     }
 

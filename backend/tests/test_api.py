@@ -236,13 +236,15 @@ def test_dashboard_seasonal_position(client):
 # --- Time Series ---
 
 def test_timeseries_query_turistas(client):
-    """Query turistas indicator should return non-empty data."""
+    """Query turistas indicator should return non-empty data with pagination."""
     r = client.get("/api/timeseries?indicator=turistas&geo=ES709")
     assert r.status_code == 200
     data = r.json()
     assert len(data["data"]) > 12, "Expected more than 12 months of turistas data"
-    assert data["metadata"]["indicator"] == "turistas"
-    assert data["metadata"]["geo"] == "ES709"
+    assert "pagination" in data
+    assert data["pagination"]["page"] == 1
+    assert data["pagination"]["page_size"] == 100
+    assert data["pagination"]["total"] > 12
 
 
 def test_timeseries_query_with_date_range(client):
@@ -600,7 +602,8 @@ def test_timeseries_empty_result(client):
     assert r.status_code == 200
     data = r.json()
     assert data["data"] == []
-    assert data["metadata"]["total_points"] == 0
+    assert data["pagination"]["total"] == 0
+    assert data["pagination"]["total_pages"] == 0
 
 
 def test_profile_detail_invalid_cluster(client):

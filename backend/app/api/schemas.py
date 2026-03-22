@@ -110,6 +110,22 @@ class TimeSeriesResponse(BaseModel):
     metadata: TimeSeriesMetadata
 
 
+class PaginationMeta(BaseModel):
+    """Pagination metadata for paginated responses."""
+
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class TimeSeriesPaginatedResponse(BaseModel):
+    """Paginated historical time series data for a single indicator."""
+
+    data: list[PeriodValue]
+    pagination: PaginationMeta
+
+
 class IndicatorInfo(BaseModel):
     id: str
     source: str
