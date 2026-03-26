@@ -247,7 +247,7 @@ export function renderLines(
     .attr("stroke-width", 2);
 
   // Forecast line (dashed)
-  if (forecast.length > 0) {
+  if (forecast.length > 0 && historical.length > 0) {
     const bridgeData: TimeSeriesPoint[] = [
       historical[historical.length - 1],
       { date: forecast[0].date, value: forecast[0].value },
