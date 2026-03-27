@@ -414,6 +414,27 @@ class CreateEventRequest(BaseModel):
     location: str | None = Field(None, max_length=200)
 
 
+class EventKPI(BaseModel):
+    """A single KPI data point for an event period."""
+
+    indicator: str
+    period: str
+    value: float | None
+
+
+class EventImpactResponse(BaseModel):
+    """Impact analysis for a tourism event with KPI correlation."""
+
+    event_id: int
+    event_name: str
+    start_date: str
+    end_date: str
+    category: str
+    current_kpis: list[EventKPI]
+    previous_year_kpis: list[EventKPI]
+    yoy_changes: dict[str, float | None]
+
+
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
