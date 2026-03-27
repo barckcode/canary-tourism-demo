@@ -114,6 +114,25 @@ def test_dashboard_summary_trends(client):
     assert "value" in data["arrivals_trend_24m"][0]
 
 
+def test_dashboard_summary_trends_aligned_periods(client):
+    """Arrivals and occupancy trends should both return up to 24 periods (issue #312)."""
+    r = client.get("/api/dashboard/summary")
+    assert r.status_code == 200
+    data = r.json()
+    arrivals = data["arrivals_trend_24m"]
+    occupancy = data["occupancy_trend_12m"]
+    assert len(arrivals) > 0
+    assert len(occupancy) > 0
+    # Both series should return up to 24 data points
+    assert len(arrivals) <= 24
+    assert len(occupancy) <= 24
+    # Both should have the same max limit (24 months)
+    assert len(arrivals) == len(occupancy), (
+        f"Arrivals ({len(arrivals)}) and occupancy ({len(occupancy)}) "
+        "trends should return the same number of periods"
+    )
+
+
 def test_dashboard_top_markets(client):
     """Top markets endpoint should return markets with percentages."""
     r = client.get("/api/dashboard/top-markets")

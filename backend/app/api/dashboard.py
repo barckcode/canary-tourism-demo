@@ -204,7 +204,7 @@ def get_summary(request: Request, db: Session = Depends(get_db)):
         for r in reversed(arrivals)
     ]
 
-    # Occupancy trend (last 12 months)
+    # Occupancy trend (last 24 months)
     occupancy = (
         db.query(TimeSeries.period, TimeSeries.value)
         .filter(
@@ -213,7 +213,7 @@ def get_summary(request: Request, db: Session = Depends(get_db)):
             TimeSeries.measure == "ABSOLUTE",
         )
         .order_by(desc(TimeSeries.period))
-        .limit(12)
+        .limit(24)
         .all()
     )
     occupancy_trend = [
