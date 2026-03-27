@@ -9,6 +9,7 @@ services:
     environment:
       - TOURISM_RAW_DATA_DIR=/raw-data
       - TOURISM_DEBUG=false
+      - CORS_ORIGINS=https://tourism-demo.agentcrew.sh
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
