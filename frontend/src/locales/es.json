@@ -195,7 +195,15 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "userCreated": "Evento personalizado",
-    "category": "Categoria"
+    "category": "Categoria",
+    "impact_kpi": {
+      "title": "Impacto en KPIs",
+      "currentYear": "Ano actual",
+      "previousYear": "Ano anterior",
+      "yoyChange": "Variacion YoY",
+      "noData": "No hay datos de impacto disponibles",
+      "indicator": "Indicador"
+    }
   },
   "notFound": {
     "title": "Pagina no encontrada",

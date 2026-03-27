@@ -8,6 +8,7 @@ import {
   useTimeSeries,
   useQuery,
   useScenarios,
+  useEventImpact,
 } from "./hooks";
 
 // Mock the api client module
@@ -39,6 +40,13 @@ vi.mock("./client", () => ({
     scenarios: {
       run: vi.fn(),
     },
+    events: {
+      list: vi.fn(),
+      categories: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+      impact: vi.fn(),
+    },
   },
 }));
 
@@ -52,6 +60,7 @@ const mockedApi = api as {
   };
   profiles: { [K in keyof typeof api.profiles]: ReturnType<typeof vi.fn> };
   scenarios: { [K in keyof typeof api.scenarios]: ReturnType<typeof vi.fn> };
+  events: { [K in keyof typeof api.events]: ReturnType<typeof vi.fn> };
 };
 
 describe("useQuery", () => {
@@ -597,5 +606,67 @@ describe("useScenarios", () => {
 
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBe("Scenario engine failed");
+  });
+});
+
+describe("useEventImpact", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches impact data for a given event id", async () => {
+    const mockImpact = {
+      event_id: 1,
+      event_name: "Carnaval de Santa Cruz 2026",
+      start_date: "2026-01-16",
+      end_date: "2026-02-22",
+      category: "cultural",
+      current_kpis: [
+        { indicator: "turistas", period: "2026-01", value: 150000 },
+      ],
+      previous_year_kpis: [
+        { indicator: "turistas", period: "2025-01", value: 140000 },
+      ],
+      yoy_changes: { turistas: 7.14 },
+    };
+
+    mockedApi.events.impact.mockResolvedValueOnce(mockImpact);
+
+    const { result } = renderHook(() => useEventImpact(1));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toEqual(mockImpact);
+    expect(result.current.error).toBeNull();
+    expect(mockedApi.events.impact).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips fetch when eventId is null", async () => {
+    const { result } = renderHook(() => useEventImpact(null));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+    expect(mockedApi.events.impact).not.toHaveBeenCalled();
+  });
+
+  it("handles API errors gracefully", async () => {
+    mockedApi.events.impact.mockRejectedValueOnce(
+      new Error("API error: 404 Not Found")
+    );
+
+    const { result } = renderHook(() => useEventImpact(999));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBe("API error: 404 Not Found");
   });
 });

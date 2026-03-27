@@ -537,3 +537,31 @@ export function useEventCategories() {
     () => api.events.categories() as Promise<EventCategoriesResponse>
   );
 }
+
+// ── Event Impact ──
+
+export interface EventImpactKPI {
+  indicator: string;
+  period: string;
+  value: number;
+}
+
+export interface EventImpactResponse {
+  event_id: number;
+  event_name: string;
+  start_date: string;
+  end_date: string;
+  category: string;
+  current_kpis: EventImpactKPI[];
+  previous_year_kpis: EventImpactKPI[];
+  yoy_changes: Record<string, number>;
+}
+
+export function useEventImpact(eventId: number | null) {
+  return useQuery<EventImpactResponse>(
+    eventId !== null
+      ? () => api.events.impact(eventId) as Promise<EventImpactResponse>
+      : null,
+    [eventId]
+  );
+}

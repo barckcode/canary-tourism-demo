@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
 import ErrorState from "../components/shared/ErrorState";
-import { useEvents, useEventCategories, type TourismEvent } from "../api/hooks";
+import { useEvents, useEventCategories, useEventImpact, type TourismEvent } from "../api/hooks";
 import { api } from "../api/client";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -34,6 +34,93 @@ function formatMonthLabel(monthKey: string): string {
   return date.toLocaleDateString(undefined, { year: "numeric", month: "long" });
 }
 
+const INDICATOR_LABELS: Record<string, string> = {
+  turistas: "Turistas",
+  alojatur_ocupacion: "Ocupacion",
+  alojatur_adr: "ADR",
+  alojatur_revpar: "RevPAR",
+  alojatur_pernoctaciones: "Pernoctaciones",
+};
+
+function formatIndicatorValue(indicator: string, value: number): string {
+  if (indicator === "alojatur_ocupacion") return `${value.toFixed(1)}%`;
+  if (indicator === "alojatur_adr" || indicator === "alojatur_revpar") return `${value.toFixed(2)}`;
+  return value.toLocaleString();
+}
+
+function EventImpactPanel({ eventId, t }: { eventId: number; t: (key: string) => string }) {
+  const { data, loading, error } = useEventImpact(eventId);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-6" role="status" aria-live="polite">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-gray-400">{t("common.loading")}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data || Object.keys(data.yoy_changes).length === 0) {
+    return (
+      <div className="py-4 text-center">
+        <p className="text-xs text-gray-500">{t("events.impact_kpi.noData")}</p>
+      </div>
+    );
+  }
+
+  const currentMap = new Map(data.current_kpis.map((k) => [k.indicator, k.value]));
+  const previousMap = new Map(data.previous_year_kpis.map((k) => [k.indicator, k.value]));
+  const indicators = Object.keys(data.yoy_changes);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-700/50">
+      <h5 className="text-xs font-semibold text-gray-300 mb-2">{t("events.impact_kpi.title")}</h5>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs" aria-label={t("events.impact_kpi.title")}>
+          <thead>
+            <tr className="text-gray-500">
+              <th className="text-left py-1 pr-4 font-medium">{t("events.impact_kpi.indicator")}</th>
+              <th className="text-right py-1 px-2 font-medium">{t("events.impact_kpi.currentYear")}</th>
+              <th className="text-right py-1 px-2 font-medium">{t("events.impact_kpi.previousYear")}</th>
+              <th className="text-right py-1 pl-2 font-medium">{t("events.impact_kpi.yoyChange")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {indicators.map((ind) => {
+              const yoy = data.yoy_changes[ind];
+              const current = currentMap.get(ind);
+              const previous = previousMap.get(ind);
+              const isPositive = yoy >= 0;
+              return (
+                <tr key={ind} className="border-t border-gray-800/50">
+                  <td className="py-1.5 pr-4 text-gray-300 font-medium">
+                    {INDICATOR_LABELS[ind] || ind}
+                  </td>
+                  <td className="py-1.5 px-2 text-right text-gray-300 tabular-nums">
+                    {current !== undefined ? formatIndicatorValue(ind, current) : "-"}
+                  </td>
+                  <td className="py-1.5 px-2 text-right text-gray-400 tabular-nums">
+                    {previous !== undefined ? formatIndicatorValue(ind, previous) : "-"}
+                  </td>
+                  <td
+                    className={`py-1.5 pl-2 text-right font-semibold tabular-nums ${
+                      isPositive ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {isPositive ? "+" : ""}{yoy.toFixed(1)}%
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 interface EventFormData {
   name: string;
   description: string;
@@ -58,66 +145,107 @@ function EventCard({
   event,
   onDelete,
   t,
+  isExpanded,
+  onToggleExpand,
 }: {
   event: TourismEvent;
   onDelete: (id: number) => void;
   t: (key: string) => string;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }) {
   const style = getCategoryStyle(event.category);
   const isUserCreated = event.source === "user";
 
   return (
-    <div className="flex items-start gap-4 p-4 rounded-lg bg-gray-800/30 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h4 className="text-sm font-semibold text-white truncate">{event.name}</h4>
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border ${style.bg} ${style.text} ${style.border}`}
+    <div className="rounded-lg bg-gray-800/30 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
+      <button
+        type="button"
+        onClick={onToggleExpand}
+        className="w-full text-left p-4 focus:outline-none focus:ring-2 focus:ring-ocean-500/40 rounded-lg"
+        aria-expanded={isExpanded}
+        aria-label={`${event.name} - ${t("events.impact_kpi.title")}`}
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-sm font-semibold text-white truncate">{event.name}</h4>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border ${style.bg} ${style.text} ${style.border}`}
+              >
+                {t(`events.${event.category}`)}
+              </span>
+              {isUserCreated && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border bg-gray-700/40 text-gray-400 border-gray-600/40">
+                  {t("events.userCreated")}
+                </span>
+              )}
+            </div>
+            {event.description && (
+              <p className="text-xs text-gray-400 mt-1 line-clamp-2">{event.description}</p>
+            )}
+            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+              <span>
+                {formatDate(event.start_date)}
+                {event.end_date && ` - ${formatDate(event.end_date)}`}
+              </span>
+              {event.location && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {event.location}
+                </span>
+              )}
+              {event.impact_estimate && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  {t("events.impact")}: {event.impact_estimate}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isUserCreated && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(event.id);
+                }}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 transition-colors"
+                aria-label={`${t("events.deleteEvent")} ${event.name}`}
+              >
+                {t("events.deleteEvent")}
+              </button>
+            )}
+            <svg
+              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </button>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden px-4 pb-4"
           >
-            {t(`events.${event.category}`)}
-          </span>
-          {isUserCreated && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border bg-gray-700/40 text-gray-400 border-gray-600/40">
-              {t("events.userCreated")}
-            </span>
-          )}
-        </div>
-        {event.description && (
-          <p className="text-xs text-gray-400 mt-1 line-clamp-2">{event.description}</p>
+            <EventImpactPanel eventId={event.id} t={t} />
+          </motion.div>
         )}
-        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-          <span>
-            {formatDate(event.start_date)}
-            {event.end_date && ` - ${formatDate(event.end_date)}`}
-          </span>
-          {event.location && (
-            <span className="flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {event.location}
-            </span>
-          )}
-          {event.impact_estimate && (
-            <span className="flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              {t("events.impact")}: {event.impact_estimate}
-            </span>
-          )}
-        </div>
-      </div>
-      {isUserCreated && (
-        <button
-          onClick={() => onDelete(event.id)}
-          className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 transition-colors"
-          aria-label={`${t("events.deleteEvent")} ${event.name}`}
-        >
-          {t("events.deleteEvent")}
-        </button>
-      )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -128,6 +256,7 @@ export default function EventsPage() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<EventFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedEventId, setExpandedEventId] = useState<number | null>(null);
 
   const {
     data: eventsData,
@@ -428,6 +557,10 @@ export default function EventsPage() {
                       event={event}
                       onDelete={handleDelete}
                       t={t}
+                      isExpanded={expandedEventId === event.id}
+                      onToggleExpand={() =>
+                        setExpandedEventId((prev) => (prev === event.id ? null : event.id))
+                      }
                     />
                   ))}
                 </div>

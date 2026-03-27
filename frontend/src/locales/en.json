@@ -195,7 +195,15 @@
     "save": "Save",
     "cancel": "Cancel",
     "userCreated": "Custom event",
-    "category": "Category"
+    "category": "Category",
+    "impact_kpi": {
+      "title": "KPI Impact",
+      "currentYear": "Current Year",
+      "previousYear": "Previous Year",
+      "yoyChange": "YoY Change",
+      "noData": "No impact data available",
+      "indicator": "Indicator"
+    }
   },
   "notFound": {
     "title": "Page not found",

@@ -90,6 +90,8 @@ export const api = {
       }),
     delete: (id: number) =>
       fetchJSON(`/events/${id}`, { method: "DELETE" }),
+    impact: (eventId: number) =>
+      fetchJSON(`/events/${eventId}/impact`),
   },
   scenarios: {
     run: (body: Record<string, number>) =>
