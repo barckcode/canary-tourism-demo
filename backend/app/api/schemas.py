@@ -34,6 +34,10 @@ class DashboardKPIsResponse(BaseModel):
     adr: float | None = None
     revpar: float | None = None
     avg_stay: float | None = None
+    daily_spend: float | None = None
+    daily_spend_yoy: float | None = None
+    avg_stay_ine: float | None = None
+    avg_stay_ine_yoy: float | None = None
     last_updated: str | None = None
     data_available: bool = True
     reason: str | None = None

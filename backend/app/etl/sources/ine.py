@@ -1,7 +1,8 @@
 """INE API connector.
 
-Fetches hotel occupancy, apartment, rural tourism, and resident tourism
-series from the INE REST API at servicios.ine.es.
+Fetches hotel occupancy, apartment, rural tourism, resident tourism,
+Frontur (international arrivals), and Egatur (tourist spending) series
+from the INE REST API at servicios.ine.es.
 """
 
 import logging
@@ -46,7 +47,31 @@ INE_SERIES = [
     ("ETR_RES240", "residente_viajes_canarias", "ES70"),
     ("ETR_RES241", "residente_pernoctaciones_canarias", "ES70"),
     ("ETR_RES242", "residente_gasto_medio_canarias", "ES70"),
+    # Frontur - International tourist arrivals to Canarias
+    ("FREG349", "frontur_turistas_canarias", "ES70"),
+    # Egatur - Tourist spending in Canarias
+    ("FREG531", "egatur_gasto_total_canarias", "ES70"),
+    ("FREG529", "egatur_gasto_medio_diario_canarias", "ES70"),
+    ("FREG803", "egatur_estancia_media_canarias", "ES70"),
 ]
+
+
+def _normalize_series_response(data: Any) -> list[dict[str, Any]]:
+    """Normalize INE series response into a flat list of records.
+
+    The INE API returns two formats depending on the series:
+    - Flat list: ``[{Anyo, FK_Periodo, Valor, ...}, ...]``
+    - Wrapper dict: ``{COD, Nombre, Data: [{Anyo, FK_Periodo, Valor, ...}, ...]}``
+
+    This function detects the format and always returns the inner list.
+    """
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict) and "Data" in data:
+        inner = data["Data"]
+        if isinstance(inner, list):
+            return inner
+    return []
 
 
 async def _fetch_series_data(
@@ -58,7 +83,12 @@ async def _fetch_series_data(
         resp = await async_fetch_with_retry(
             client, url, timeout=60.0, source_name="INE",
         )
-        return resp.json()
+        raw = resp.json()
+        records = _normalize_series_response(raw)
+        if not records:
+            logger.warning("INE %s: empty or unrecognised response format.", series_id)
+            return None
+        return records
     except httpx.HTTPStatusError as exc:
         logger.warning(
             "INE fetch failed for %s: HTTP %d", series_id, exc.response.status_code
@@ -79,9 +109,10 @@ async def _fetch_latest_period(
         resp = await async_fetch_with_retry(
             client, url, params=params, timeout=30.0, source_name="INE",
         )
-        data = resp.json()
-        if isinstance(data, list) and len(data) > 0:
-            return data[0]
+        raw = resp.json()
+        records = _normalize_series_response(raw)
+        if records:
+            return records[0]
         return None
     except (httpx.HTTPStatusError, httpx.RequestError) as exc:
         logger.warning("INE latest period check failed for %s: %s", series_id, exc)

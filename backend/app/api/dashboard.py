@@ -160,6 +160,66 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
     if avg_stay:
         kpis["avg_stay"] = avg_stay.value
 
+    # Egatur: average daily spending per tourist (Canarias)
+    daily_spend = (
+        db.query(TimeSeries)
+        .filter(
+            TimeSeries.indicator == "egatur_gasto_medio_diario_canarias",
+            TimeSeries.geo_code == "ES70",
+            TimeSeries.measure == "ABSOLUTE",
+        )
+        .order_by(desc(TimeSeries.period))
+        .first()
+    )
+    if daily_spend and daily_spend.value is not None:
+        kpis["daily_spend"] = daily_spend.value
+        if daily_spend.period and len(daily_spend.period) >= 4:
+            prev_year_period = f"{int(daily_spend.period[:4]) - 1}{daily_spend.period[4:]}"
+            prev_ds = (
+                db.query(TimeSeries)
+                .filter(
+                    TimeSeries.indicator == "egatur_gasto_medio_diario_canarias",
+                    TimeSeries.geo_code == "ES70",
+                    TimeSeries.measure == "ABSOLUTE",
+                    TimeSeries.period == prev_year_period,
+                )
+                .first()
+            )
+            if prev_ds and prev_ds.value and prev_ds.value != 0:
+                kpis["daily_spend_yoy"] = round(
+                    (daily_spend.value - prev_ds.value) / prev_ds.value * 100, 2
+                )
+
+    # Egatur: average stay duration from INE (Canarias)
+    avg_stay_ine = (
+        db.query(TimeSeries)
+        .filter(
+            TimeSeries.indicator == "egatur_estancia_media_canarias",
+            TimeSeries.geo_code == "ES70",
+            TimeSeries.measure == "ABSOLUTE",
+        )
+        .order_by(desc(TimeSeries.period))
+        .first()
+    )
+    if avg_stay_ine and avg_stay_ine.value is not None:
+        kpis["avg_stay_ine"] = avg_stay_ine.value
+        if avg_stay_ine.period and len(avg_stay_ine.period) >= 4:
+            prev_year_period = f"{int(avg_stay_ine.period[:4]) - 1}{avg_stay_ine.period[4:]}"
+            prev_as = (
+                db.query(TimeSeries)
+                .filter(
+                    TimeSeries.indicator == "egatur_estancia_media_canarias",
+                    TimeSeries.geo_code == "ES70",
+                    TimeSeries.measure == "ABSOLUTE",
+                    TimeSeries.period == prev_year_period,
+                )
+                .first()
+            )
+            if prev_as and prev_as.value and prev_as.value != 0:
+                kpis["avg_stay_ine_yoy"] = round(
+                    (avg_stay_ine.value - prev_as.value) / prev_as.value * 100, 2
+                )
+
     # Last updated
     last_fetched = db.query(func.max(TimeSeries.fetched_at)).scalar()
     kpis["last_updated"] = last_fetched
@@ -173,6 +233,10 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
             "adr": None,
             "revpar": None,
             "avg_stay": None,
+            "daily_spend": None,
+            "daily_spend_yoy": None,
+            "avg_stay_ine": None,
+            "avg_stay_ine_yoy": None,
             "last_updated": kpis.get("last_updated"),
             "data_available": False,
             "reason": "no_data_available",

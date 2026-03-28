@@ -130,6 +130,27 @@ def _seed_test_data(session: Session) -> None:
                     value=round(base_val * variation),
                 ))
 
+    # --- Time Series: Frontur/Egatur Canarias indicators ---
+    frontur_egatur = {
+        "frontur_turistas_canarias": 1300000.0,
+        "egatur_gasto_total_canarias": 2100.0,
+        "egatur_gasto_medio_diario_canarias": 180.0,
+        "egatur_estancia_media_canarias": 8.0,
+    }
+    for ind, base_val in frontur_egatur.items():
+        for year in range(2022, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.02
+                growth = 1.0 + (year - 2022) * 0.04
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code="ES70",
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 2),
+                ))
+
     # --- Predictions: ensemble, sarima, holt_winters, seasonal_naive ---
     for model_name in ["ensemble", "sarima", "holt_winters", "seasonal_naive"]:
         for i in range(1, 13):
