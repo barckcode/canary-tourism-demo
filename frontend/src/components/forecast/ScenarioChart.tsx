@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 import {
   type ScenarioPoint,
@@ -124,12 +125,14 @@ export default function ScenarioChart({
   height,
 }: ScenarioChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!svgRef.current || width <= 0 || height <= 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
+    svg.append("title").text(t('forecast.scenarioChartAriaLabel'));
 
     const dims = computeDimensions(width, height);
     const { baselineData, scenarioData, combinedData } = parseScenarioData(data);
@@ -155,7 +158,7 @@ export default function ScenarioChart({
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [data, width, height]);
+  }, [data, width, height, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Scenario comparison chart showing baseline forecast versus scenario forecast with impact differences" />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('forecast.scenarioChartAriaLabel')} />;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 import { useYoYHeatmap, type YoYCell } from "../../api/hooks";
 
@@ -44,6 +45,7 @@ function apiToCellData(indicators: Record<string, YoYCell[]>): CellData[] {
 
 export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const { t } = useTranslation();
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
@@ -59,6 +61,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
+    svg.append("title").text(t('forecast.heatmapAriaLabel'));
 
     if (cellData.length === 0) return;
 
@@ -190,7 +193,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [width, height, cellData]);
+  }, [width, height, cellData, t]);
 
   // Loading state
   if (loading) {
@@ -247,7 +250,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
 
   return (
     <div className="relative">
-      <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Year-over-year heatmap showing monthly percentage changes in tourist arrivals across years" />
+      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('forecast.heatmapAriaLabel')} />
       {tooltip && (
         <div
           className="absolute pointer-events-none z-10 glass-panel px-3 py-2 text-xs -translate-x-1/2 -translate-y-full"

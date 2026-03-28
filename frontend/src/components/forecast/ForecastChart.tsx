@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 import {
   type TimeSeriesPoint,
@@ -107,12 +108,14 @@ export default function ForecastChart({
   isMock = false,
 }: ForecastChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!svgRef.current || width <= 0 || height <= 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
+    svg.append("title").text(t('forecast.chartAriaLabel'));
 
     const dims = computeDimensions(width, height);
 
@@ -137,7 +140,7 @@ export default function ForecastChart({
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [historical, forecast, width, height, yLabel, isMock]);
+  }, [historical, forecast, width, height, yLabel, isMock, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={`${yLabel} forecast chart showing historical data and predicted values with confidence intervals`} />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('forecast.chartAriaLabel')} />;
 }

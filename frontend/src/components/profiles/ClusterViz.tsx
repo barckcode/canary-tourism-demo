@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 
 export interface ClusterData {
@@ -71,6 +72,7 @@ export default function ClusterViz({
   onSelect,
 }: ClusterVizProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<number | null>(null);
 
   // Reset selected state when clusters change to avoid stale selection
@@ -85,6 +87,7 @@ export default function ClusterViz({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
+    svg.append("title").text(t('profiles.clusterAriaLabel'));
 
     svg.attr("width", width).attr("height", height);
 
@@ -263,7 +266,7 @@ export default function ClusterViz({
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [width, height, clusters, selected, onSelect]);
+  }, [width, height, clusters, selected, onSelect, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Tourist cluster visualization showing bubble sizes proportional to segment share" />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('profiles.clusterAriaLabel')} tabIndex={0} />;
 }

@@ -66,7 +66,8 @@
     "couldNotLoadKPI": "No se pudieron cargar los datos de KPI.",
     "couldNotLoadTrend": "No se pudieron cargar los datos de tendencia.",
     "couldNotLoadMarkets": "No se pudieron cargar los datos de mercado.",
-    "couldNotLoadSeasonal": "No se pudieron cargar los datos estacionales."
+    "couldNotLoadSeasonal": "No se pudieron cargar los datos estacionales.",
+    "sparklineAriaLabel": "Grafico de tendencia"
   },
   "forecast": {
     "title": "Motor de Prediccion",
@@ -111,7 +112,10 @@
     "scenarioSaved": "Escenario guardado",
     "comparing": "Comparando...",
     "selectToCompare": "Seleccionar para comparar",
-    "comparedScenarios": "Escenarios Comparados"
+    "comparedScenarios": "Escenarios Comparados",
+    "chartAriaLabel": "Grafico de prevision turistica con datos historicos y predicciones",
+    "scenarioChartAriaLabel": "Grafico de comparacion de escenarios",
+    "heatmapAriaLabel": "Mapa de calor de variacion interanual"
   },
   "profiles": {
     "title": "Perfiles de turistas",
@@ -146,7 +150,9 @@
     "touristFlow": "Flujo de turistas",
     "touristFlowSubtitle": "Top 6 mercados de origen \u2192 tipo de alojamiento preferido",
     "couldNotLoadFlow": "No se pudieron cargar los datos de flujo de turistas.",
-    "sampleData": "Datos de ejemplo — datos reales no disponibles"
+    "sampleData": "Datos de ejemplo — datos reales no disponibles",
+    "clusterAriaLabel": "Visualizacion de clusters de turistas",
+    "sankeyAriaLabel": "Diagrama Sankey de flujos turisticos"
   },
   "dataExplorer": {
     "title": "Explorador de datos",

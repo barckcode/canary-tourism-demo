@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 import {
   type SparklineDataPoint,
@@ -27,6 +28,7 @@ export default function SparklineChart({
 }: SparklineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
 
   // Responsive width tracking
@@ -48,6 +50,7 @@ export default function SparklineChart({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
+    svg.append("title").text(t('dashboard.sparklineAriaLabel'));
 
     const dims = computeDimensions(containerWidth, containerHeight);
     const historicalPoints = parsePoints(data);
@@ -73,7 +76,7 @@ export default function SparklineChart({
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [data, forecast, containerWidth, containerHeight]);
+  }, [data, forecast, containerWidth, containerHeight, t]);
 
   return (
     <div ref={containerRef} className="w-full" style={{ height: containerHeight }}>
@@ -82,7 +85,7 @@ export default function SparklineChart({
           <p className="text-sm">No data available</p>
         </div>
       ) : (
-        <svg ref={svgRef} className="overflow-visible" role="img" aria-label="Sparkline trend chart showing data values over time" />
+        <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('dashboard.sparklineAriaLabel')} />
       )}
     </div>
   );
