@@ -23,24 +23,6 @@ from app.utils.parsing import (
 
 logger = logging.getLogger(__name__)
 
-# Microdata columns to extract into typed fields
-MICRODATA_KEY_COLS = {
-    "NUMERO_CUESTIONARIO": "cuestionario",
-    "ISLA": "isla",
-    "AEROPUERTO_ORIGEN": "aeropuerto",
-    "SEXO": "sexo",
-    "EDAD": "edad",
-    "NACIONALIDAD": "nacionalidad",
-    "PAIS_RESIDENCIA": "pais_residencia",
-    "PROPOSITO": "proposito",
-    "NOCHES": "noches",
-    "ALOJ_CATEG": "aloj_categ",
-    "GASTO_EUROS": "gasto_euros",
-    "COSTE_VUELOS_EUROS": "coste_vuelos_euros",
-    "COSTE_ALOJ_EUROS": "coste_aloj_euros",
-    "SATISFACCION": "satisfaccion",
-}
-
 # Backward-compatible aliases for internal use
 _safe_int = safe_int
 _safe_float = safe_float
