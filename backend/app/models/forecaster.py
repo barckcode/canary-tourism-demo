@@ -272,6 +272,14 @@ class Forecaster:
         ci_lower_95 = sarima_ci_95[:, 0] * ratio
         ci_upper_95 = sarima_ci_95[:, 1] * ratio
 
+        # Ensure CI bounds are not inverted (ratio scaling can flip them)
+        ci_lower_80, ci_upper_80 = np.minimum(ci_lower_80, ci_upper_80), np.maximum(ci_lower_80, ci_upper_80)
+        ci_lower_95, ci_upper_95 = np.minimum(ci_lower_95, ci_upper_95), np.maximum(ci_lower_95, ci_upper_95)
+
+        # Floor CI lower bounds at 0 (tourism metrics cannot be negative)
+        ci_lower_80 = np.maximum(ci_lower_80, 0.0)
+        ci_lower_95 = np.maximum(ci_lower_95, 0.0)
+
         return ForecastResult(
             periods=[str(p) for p in future_periods],
             values=ensemble,
