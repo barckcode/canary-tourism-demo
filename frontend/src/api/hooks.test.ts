@@ -196,6 +196,10 @@ describe("useDashboardKPIs", () => {
       adr: 85.0,
       revpar: 62.0,
       avg_stay: 7.2,
+      daily_spend: 193,
+      daily_spend_yoy: 4.2,
+      avg_stay_ine: 8.1,
+      avg_stay_ine_yoy: -1.3,
       last_updated: "2025-12-15",
     };
 

@@ -48,6 +48,8 @@
     "adr": "ADR",
     "revpar": "RevPAR",
     "avgStay": "Estancia media",
+    "dailySpend": "Gasto medio diario",
+    "avgStayIne": "Estancia media (INE)",
     "nightsShort": "n",
     "tourismMap": "Mapa turistico",
     "mapSubtitle": "Mapa de calor municipal (3D)",

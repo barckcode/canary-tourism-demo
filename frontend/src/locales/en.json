@@ -48,6 +48,8 @@
     "adr": "ADR",
     "revpar": "RevPAR",
     "avgStay": "Avg Stay",
+    "dailySpend": "Avg. Daily Spend",
+    "avgStayIne": "Avg. Stay (INE)",
     "nightsShort": "n",
     "tourismMap": "Tourism Map",
     "mapSubtitle": "Municipality heatmap (3D)",

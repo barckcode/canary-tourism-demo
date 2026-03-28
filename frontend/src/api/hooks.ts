@@ -91,6 +91,10 @@ export interface DashboardKPIs {
   adr: number;
   revpar: number;
   avg_stay: number;
+  daily_spend: number | null;
+  daily_spend_yoy: number | null;
+  avg_stay_ine: number | null;
+  avg_stay_ine_yoy: number | null;
   last_updated: string;
 }
 

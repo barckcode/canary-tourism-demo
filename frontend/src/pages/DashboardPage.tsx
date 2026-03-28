@@ -50,6 +50,18 @@ const kpiConfig = [
     format: (n: number) => `${n.toFixed(1)}n`,
     color: "text-tropical-300",
   },
+  {
+    key: "daily_spend" as const,
+    labelKey: "dashboard.dailySpend",
+    format: (n: number) => `${n.toFixed(0)} \u20AC`,
+    color: "text-ocean-400",
+  },
+  {
+    key: "avg_stay_ine" as const,
+    labelKey: "dashboard.avgStayIne",
+    format: (n: number) => `${n.toFixed(1)}d`,
+    color: "text-volcanic-300",
+  },
 ];
 
 export default function DashboardPage() {
@@ -65,7 +77,7 @@ export default function DashboardPage() {
 
   const csvRows = useMemo<(string | number)[][]>(() => {
     if (!kpis) return [];
-    return kpiConfig.map(({ key, labelKey }) => [t(labelKey), kpis[key]]);
+    return kpiConfig.map(({ key, labelKey }) => [t(labelKey), kpis[key] ?? "—"]);
   }, [kpis, t]);
 
   return (
@@ -106,7 +118,7 @@ export default function DashboardPage() {
       ) : (
         <motion.div
           variants={fadeUp}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
+          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4"
         >
           {kpiConfig.map(({ key, labelKey, format, color }) => (
             <Panel key={key}>
@@ -114,8 +126,8 @@ export default function DashboardPage() {
                 <div className={`kpi-value ${color}`}>
                   {loading ? (
                     <div className="h-9 w-20 mx-auto bg-gray-800 rounded animate-pulse" />
-                  ) : kpis ? (
-                    <AnimatedNumber value={kpis[key]} format={format} />
+                  ) : kpis && kpis[key] != null ? (
+                    <AnimatedNumber value={kpis[key] as number} format={format} />
                   ) : (
                     "\u2014"
                   )}
