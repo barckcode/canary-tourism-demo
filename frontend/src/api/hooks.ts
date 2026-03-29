@@ -446,19 +446,28 @@ export function useScenarios() {
   const [data, setData] = useState<ScenarioResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const runScenario = useCallback(async (input: ScenarioInput) => {
+    const currentRequestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
       const result = (await api.scenarios.run(
         input as unknown as Record<string, number>
       )) as ScenarioResponse;
-      setData(result);
+      // Only update state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setData(result);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      if (currentRequestId === requestIdRef.current) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      }
     } finally {
-      setLoading(false);
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 

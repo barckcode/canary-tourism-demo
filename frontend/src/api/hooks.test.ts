@@ -611,6 +611,59 @@ describe("useScenarios", () => {
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBe("Scenario engine failed");
   });
+
+  it("discards stale response when two scenarios run in rapid succession", async () => {
+    const staleResult = {
+      baseline_forecast: [{ period: "2026-01", value: 400000 }],
+      scenario_forecast: [{ period: "2026-01", value: 410000 }],
+      impact_summary: { avg_baseline: 400000, avg_scenario: 410000, avg_change_pct: 2.5 },
+    };
+    const freshResult = {
+      baseline_forecast: [{ period: "2026-01", value: 450000 }],
+      scenario_forecast: [{ period: "2026-01", value: 500000 }],
+      impact_summary: { avg_baseline: 450000, avg_scenario: 500000, avg_change_pct: 11.1 },
+    };
+
+    // First call resolves slowly, second call resolves quickly
+    let resolveFirst: (v: unknown) => void;
+    const firstPromise = new Promise((resolve) => { resolveFirst = resolve; });
+    const secondPromise = Promise.resolve(freshResult);
+
+    mockedApi.scenarios.run
+      .mockReturnValueOnce(firstPromise)
+      .mockReturnValueOnce(secondPromise);
+
+    const { result } = renderHook(() => useScenarios());
+
+    const input1 = { occupancy_change_pct: 2, adr_change_pct: 0, foreign_ratio_change_pct: 0 };
+    const input2 = { occupancy_change_pct: 10, adr_change_pct: 0, foreign_ratio_change_pct: 0 };
+
+    // Fire both requests without awaiting the first
+    let firstDone = false;
+    act(() => {
+      result.current.runScenario(input1).then(() => { firstDone = true; });
+    });
+
+    // Second request fires immediately after (rapid succession)
+    await act(async () => {
+      await result.current.runScenario(input2);
+    });
+
+    // The fresh result should be applied
+    expect(result.current.data).toEqual(freshResult);
+    expect(result.current.loading).toBe(false);
+
+    // Now resolve the stale first request
+    await act(async () => {
+      resolveFirst!(staleResult);
+      await firstPromise;
+    });
+
+    // The stale result must NOT overwrite the fresh one
+    expect(result.current.data).toEqual(freshResult);
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
 });
 
 describe("useEventImpact", () => {
