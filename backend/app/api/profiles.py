@@ -2,13 +2,16 @@
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import (
     FlowsResponse,
     NationalityProfileEntry,
+    NationalityTrendResponse,
     ProfileDetailResponse,
     ProfilesListResponse,
     SpendingByClusterResponse,
@@ -195,6 +198,118 @@ def get_flows(request: Request, db: Session = Depends(get_db)):
         nodes.append({"id": n, "label": label})
 
     return {"nodes": nodes, "links": links}
+
+
+@router.get(
+    "/nationality-trends",
+    response_model=list[NationalityTrendResponse],
+)
+@limiter.limit("60/minute")
+def get_nationality_trends(
+    request: Request,
+    nationality: Optional[str] = Query(
+        None,
+        description="Filter by nationality code (e.g. '826' for UK). "
+        "If omitted, returns top nationalities by volume.",
+    ),
+    limit: int = Query(
+        5,
+        ge=1,
+        le=50,
+        description="Number of top nationalities to return (ignored when nationality is set).",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Return temporal trends per nationality from microdata.
+
+    Groups microdata by quarter and nationality, returning count,
+    average spend and average nights for each period.  Useful for
+    tracking the evolution of source markets over time.
+    """
+    if nationality:
+        # Single nationality filter
+        rows = (
+            db.query(
+                Microdata.quarter,
+                Microdata.nacionalidad,
+                func.count(Microdata.id).label("count"),
+                func.avg(Microdata.gasto_euros).label("avg_spend"),
+                func.avg(Microdata.noches).label("avg_nights"),
+            )
+            .filter(Microdata.nacionalidad == nationality)
+            .group_by(Microdata.quarter, Microdata.nacionalidad)
+            .order_by(Microdata.quarter)
+            .all()
+        )
+        if not rows:
+            return []
+        label = NATIONALITY_LABELS.get(nationality, nationality)
+        return [
+            NationalityTrendResponse(
+                nationality=label,
+                data=[
+                    {
+                        "quarter": r.quarter,
+                        "count": r.count,
+                        "avg_spend": round(r.avg_spend, 2) if r.avg_spend is not None else None,
+                        "avg_nights": round(r.avg_nights, 1) if r.avg_nights is not None else None,
+                    }
+                    for r in rows
+                ],
+            )
+        ]
+
+    # No nationality filter: find top N nationalities by total count
+    top_nats = (
+        db.query(Microdata.nacionalidad)
+        .filter(Microdata.nacionalidad.isnot(None))
+        .group_by(Microdata.nacionalidad)
+        .order_by(func.count(Microdata.id).desc())
+        .limit(limit)
+        .all()
+    )
+    top_nat_codes = [r.nacionalidad for r in top_nats]
+
+    if not top_nat_codes:
+        return []
+
+    rows = (
+        db.query(
+            Microdata.quarter,
+            Microdata.nacionalidad,
+            func.count(Microdata.id).label("count"),
+            func.avg(Microdata.gasto_euros).label("avg_spend"),
+            func.avg(Microdata.noches).label("avg_nights"),
+        )
+        .filter(Microdata.nacionalidad.in_(top_nat_codes))
+        .group_by(Microdata.quarter, Microdata.nacionalidad)
+        .order_by(Microdata.quarter)
+        .all()
+    )
+
+    # Group rows by nationality
+    from collections import defaultdict
+
+    grouped: dict[str, list] = defaultdict(list)
+    for r in rows:
+        grouped[r.nacionalidad].append(
+            {
+                "quarter": r.quarter,
+                "count": r.count,
+                "avg_spend": round(r.avg_spend, 2) if r.avg_spend is not None else None,
+                "avg_nights": round(r.avg_nights, 1) if r.avg_nights is not None else None,
+            }
+        )
+
+    # Return in same order as top_nat_codes to maintain ranking
+    return [
+        NationalityTrendResponse(
+            nationality=NATIONALITY_LABELS.get(code, code),
+            data=grouped.get(code, []),
+        )
+        for code in top_nat_codes
+        if code in grouped
+    ]
 
 
 @router.get("/spending", response_model=SpendingByClusterResponse)

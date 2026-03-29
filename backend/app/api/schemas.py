@@ -317,6 +317,22 @@ class SpendingByClusterResponse(BaseModel):
     spending_by_cluster: dict[str, list[SpendingCategory]]
 
 
+class NationalityTrendPoint(BaseModel):
+    """A single quarter data point for a nationality trend."""
+
+    quarter: str
+    count: int
+    avg_spend: float | None = None
+    avg_nights: float | None = None
+
+
+class NationalityTrendResponse(BaseModel):
+    """Temporal trend data for a single nationality."""
+
+    nationality: str
+    data: list[NationalityTrendPoint]
+
+
 # ---------------------------------------------------------------------------
 # Scenarios
 # ---------------------------------------------------------------------------
