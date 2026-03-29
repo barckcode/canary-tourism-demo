@@ -68,6 +68,10 @@ export const api = {
     nationalities: () => fetchJSON("/profiles/nationalities"),
     flows: () => fetchJSON("/profiles/flows"),
     spending: () => fetchJSON("/profiles/spending"),
+    nationalityTrends: (params?: Record<string, string>) => {
+      const qs = params ? new URLSearchParams(params).toString() : "";
+      return fetchJSON(`/profiles/nationality-trends${qs ? `?${qs}` : ""}`);
+    },
   },
   events: {
     list: (params?: Record<string, string>) => {

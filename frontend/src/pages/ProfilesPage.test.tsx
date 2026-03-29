@@ -24,6 +24,7 @@ vi.mock("framer-motion", () => {
 });
 
 const mockUseProfileDetail = vi.fn();
+let mockTrendsReturn = { data: null as typeof fakeTrendsData | null, error: null, loading: false, refetch: vi.fn() };
 
 const fakeClusters = [
   {
@@ -53,6 +54,7 @@ vi.mock("../api/hooks", () => ({
   useNationalityProfiles: () => ({ data: null, error: null, refetch: vi.fn() }),
   useFlowData: () => ({ data: null, error: null, refetch: vi.fn() }),
   useSpendingByCluster: () => ({ data: null }),
+  useNationalityTrends: () => mockTrendsReturn,
 }));
 
 vi.mock("../components/profiles/ClusterViz", () => ({
@@ -84,6 +86,23 @@ vi.mock("../components/shared/ErrorBoundary", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+const fakeTrendsData = [
+  {
+    nationality: "United Kingdom",
+    data: [
+      { quarter: "2023-Q1", count: 1234, avg_spend: 1500.50, avg_nights: 8.2 },
+      { quarter: "2023-Q2", count: 1100, avg_spend: 1400.00, avg_nights: 7.8 },
+    ],
+  },
+  {
+    nationality: "Germany",
+    data: [
+      { quarter: "2023-Q1", count: 900, avg_spend: 1200.00, avg_nights: 9.0 },
+      { quarter: "2023-Q2", count: 950, avg_spend: 1250.00, avg_nights: 8.5 },
+    ],
+  },
+];
+
 import ProfilesPage from "./ProfilesPage";
 
 function renderPage(initialEntries: string[] = ["/"]) {
@@ -114,5 +133,41 @@ describe("ProfilesPage URL state persistence", () => {
   it("renders the cluster visualization", () => {
     renderPage();
     expect(screen.getByTestId("cluster-viz")).toBeInTheDocument();
+  });
+});
+
+describe("ProfilesPage Market Trends panel", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTrendsReturn = { data: null, error: null, loading: false, refetch: vi.fn() };
+  });
+
+  it("does not render market trends table when data is null", () => {
+    renderPage();
+    expect(screen.queryByText("Market Trends")).not.toBeInTheDocument();
+  });
+
+  it("renders market trends table when trends data is available", () => {
+    mockTrendsReturn = {
+      data: fakeTrendsData,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    };
+
+    render(
+      <MemoryRouter>
+        <ProfilesPage />
+      </MemoryRouter>
+    );
+
+    // The panel title should be rendered with the English translation
+    expect(screen.getByText("Market Trends")).toBeInTheDocument();
+    // Quarter values should appear
+    expect(screen.getByText("2023-Q1")).toBeInTheDocument();
+    expect(screen.getByText("2023-Q2")).toBeInTheDocument();
+    // Nationality headers
+    expect(screen.getByText("United Kingdom")).toBeInTheDocument();
+    expect(screen.getByText("Germany")).toBeInTheDocument();
   });
 });

@@ -427,6 +427,25 @@ export function useSpendingByCluster() {
   );
 }
 
+export interface NationalityTrendPoint {
+  quarter: string;
+  count: number;
+  avg_spend: number | null;
+  avg_nights: number | null;
+}
+
+export interface NationalityTrend {
+  nationality: string;
+  data: NationalityTrendPoint[];
+}
+
+export function useNationalityTrends() {
+  return useQuery<NationalityTrend[]>(
+    () => api.profiles.nationalityTrends() as Promise<NationalityTrend[]>,
+    []
+  );
+}
+
 // ── Scenarios ──
 
 export interface ScenarioInput {

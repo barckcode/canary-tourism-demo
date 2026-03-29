@@ -154,7 +154,12 @@
     "couldNotLoadFlow": "No se pudieron cargar los datos de flujo de turistas.",
     "sampleData": "Datos de ejemplo — datos reales no disponibles",
     "clusterAriaLabel": "Visualizacion de clusters de turistas",
-    "sankeyAriaLabel": "Diagrama Sankey de flujos turisticos"
+    "sankeyAriaLabel": "Diagrama Sankey de flujos turisticos",
+    "marketTrends": "Tendencias de mercado",
+    "marketTrendsSubtitle": "Evolucion trimestral de visitantes por nacionalidad",
+    "quarter": "Trimestre",
+    "couldNotLoadTrends": "No se pudieron cargar las tendencias de mercado.",
+    "noTrendsData": "No hay datos de tendencias disponibles"
   },
   "dataExplorer": {
     "title": "Explorador de datos",

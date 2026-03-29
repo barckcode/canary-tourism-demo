@@ -9,6 +9,7 @@ import {
   useQuery,
   useScenarios,
   useEventImpact,
+  useNationalityTrends,
 } from "./hooks";
 
 // Mock the api client module
@@ -36,6 +37,7 @@ vi.mock("./client", () => ({
       nationalities: vi.fn(),
       flows: vi.fn(),
       spending: vi.fn(),
+      nationalityTrends: vi.fn(),
     },
     scenarios: {
       run: vi.fn(),
@@ -725,5 +727,58 @@ describe("useEventImpact", () => {
 
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBe("API error: 404 Not Found");
+  });
+});
+
+describe("useNationalityTrends", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches nationality trends data", async () => {
+    const mockTrends = [
+      {
+        nationality: "United Kingdom",
+        data: [
+          { quarter: "2023-Q1", count: 1234, avg_spend: 1500.5, avg_nights: 8.2 },
+          { quarter: "2023-Q2", count: 1100, avg_spend: 1400.0, avg_nights: 7.8 },
+        ],
+      },
+      {
+        nationality: "Germany",
+        data: [
+          { quarter: "2023-Q1", count: 900, avg_spend: 1200.0, avg_nights: 9.0 },
+        ],
+      },
+    ];
+
+    mockedApi.profiles.nationalityTrends.mockResolvedValueOnce(mockTrends);
+
+    const { result } = renderHook(() => useNationalityTrends());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toEqual(mockTrends);
+    expect(result.current.data).toHaveLength(2);
+    expect(result.current.data?.[0].nationality).toBe("United Kingdom");
+    expect(result.current.error).toBeNull();
+    expect(mockedApi.profiles.nationalityTrends).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles API errors gracefully", async () => {
+    mockedApi.profiles.nationalityTrends.mockRejectedValueOnce(
+      new Error("API error: 500 Internal Server Error")
+    );
+
+    const { result } = renderHook(() => useNationalityTrends());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBe("API error: 500 Internal Server Error");
   });
 });

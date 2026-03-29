@@ -12,7 +12,8 @@ import ClusterViz, {
 } from "../components/profiles/ClusterViz";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
 import ErrorState from "../components/shared/ErrorState";
-import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData, useSpendingByCluster } from "../api/hooks";
+import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData, useSpendingByCluster, useNationalityTrends } from "../api/hooks";
+import type { NationalityTrend } from "../api/hooks";
 
 const CLUSTER_COLORS = ["#0087b9", "#f69b1a", "#28c066", "#a855f7"];
 
@@ -29,6 +30,7 @@ export default function ProfilesPage() {
   const { data: nationalityData, error: nationalityError, refetch: refetchNationality } = useNationalityProfiles();
   const { data: flowData, error: flowError, refetch: refetchFlow } = useFlowData();
   const { data: spendingData } = useSpendingByCluster();
+  const { data: trendsData, error: trendsError, refetch: refetchTrends } = useNationalityTrends();
 
   // Top 8 nationalities sorted by count
   const topNationalities = useMemo(() => {
@@ -50,6 +52,29 @@ export default function ProfilesPage() {
         : 1,
     [topNationalities]
   );
+
+  // Top 5 nationalities from trends data, and their quarters
+  const topTrends = useMemo<NationalityTrend[]>(() => {
+    if (!trendsData) return [];
+    return [...trendsData]
+      .sort((a, b) => {
+        const sumA = a.data.reduce((s, d) => s + d.count, 0);
+        const sumB = b.data.reduce((s, d) => s + d.count, 0);
+        return sumB - sumA;
+      })
+      .slice(0, 5);
+  }, [trendsData]);
+
+  const trendQuarters = useMemo<string[]>(() => {
+    if (topTrends.length === 0) return [];
+    const qSet = new Set<string>();
+    for (const nt of topTrends) {
+      for (const d of nt.data) {
+        qSet.add(d.quarter);
+      }
+    }
+    return [...qSet].sort();
+  }, [topTrends]);
 
   // Map API clusters to ClusterViz format (with fallback)
   const apiClusters = useMemo<ClusterData[] | undefined>(() => {
@@ -364,6 +389,71 @@ export default function ProfilesPage() {
             </Panel>
           </motion.div>
         </div>
+      )}
+
+      {/* Market Trends Table */}
+      {trendsError && (
+        <motion.div variants={fadeUp}>
+          <ErrorState message={t('profiles.couldNotLoadTrends')} onRetry={refetchTrends} />
+        </motion.div>
+      )}
+      {!trendsError && topTrends.length > 0 && trendQuarters.length > 0 && (
+        <motion.div variants={fadeUp}>
+          <Panel
+            title={t('profiles.marketTrends')}
+            subtitle={t('profiles.marketTrendsSubtitle')}
+          >
+            <div className="overflow-x-auto py-2">
+              <table className="w-full text-sm" role="table" aria-label={t('profiles.marketTrends')}>
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="text-left py-2 pr-4 text-gray-400 font-medium">{t('profiles.quarter')}</th>
+                    {topTrends.map((nt) => (
+                      <th key={nt.nationality} className="text-right py-2 px-2 text-gray-400 font-medium whitespace-nowrap">
+                        {nt.nationality}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {trendQuarters.map((quarter, qIdx) => {
+                    const isLatest = qIdx === trendQuarters.length - 1;
+                    const prevQuarter = qIdx > 0 ? trendQuarters[qIdx - 1] : null;
+                    return (
+                      <tr
+                        key={quarter}
+                        className={`border-b border-gray-800/30 ${isLatest ? "bg-gray-800/20" : ""}`}
+                      >
+                        <td className={`py-2 pr-4 text-gray-300 whitespace-nowrap ${isLatest ? "font-bold" : ""}`}>
+                          {quarter}
+                        </td>
+                        {topTrends.map((nt) => {
+                          const point = nt.data.find((d) => d.quarter === quarter);
+                          const prevPoint = prevQuarter ? nt.data.find((d) => d.quarter === prevQuarter) : null;
+                          const count = point?.count ?? 0;
+                          const prevCount = prevPoint?.count;
+                          const arrow = prevCount != null && count > 0
+                            ? count > prevCount ? "\u2191" : count < prevCount ? "\u2193" : ""
+                            : "";
+                          const arrowColor = arrow === "\u2191" ? "text-green-400" : arrow === "\u2193" ? "text-red-400" : "";
+                          return (
+                            <td
+                              key={nt.nationality}
+                              className={`text-right py-2 px-2 text-gray-200 whitespace-nowrap ${isLatest ? "font-bold" : ""}`}
+                            >
+                              {count > 0 ? count.toLocaleString() : "\u2014"}
+                              {arrow && <span className={`ml-1 ${arrowColor}`} aria-hidden="true">{arrow}</span>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        </motion.div>
       )}
 
       {/* Sankey */}

@@ -154,7 +154,12 @@
     "couldNotLoadFlow": "Could not load tourist flow data.",
     "sampleData": "Sample data — real data unavailable",
     "clusterAriaLabel": "Tourist cluster visualization",
-    "sankeyAriaLabel": "Tourist flow Sankey diagram"
+    "sankeyAriaLabel": "Tourist flow Sankey diagram",
+    "marketTrends": "Market Trends",
+    "marketTrendsSubtitle": "Quarterly visitor count evolution by nationality",
+    "quarter": "Quarter",
+    "couldNotLoadTrends": "Could not load market trends.",
+    "noTrendsData": "No trends data available"
   },
   "dataExplorer": {
     "title": "Data Explorer",
