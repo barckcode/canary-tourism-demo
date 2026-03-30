@@ -24,6 +24,8 @@ const COMPARISON_INDICATORS = [
   { key: "pernoctaciones", labelKey: "dataExplorer.comparison.indicator.pernoctaciones" },
   { key: "estancia_media", labelKey: "dataExplorer.comparison.indicator.estancia_media" },
   { key: "ocupacion_plazas", labelKey: "dataExplorer.comparison.indicator.ocupacion_plazas" },
+  { key: "adr", labelKey: "dataExplorer.comparison.indicator.adr" },
+  { key: "revpar", labelKey: "dataExplorer.comparison.indicator.revpar" },
 ] as const;
 
 const DISPLAY_PERIODS = 12;

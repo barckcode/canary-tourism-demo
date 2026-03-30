@@ -71,7 +71,8 @@
     "couldNotLoadSeasonal": "Could not load seasonal data.",
     "sparklineAriaLabel": "Trend sparkline chart",
     "employmentTotal": "Total Employment Canarias",
-    "employmentServices": "Services Employment"
+    "employmentServices": "Services Employment",
+    "iphIndex": "Hotel Price Index"
   },
   "forecast": {
     "title": "Prediction Engine",
@@ -195,7 +196,9 @@
         "viajeros": "Travelers",
         "pernoctaciones": "Overnight Stays",
         "estancia_media": "Average Stay",
-        "ocupacion_plazas": "Occupancy Rate"
+        "ocupacion_plazas": "Occupancy Rate",
+        "adr": "ADR (€)",
+        "revpar": "RevPAR (€)"
       },
       "scTenerife": "SC Tenerife",
       "lasPalmas": "Las Palmas",

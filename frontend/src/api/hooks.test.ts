@@ -211,6 +211,8 @@ describe("useDashboardKPIs", () => {
       employment_total_yoy: 2.1,
       employment_services: 812.3,
       employment_services_yoy: 3.5,
+      iph_index: 191.17,
+      iph_variation: 4.55,
       last_updated: "2025-12-15",
     };
 

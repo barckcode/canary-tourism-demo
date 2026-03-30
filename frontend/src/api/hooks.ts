@@ -99,6 +99,8 @@ export interface DashboardKPIs {
   employment_total_yoy: number | null;
   employment_services: number | null;
   employment_services_yoy: number | null;
+  iph_index: number | null;
+  iph_variation: number | null;
   last_updated: string;
 }
 

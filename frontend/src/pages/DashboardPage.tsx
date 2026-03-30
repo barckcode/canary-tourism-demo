@@ -84,6 +84,13 @@ const kpiConfig: KpiConfigItem[] = [
     color: "text-ocean-300",
     yoyKey: "employment_services_yoy" as const,
   },
+  {
+    key: "iph_index" as const,
+    labelKey: "dashboard.iphIndex",
+    format: (n: number) => n.toFixed(1),
+    color: "text-volcanic-400",
+    yoyKey: "iph_variation" as const,
+  },
 ];
 
 export default function DashboardPage() {
