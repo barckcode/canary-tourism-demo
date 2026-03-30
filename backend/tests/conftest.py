@@ -212,6 +212,46 @@ def _seed_test_data(session: Session) -> None:
                     value=round(base_val * variation * growth, 1),
                 ))
 
+    # --- Time Series: Hotel profitability (ADR, RevPAR) by province ---
+    hotel_profit_indicators = {
+        "hotel_adr_tenerife": ("ES709", 167.0),
+        "hotel_adr_las_palmas": ("ES701", 145.0),
+        "hotel_revpar_tenerife": ("ES709", 146.0),
+        "hotel_revpar_las_palmas": ("ES701", 120.0),
+    }
+    for ind, (geo, base_val) in hotel_profit_indicators.items():
+        for year in range(2022, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.01
+                growth = 1.0 + (year - 2022) * 0.03
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code=geo,
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 2),
+                ))
+
+    # --- Time Series: Hotel Price Index (IPH) - Canarias ---
+    iph_indicators = {
+        "iph_indice_canarias": ("ES70", 191.0),
+        "iph_variacion_canarias": ("ES70", 4.55),
+    }
+    for ind, (geo, base_val) in iph_indicators.items():
+        for year in range(2022, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.005
+                growth = 1.0 + (year - 2022) * 0.02
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code=geo,
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 2),
+                ))
+
     # --- Predictions: ensemble, sarima, holt_winters, seasonal_naive ---
     for model_name in ["ensemble", "sarima", "holt_winters", "seasonal_naive"]:
         for i in range(1, 13):

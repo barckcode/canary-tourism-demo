@@ -32,6 +32,15 @@ INE_SERIES = [
     ("EOT1550", "hotel_pernoctaciones_las_palmas", "ES701"),
     ("EOT7808", "hotel_estancia_media_las_palmas", "ES701"),
     ("EOT159", "hotel_ocupacion_plazas_las_palmas", "ES701"),
+    # Hotel profitability - ADR (Average Daily Rate) by province
+    ("EOT43288", "hotel_adr_tenerife", "ES709"),
+    ("EOT43289", "hotel_adr_las_palmas", "ES701"),
+    # Hotel profitability - RevPAR (Revenue Per Available Room) by province
+    ("EOT43691", "hotel_revpar_tenerife", "ES709"),
+    ("EOT43692", "hotel_revpar_las_palmas", "ES701"),
+    # Hotel Price Index - Canarias
+    ("EOT14634", "iph_indice_canarias", "ES70"),
+    ("EOT14635", "iph_variacion_canarias", "ES70"),
     # Hotel occupancy - Tourist points
     ("EOH12808", "hotel_viajeros_adeje", "ES709_ADEJE"),
     ("EOH12809", "hotel_pernoctaciones_adeje", "ES709_ADEJE"),

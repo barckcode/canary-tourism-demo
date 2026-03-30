@@ -36,6 +36,14 @@ PROVINCE_INDICATORS = {
         "ES709": "hotel_ocupacion_plazas_tenerife",
         "ES701": "hotel_ocupacion_plazas_las_palmas",
     },
+    "adr": {
+        "ES709": "hotel_adr_tenerife",
+        "ES701": "hotel_adr_las_palmas",
+    },
+    "revpar": {
+        "ES709": "hotel_revpar_tenerife",
+        "ES701": "hotel_revpar_las_palmas",
+    },
 }
 
 PROVINCE_NAMES = {
@@ -67,7 +75,7 @@ def compare_provinces(
     Returns side-by-side time series data for Santa Cruz de Tenerife (ES709)
     and Las Palmas (ES701) provinces.
 
-    - **indicator**: one of viajeros, pernoctaciones, estancia_media, ocupacion_plazas
+    - **indicator**: one of viajeros, pernoctaciones, estancia_media, ocupacion_plazas, adr, revpar
     - **periods**: number of most recent months to include (default 24)
     """
     if indicator not in PROVINCE_INDICATORS:

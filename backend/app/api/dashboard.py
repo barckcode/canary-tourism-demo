@@ -280,6 +280,33 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                     (emp_services.value - prev_es.value) / prev_es.value * 100, 2
                 )
 
+    # Hotel Price Index (IPH) - Canarias
+    iph_index = (
+        db.query(TimeSeries)
+        .filter(
+            TimeSeries.indicator == "iph_indice_canarias",
+            TimeSeries.geo_code == "ES70",
+            TimeSeries.measure == "ABSOLUTE",
+        )
+        .order_by(desc(TimeSeries.period))
+        .first()
+    )
+    if iph_index and iph_index.value is not None:
+        kpis["iph_index"] = iph_index.value
+
+    iph_var = (
+        db.query(TimeSeries)
+        .filter(
+            TimeSeries.indicator == "iph_variacion_canarias",
+            TimeSeries.geo_code == "ES70",
+            TimeSeries.measure == "ABSOLUTE",
+        )
+        .order_by(desc(TimeSeries.period))
+        .first()
+    )
+    if iph_var and iph_var.value is not None:
+        kpis["iph_variation"] = iph_var.value
+
     # Last updated
     last_fetched = db.query(func.max(TimeSeries.fetched_at)).scalar()
     kpis["last_updated"] = last_fetched
@@ -301,6 +328,8 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
             "employment_total_yoy": None,
             "employment_services": None,
             "employment_services_yoy": None,
+            "iph_index": None,
+            "iph_variation": None,
             "last_updated": kpis.get("last_updated"),
             "data_available": False,
             "reason": "no_data_available",

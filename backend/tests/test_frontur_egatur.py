@@ -79,8 +79,8 @@ class TestFronturEgaturSeriesConfig:
 
     def test_total_series_count(self):
         """INE_SERIES should include the 4 new Frontur/Egatur entries."""
-        # Original entries + 4 Frontur/Egatur + 2 EPA + 4 Las Palmas = 32
-        assert len(ine.INE_SERIES) == 32
+        # Original entries + 4 Frontur/Egatur + 2 EPA + 4 Las Palmas + 6 Hotel profitability = 38
+        assert len(ine.INE_SERIES) == 38
 
 
 # ---------------------------------------------------------------------------

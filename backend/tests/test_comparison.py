@@ -65,8 +65,8 @@ class TestLasPalmasSeriesConfig:
             )
 
     def test_total_series_count(self):
-        """INE_SERIES should include the 4 new Las Palmas entries (32 total)."""
-        assert len(ine.INE_SERIES) == 32
+        """INE_SERIES should include the 4 new Las Palmas entries (38 total)."""
+        assert len(ine.INE_SERIES) == 38
 
 
 # ---------------------------------------------------------------------------

@@ -42,6 +42,8 @@ class DashboardKPIsResponse(BaseModel):
     employment_total_yoy: float | None = None
     employment_services: float | None = None
     employment_services_yoy: float | None = None
+    iph_index: float | None = None
+    iph_variation: float | None = None
     last_updated: str | None = None
     data_available: bool = True
     reason: str | None = None
