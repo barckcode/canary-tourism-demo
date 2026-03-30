@@ -198,7 +198,9 @@
         "estancia_media": "Average Stay",
         "ocupacion_plazas": "Occupancy Rate",
         "adr": "ADR (€)",
-        "revpar": "RevPAR (€)"
+        "revpar": "RevPAR (€)",
+        "apartamentoOcupacion": "Apt. Occupancy",
+        "apartamentoEstancia": "Apt. Avg Stay"
       },
       "scTenerife": "SC Tenerife",
       "lasPalmas": "Las Palmas",

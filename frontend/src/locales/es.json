@@ -198,7 +198,9 @@
         "estancia_media": "Estancia Media",
         "ocupacion_plazas": "Ocupacion",
         "adr": "ADR (€)",
-        "revpar": "RevPAR (€)"
+        "revpar": "RevPAR (€)",
+        "apartamentoOcupacion": "Apt. Ocupación",
+        "apartamentoEstancia": "Apt. Estancia Media"
       },
       "scTenerife": "SC Tenerife",
       "lasPalmas": "Las Palmas",
