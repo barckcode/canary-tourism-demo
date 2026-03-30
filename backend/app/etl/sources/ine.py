@@ -27,6 +27,11 @@ INE_SERIES = [
     ("EOH3952", "hotel_ocupacion_habitaciones_tenerife", "ES709"),
     ("EOH3953", "hotel_ocupacion_plazas_tenerife", "ES709"),
     ("EOH3954", "hotel_plazas_estimadas_tenerife", "ES709"),
+    # Hotel occupancy - Las Palmas province (inter-island comparison)
+    ("EOT1547", "hotel_viajeros_las_palmas", "ES701"),
+    ("EOT1550", "hotel_pernoctaciones_las_palmas", "ES701"),
+    ("EOT7808", "hotel_estancia_media_las_palmas", "ES701"),
+    ("EOT159", "hotel_ocupacion_plazas_las_palmas", "ES701"),
     # Hotel occupancy - Tourist points
     ("EOH12808", "hotel_viajeros_adeje", "ES709_ADEJE"),
     ("EOH12809", "hotel_pernoctaciones_adeje", "ES709_ADEJE"),

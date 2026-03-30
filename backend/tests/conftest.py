@@ -151,6 +151,48 @@ def _seed_test_data(session: Session) -> None:
                     value=round(base_val * variation * growth, 2),
                 ))
 
+    # --- Time Series: Las Palmas hotel data (inter-island comparison) ---
+    las_palmas_indicators = {
+        "hotel_viajeros_las_palmas": 400000.0,
+        "hotel_pernoctaciones_las_palmas": 2800000.0,
+        "hotel_estancia_media_las_palmas": 4.5,
+        "hotel_ocupacion_plazas_las_palmas": 70.0,
+    }
+    for ind, base_val in las_palmas_indicators.items():
+        for year in range(2022, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.01
+                growth = 1.0 + (year - 2022) * 0.03
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code="ES701",
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 2),
+                ))
+
+    # --- Time Series: Tenerife hotel data (for comparison endpoint) ---
+    tenerife_hotel_indicators = {
+        "hotel_viajeros_tenerife": 350000.0,
+        "hotel_pernoctaciones_tenerife": 2500000.0,
+        "hotel_estancia_media_tenerife": 5.0,
+        "hotel_ocupacion_plazas_tenerife": 68.0,
+    }
+    for ind, base_val in tenerife_hotel_indicators.items():
+        for year in range(2022, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.01
+                growth = 1.0 + (year - 2022) * 0.03
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code="ES709",
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 2),
+                ))
+
     # --- Time Series: EPA employment data (quarterly, Canarias) ---
     epa_indicators = {
         "epa_ocupados_total_canarias": 900.0,

@@ -51,8 +51,8 @@ class TestEPASeriesConfig:
                 )
 
     def test_epa_series_count(self):
-        """INE_SERIES should include the 2 new EPA entries (28 total)."""
-        assert len(ine.INE_SERIES) == 28
+        """INE_SERIES should include the 2 new EPA entries (32 total)."""
+        assert len(ine.INE_SERIES) == 32
 
 
 # ---------------------------------------------------------------------------

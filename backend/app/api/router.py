@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api import dashboard, events, predictions, profiles, scenarios, timeseries
+from app.api import comparison, dashboard, events, predictions, profiles, scenarios, timeseries
 
 api_router = APIRouter()
 
@@ -12,3 +12,4 @@ api_router.include_router(predictions.router, prefix="/predictions", tags=["pred
 api_router.include_router(profiles.router, prefix="/profiles", tags=["profiles"])
 api_router.include_router(scenarios.router, prefix="/scenarios", tags=["scenarios"])
 api_router.include_router(events.router, prefix="/events", tags=["events"])
+api_router.include_router(comparison.router, prefix="/comparison", tags=["comparison"])

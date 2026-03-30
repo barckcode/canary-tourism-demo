@@ -402,6 +402,31 @@ class FeatureImportanceResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Province Comparison
+# ---------------------------------------------------------------------------
+
+class ProvinceDataPoint(BaseModel):
+    """A single (period, value) data point for a province."""
+
+    period: str
+    value: float
+
+
+class ProvinceData(BaseModel):
+    """Time series data for a single province."""
+
+    name: str
+    data: list[ProvinceDataPoint]
+
+
+class ProvinceComparisonResponse(BaseModel):
+    """Side-by-side province comparison data."""
+
+    indicator: str
+    provinces: dict[str, ProvinceData]
+
+
+# ---------------------------------------------------------------------------
 # Events
 # ---------------------------------------------------------------------------
 
