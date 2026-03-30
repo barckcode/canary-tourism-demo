@@ -69,7 +69,9 @@
     "couldNotLoadTrend": "Could not load trend data.",
     "couldNotLoadMarkets": "Could not load market data.",
     "couldNotLoadSeasonal": "Could not load seasonal data.",
-    "sparklineAriaLabel": "Trend sparkline chart"
+    "sparklineAriaLabel": "Trend sparkline chart",
+    "employmentTotal": "Total Employment Canarias",
+    "employmentServices": "Services Employment"
   },
   "forecast": {
     "title": "Prediction Engine",

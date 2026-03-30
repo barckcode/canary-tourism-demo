@@ -202,6 +202,10 @@ describe("useDashboardKPIs", () => {
       daily_spend_yoy: 4.2,
       avg_stay_ine: 8.1,
       avg_stay_ine_yoy: -1.3,
+      employment_total: 1043.6,
+      employment_total_yoy: 2.1,
+      employment_services: 812.3,
+      employment_services_yoy: 3.5,
       last_updated: "2025-12-15",
     };
 

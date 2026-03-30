@@ -11,9 +11,17 @@ import ExportCSVButton from "../components/shared/ExportCSVButton";
 import SparklineChart from "../components/shared/SparklineChart";
 import TimeSlider from "../components/timeline/TimeSlider";
 import TenerifeMap from "../components/map/TenerifeMap";
-import { useDashboardKPIs, useDashboardSummary, useTopMarkets, useSeasonalPosition } from "../api/hooks";
+import { useDashboardKPIs, useDashboardSummary, useTopMarkets, useSeasonalPosition, DashboardKPIs } from "../api/hooks";
 
-const kpiConfig = [
+interface KpiConfigItem {
+  key: keyof DashboardKPIs;
+  labelKey: string;
+  format: (n: number) => string;
+  color: string;
+  yoyKey?: keyof DashboardKPIs;
+}
+
+const kpiConfig: KpiConfigItem[] = [
   {
     key: "latest_arrivals" as const,
     labelKey: "dashboard.arrivals",
@@ -61,6 +69,20 @@ const kpiConfig = [
     labelKey: "dashboard.avgStayIne",
     format: (n: number) => `${n.toFixed(1)}d`,
     color: "text-volcanic-300",
+  },
+  {
+    key: "employment_total" as const,
+    labelKey: "dashboard.employmentTotal",
+    format: (n: number) => `${n.toLocaleString("en", { maximumFractionDigits: 1 })}K`,
+    color: "text-tropical-400",
+    yoyKey: "employment_total_yoy" as const,
+  },
+  {
+    key: "employment_services" as const,
+    labelKey: "dashboard.employmentServices",
+    format: (n: number) => `${n.toLocaleString("en", { maximumFractionDigits: 1 })}K`,
+    color: "text-ocean-300",
+    yoyKey: "employment_services_yoy" as const,
   },
 ];
 
@@ -118,9 +140,9 @@ export default function DashboardPage() {
       ) : (
         <motion.div
           variants={fadeUp}
-          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"
         >
-          {kpiConfig.map(({ key, labelKey, format, color }) => (
+          {kpiConfig.map(({ key, labelKey, format, color, yoyKey }) => (
             <Panel key={key}>
               <div className="text-center">
                 <div className={`kpi-value ${color}`}>
@@ -133,6 +155,12 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="kpi-label">{t(labelKey)}</div>
+                {yoyKey && kpis && kpis[yoyKey] != null && !loading && (
+                  <div className={`text-xs mt-1 font-medium ${(kpis[yoyKey] as number) >= 0 ? "text-tropical-400" : "text-red-400"}`}>
+                    {(kpis[yoyKey] as number) >= 0 ? "\u25B2" : "\u25BC"}{" "}
+                    {(kpis[yoyKey] as number) > 0 ? "+" : ""}{(kpis[yoyKey] as number).toFixed(1)}% YoY
+                  </div>
+                )}
               </div>
             </Panel>
           ))}

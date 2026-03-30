@@ -95,6 +95,10 @@ export interface DashboardKPIs {
   daily_spend_yoy: number | null;
   avg_stay_ine: number | null;
   avg_stay_ine_yoy: number | null;
+  employment_total: number | null;
+  employment_total_yoy: number | null;
+  employment_services: number | null;
+  employment_services_yoy: number | null;
   last_updated: string;
 }
 

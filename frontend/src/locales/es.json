@@ -69,7 +69,9 @@
     "couldNotLoadTrend": "No se pudieron cargar los datos de tendencia.",
     "couldNotLoadMarkets": "No se pudieron cargar los datos de mercado.",
     "couldNotLoadSeasonal": "No se pudieron cargar los datos estacionales.",
-    "sparklineAriaLabel": "Grafico de tendencia"
+    "sparklineAriaLabel": "Grafico de tendencia",
+    "employmentTotal": "Empleo Total Canarias",
+    "employmentServices": "Empleo Servicios"
   },
   "forecast": {
     "title": "Motor de Prediccion",
