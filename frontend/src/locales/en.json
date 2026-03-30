@@ -188,7 +188,25 @@
     "selectedCount": "selected",
     "maxIndicators": "Max 3 indicators",
     "clearSelection": "Clear selection",
-    "tableCaption": "Available tourism indicators with source, date range, and data points"
+    "tableCaption": "Available tourism indicators with source, date range, and data points",
+    "comparison": {
+      "title": "Province Comparison",
+      "indicator": {
+        "viajeros": "Travelers",
+        "pernoctaciones": "Overnight Stays",
+        "estancia_media": "Average Stay",
+        "ocupacion_plazas": "Occupancy Rate"
+      },
+      "scTenerife": "SC Tenerife",
+      "lasPalmas": "Las Palmas",
+      "period": "Period",
+      "difference": "Difference",
+      "latest": "Latest month",
+      "yoyChange": "YoY Change",
+      "leading": "Leading",
+      "couldNotLoad": "Could not load province comparison data.",
+      "tableCaption": "Tourism data comparison between Canary Islands provinces"
+    }
   },
   "events": {
     "title": "Tourism Events Calendar",

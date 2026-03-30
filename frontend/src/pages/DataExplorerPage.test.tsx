@@ -27,10 +27,12 @@ vi.mock("framer-motion", () => {
 // Mock the API hooks
 const mockUseIndicators = vi.fn();
 const mockUseTimeSeries = vi.fn();
+const mockUseProvinceComparison = vi.fn();
 
 vi.mock("../api/hooks", () => ({
   useIndicators: () => mockUseIndicators(),
   useTimeSeries: (indicator: string) => mockUseTimeSeries(indicator),
+  useProvinceComparison: (...args: unknown[]) => mockUseProvinceComparison(...args),
 }));
 
 // Mock chart components since they use D3 which doesn't work well in jsdom
@@ -104,6 +106,34 @@ describe("DataExplorerPage", () => {
     mockUseTimeSeries.mockImplementation((indicator: string) => {
       if (!indicator) return emptyTsResponse;
       return fakeTimeSeriesResponse(indicator);
+    });
+    mockUseProvinceComparison.mockReturnValue({
+      data: {
+        indicator: "pernoctaciones",
+        provinces: {
+          ES709: {
+            name: "Santa Cruz de Tenerife",
+            data: [
+              { period: "2025-02", value: 1345678 },
+              { period: "2025-01", value: 1234567 },
+              { period: "2024-02", value: 1200000 },
+              { period: "2024-01", value: 1100000 },
+            ],
+          },
+          ES701: {
+            name: "Las Palmas",
+            data: [
+              { period: "2025-02", value: 3567890 },
+              { period: "2025-01", value: 3456789 },
+              { period: "2024-02", value: 3400000 },
+              { period: "2024-01", value: 3300000 },
+            ],
+          },
+        },
+      },
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
     });
   });
 

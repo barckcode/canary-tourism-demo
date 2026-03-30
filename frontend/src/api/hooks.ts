@@ -450,6 +450,30 @@ export function useNationalityTrends() {
   );
 }
 
+// ── Province Comparison ──
+
+export interface ProvinceDataPoint {
+  period: string;
+  value: number;
+}
+
+export interface ProvinceData {
+  name: string;
+  data: ProvinceDataPoint[];
+}
+
+export interface ProvinceComparisonResponse {
+  indicator: string;
+  provinces: Record<string, ProvinceData>;
+}
+
+export function useProvinceComparison(indicator: string = "pernoctaciones", periods: number = 24) {
+  return useQuery<ProvinceComparisonResponse>(
+    () => api.comparison.provinces(indicator, periods) as Promise<ProvinceComparisonResponse>,
+    [indicator, periods]
+  );
+}
+
 // ── Scenarios ──
 
 export interface ScenarioInput {

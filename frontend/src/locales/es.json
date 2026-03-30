@@ -188,7 +188,25 @@
     "selectedCount": "seleccionados",
     "maxIndicators": "Maximo 3 indicadores",
     "clearSelection": "Limpiar seleccion",
-    "tableCaption": "Indicadores turisticos disponibles con fuente, rango de fechas y puntos de datos"
+    "tableCaption": "Indicadores turisticos disponibles con fuente, rango de fechas y puntos de datos",
+    "comparison": {
+      "title": "Comparativa Provincial",
+      "indicator": {
+        "viajeros": "Viajeros",
+        "pernoctaciones": "Pernoctaciones",
+        "estancia_media": "Estancia Media",
+        "ocupacion_plazas": "Ocupacion"
+      },
+      "scTenerife": "SC Tenerife",
+      "lasPalmas": "Las Palmas",
+      "period": "Periodo",
+      "difference": "Diferencia",
+      "latest": "Ultimo mes",
+      "yoyChange": "Var. interanual",
+      "leading": "Lidera",
+      "couldNotLoad": "No se pudieron cargar los datos de comparativa provincial.",
+      "tableCaption": "Comparativa de datos turisticos entre provincias canarias"
+    }
   },
   "events": {
     "title": "Calendario de Eventos Turisticos",

@@ -10,6 +10,7 @@ import {
   useScenarios,
   useEventImpact,
   useNationalityTrends,
+  useProvinceComparison,
 } from "./hooks";
 
 // Mock the api client module
@@ -26,6 +27,9 @@ vi.mock("./client", () => ({
       get: vi.fn(),
       indicators: vi.fn(),
       yoy: vi.fn(),
+    },
+    comparison: {
+      provinces: vi.fn(),
     },
     predictions: {
       get: vi.fn(),
@@ -57,6 +61,7 @@ import { api } from "./client";
 const mockedApi = api as {
   dashboard: { [K in keyof typeof api.dashboard]: ReturnType<typeof vi.fn> };
   timeseries: { [K in keyof typeof api.timeseries]: ReturnType<typeof vi.fn> };
+  comparison: { [K in keyof typeof api.comparison]: ReturnType<typeof vi.fn> };
   predictions: {
     [K in keyof typeof api.predictions]: ReturnType<typeof vi.fn>;
   };
@@ -777,6 +782,79 @@ describe("useNationalityTrends", () => {
     );
 
     const { result } = renderHook(() => useNationalityTrends());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBe("API error: 500 Internal Server Error");
+  });
+});
+
+describe("useProvinceComparison", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches province comparison data with default parameters", async () => {
+    const mockComparison = {
+      indicator: "pernoctaciones",
+      provinces: {
+        ES709: {
+          name: "Santa Cruz de Tenerife",
+          data: [
+            { period: "2025-01", value: 1234567 },
+            { period: "2025-02", value: 1345678 },
+          ],
+        },
+        ES701: {
+          name: "Las Palmas",
+          data: [
+            { period: "2025-01", value: 3456789 },
+            { period: "2025-02", value: 3567890 },
+          ],
+        },
+      },
+    };
+
+    mockedApi.comparison.provinces.mockResolvedValueOnce(mockComparison);
+
+    const { result } = renderHook(() => useProvinceComparison());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toEqual(mockComparison);
+    expect(result.current.error).toBeNull();
+    expect(result.current.data?.provinces.ES709.name).toBe("Santa Cruz de Tenerife");
+    expect(result.current.data?.provinces.ES701.data).toHaveLength(2);
+    expect(mockedApi.comparison.provinces).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes custom indicator and periods", async () => {
+    mockedApi.comparison.provinces.mockResolvedValueOnce({
+      indicator: "viajeros",
+      provinces: {
+        ES709: { name: "Santa Cruz de Tenerife", data: [] },
+        ES701: { name: "Las Palmas", data: [] },
+      },
+    });
+
+    renderHook(() => useProvinceComparison("viajeros", 12));
+
+    await waitFor(() => {
+      expect(mockedApi.comparison.provinces).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("handles API errors gracefully", async () => {
+    mockedApi.comparison.provinces.mockRejectedValueOnce(
+      new Error("API error: 500 Internal Server Error")
+    );
+
+    const { result } = renderHook(() => useProvinceComparison());
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

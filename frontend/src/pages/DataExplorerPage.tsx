@@ -13,11 +13,20 @@ import ComparisonChart, {
   type SeriesData,
 } from "../components/shared/ComparisonChart";
 import ErrorState from "../components/shared/ErrorState";
-import { useIndicators, useTimeSeries } from "../api/hooks";
+import { useIndicators, useTimeSeries, useProvinceComparison } from "../api/hooks";
 
 const MAX_INDICATORS = 3;
 
 const SERIES_COLORS = ["#1aa0d2", "#28c066", "#f472b6"];
+
+const COMPARISON_INDICATORS = [
+  { key: "viajeros", labelKey: "dataExplorer.comparison.indicator.viajeros" },
+  { key: "pernoctaciones", labelKey: "dataExplorer.comparison.indicator.pernoctaciones" },
+  { key: "estancia_media", labelKey: "dataExplorer.comparison.indicator.estancia_media" },
+  { key: "ocupacion_plazas", labelKey: "dataExplorer.comparison.indicator.ocupacion_plazas" },
+] as const;
+
+const DISPLAY_PERIODS = 12;
 
 const fallbackIndicators = [
   { id: "turistas", source: "istac", available_from: "2010-01", available_to: "2026-01", total_points: 193 },
@@ -347,6 +356,176 @@ export default function DataExplorerPage() {
           )}
         </Panel>
       </motion.div>
+
+      <ProvinceComparisonSection />
+    </motion.div>
+  );
+}
+
+function ProvinceComparisonSection() {
+  const { t } = useTranslation();
+  const [comparisonIndicator, setComparisonIndicator] = useState<string>("pernoctaciones");
+  const { data: comparisonData, loading: comparisonLoading, error: comparisonError, refetch: refetchComparison } = useProvinceComparison(comparisonIndicator, 24);
+
+  const es709Data = comparisonData?.provinces?.ES709;
+  const es701Data = comparisonData?.provinces?.ES701;
+
+  const displayRows = useMemo(() => {
+    if (!es709Data?.data || !es701Data?.data) return [];
+    const es709Map = new Map(es709Data.data.map((d) => [d.period, d.value]));
+    const es701Map = new Map(es701Data.data.map((d) => [d.period, d.value]));
+    const allPeriods = [...new Set([...es709Data.data.map((d) => d.period), ...es701Data.data.map((d) => d.period)])].sort().reverse();
+    return allPeriods.slice(0, DISPLAY_PERIODS).map((period) => {
+      const v709 = es709Map.get(period);
+      const v701 = es701Map.get(period);
+      const diff = v709 != null && v701 != null ? v709 - v701 : null;
+      return { period, v709, v701, diff };
+    });
+  }, [es709Data, es701Data]);
+
+  const summaryKpis = useMemo(() => {
+    if (displayRows.length === 0) return null;
+    const latest = displayRows[0];
+
+    // Find YoY: same month from previous year
+    const latestMonth = latest.period.slice(5);
+    const prevYearPeriod = `${Number(latest.period.slice(0, 4)) - 1}-${latestMonth}`;
+    const prevRow = displayRows.find((r) => r.period === prevYearPeriod);
+
+    const yoy709 = latest.v709 != null && prevRow?.v709 != null && prevRow.v709 !== 0
+      ? ((latest.v709 - prevRow.v709) / prevRow.v709) * 100
+      : null;
+    const yoy701 = latest.v701 != null && prevRow?.v701 != null && prevRow.v701 !== 0
+      ? ((latest.v701 - prevRow.v701) / prevRow.v701) * 100
+      : null;
+
+    const leading = latest.v709 != null && latest.v701 != null
+      ? latest.v709 >= latest.v701 ? "ES709" : "ES701"
+      : null;
+
+    return { latest, yoy709, yoy701, leading };
+  }, [displayRows]);
+
+  return (
+    <motion.div variants={fadeUp}>
+      <Panel title={t("dataExplorer.comparison.title")}>
+        {/* Indicator selector */}
+        <div className="flex flex-wrap gap-2 mb-6" role="tablist" aria-label={t("dataExplorer.comparison.title")}>
+          {COMPARISON_INDICATORS.map((ind) => (
+            <button
+              key={ind.key}
+              role="tab"
+              aria-selected={comparisonIndicator === ind.key}
+              onClick={() => setComparisonIndicator(ind.key)}
+              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                comparisonIndicator === ind.key
+                  ? "bg-ocean-600 text-white"
+                  : "bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-gray-200"
+              }`}
+            >
+              {t(ind.labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {comparisonError ? (
+          <ErrorState message={t("dataExplorer.comparison.couldNotLoad")} onRetry={refetchComparison} />
+        ) : comparisonLoading ? (
+          <div className="h-48 flex items-center justify-center" role="status" aria-live="polite">
+            <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
+            <span className="sr-only">{t("common.loading")}</span>
+          </div>
+        ) : displayRows.length === 0 ? (
+          <div className="h-48 flex items-center justify-center text-gray-400">
+            <p className="text-sm">{t("common.noDataAvailable")}</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary KPIs */}
+            {summaryKpis && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 mb-1">{t("dataExplorer.comparison.scTenerife")}</p>
+                  <p className="text-xl font-bold text-white">
+                    {summaryKpis.latest.v709 != null ? summaryKpis.latest.v709.toLocaleString() : "-"}
+                  </p>
+                  {summaryKpis.yoy709 != null && (
+                    <p className={`text-xs mt-1 ${summaryKpis.yoy709 >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {summaryKpis.yoy709 >= 0 ? "+" : ""}{summaryKpis.yoy709.toFixed(1)}% {t("dataExplorer.comparison.yoyChange")}
+                    </p>
+                  )}
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 mb-1">{t("dataExplorer.comparison.lasPalmas")}</p>
+                  <p className="text-xl font-bold text-white">
+                    {summaryKpis.latest.v701 != null ? summaryKpis.latest.v701.toLocaleString() : "-"}
+                  </p>
+                  {summaryKpis.yoy701 != null && (
+                    <p className={`text-xs mt-1 ${summaryKpis.yoy701 >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {summaryKpis.yoy701 >= 0 ? "+" : ""}{summaryKpis.yoy701.toFixed(1)}% {t("dataExplorer.comparison.yoyChange")}
+                    </p>
+                  )}
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 mb-1">{t("dataExplorer.comparison.leading")}</p>
+                  <p className="text-xl font-bold text-white">
+                    {summaryKpis.leading === "ES709"
+                      ? t("dataExplorer.comparison.scTenerife")
+                      : summaryKpis.leading === "ES701"
+                        ? t("dataExplorer.comparison.lasPalmas")
+                        : "-"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t("dataExplorer.comparison.latest")}: {summaryKpis.latest.period}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Comparison table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <caption className="sr-only">{t("dataExplorer.comparison.tableCaption")}</caption>
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-gray-700/50">
+                    <th scope="col" className="pb-3 font-medium">{t("dataExplorer.comparison.period")}</th>
+                    <th scope="col" className="pb-3 font-medium text-right">{t("dataExplorer.comparison.scTenerife")}</th>
+                    <th scope="col" className="pb-3 font-medium text-right">{t("dataExplorer.comparison.lasPalmas")}</th>
+                    <th scope="col" className="pb-3 font-medium text-right">{t("dataExplorer.comparison.difference")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayRows.map((row, i) => (
+                    <tr
+                      key={row.period}
+                      className={`border-b border-gray-800/30 ${
+                        i % 2 === 0 ? "bg-gray-800/20" : ""
+                      }`}
+                    >
+                      <td className="py-2.5 text-gray-300 font-mono text-xs">{row.period}</td>
+                      <td className="py-2.5 text-gray-200 text-right font-mono text-xs">
+                        {row.v709 != null ? row.v709.toLocaleString() : "-"}
+                      </td>
+                      <td className="py-2.5 text-gray-200 text-right font-mono text-xs">
+                        {row.v701 != null ? row.v701.toLocaleString() : "-"}
+                      </td>
+                      <td className={`py-2.5 text-right font-mono text-xs ${
+                        row.diff != null
+                          ? row.diff >= 0 ? "text-emerald-400" : "text-red-400"
+                          : "text-gray-500"
+                      }`}>
+                        {row.diff != null
+                          ? `${row.diff >= 0 ? "+" : ""}${row.diff.toLocaleString()}`
+                          : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Panel>
     </motion.div>
   );
 }
