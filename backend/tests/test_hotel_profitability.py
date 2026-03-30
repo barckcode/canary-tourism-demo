@@ -83,8 +83,8 @@ class TestHotelProfitabilitySeriesConfig:
         assert geo_map["EOT14635"] == "ES70"
 
     def test_total_series_count(self):
-        """INE_SERIES should now have 38 entries (32 + 6 hotel profitability)."""
-        assert len(ine.INE_SERIES) == 38
+        """INE_SERIES should now have 41 entries (32 + 6 hotel profitability + 3 apartment comparison)."""
+        assert len(ine.INE_SERIES) == 41
 
 
 # ---------------------------------------------------------------------------

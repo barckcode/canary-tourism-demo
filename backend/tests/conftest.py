@@ -193,6 +193,27 @@ def _seed_test_data(session: Session) -> None:
                     value=round(base_val * variation * growth, 2),
                 ))
 
+    # --- Time Series: Tourist apartment comparison data ---
+    apartment_comparison_indicators = {
+        "apartamento_ocupacion_plazas_tenerife": ("ES709", 57.43),
+        "apartamento_ocupacion_plazas_las_palmas": ("ES701", 52.10),
+        "apartamento_estancia_media_tenerife": ("ES709", 9.16),
+        "apartamento_estancia_media_las_palmas": ("ES701", 8.50),
+    }
+    for ind, (geo, base_val) in apartment_comparison_indicators.items():
+        for year in range(2022, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.01
+                growth = 1.0 + (year - 2022) * 0.03
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code=geo,
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 2),
+                ))
+
     # --- Time Series: EPA employment data (quarterly, Canarias) ---
     epa_indicators = {
         "epa_ocupados_total_canarias": 900.0,

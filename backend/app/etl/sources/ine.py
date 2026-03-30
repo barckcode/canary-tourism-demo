@@ -53,6 +53,11 @@ INE_SERIES = [
     ("EAT3931", "apartamento_pernoctaciones_tenerife", "ES709"),
     ("EAT3932", "apartamento_ocupacion_plazas_tenerife", "ES709"),
     ("EAT3933", "apartamento_plazas_estimadas_tenerife", "ES709"),
+    # Tourist apartments - Las Palmas province (inter-island comparison)
+    ("EOT9167", "apartamento_ocupacion_plazas_las_palmas", "ES701"),
+    ("EOT9677", "apartamento_estancia_media_las_palmas", "ES701"),
+    # Tourist apartments - Estancia media for SC Tenerife (completes comparison pair)
+    ("EOT9679", "apartamento_estancia_media_tenerife", "ES709"),
     # Rural tourism - Canarias
     ("ETR1208", "rural_viajeros_canarias", "ES70"),
     ("ETR1209", "rural_pernoctaciones_canarias", "ES70"),
