@@ -151,6 +151,25 @@ def _seed_test_data(session: Session) -> None:
                     value=round(base_val * variation * growth, 2),
                 ))
 
+    # --- Time Series: EPA employment data (quarterly, Canarias) ---
+    epa_indicators = {
+        "epa_ocupados_total_canarias": 900.0,
+        "epa_ocupados_servicios_canarias": 780.0,
+    }
+    for ind, base_val in epa_indicators.items():
+        for year in range(2022, 2026):
+            for q in range(1, 5):
+                growth = 1.0 + (year - 2022) * 0.03
+                variation = 1.0 + (q - 2) * 0.02
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code="ES70",
+                    period=f"{year}-Q{q}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 1),
+                ))
+
     # --- Predictions: ensemble, sarima, holt_winters, seasonal_naive ---
     for model_name in ["ensemble", "sarima", "holt_winters", "seasonal_naive"]:
         for i in range(1, 13):

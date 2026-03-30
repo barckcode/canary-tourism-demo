@@ -53,6 +53,9 @@ INE_SERIES = [
     ("FREG531", "egatur_gasto_total_canarias", "ES70"),
     ("FREG529", "egatur_gasto_medio_diario_canarias", "ES70"),
     ("FREG803", "egatur_estancia_media_canarias", "ES70"),
+    # EPA - Employment in Canarias (quarterly, thousands of persons)
+    ("EPA440086", "epa_ocupados_total_canarias", "ES70"),
+    ("EPA440090", "epa_ocupados_servicios_canarias", "ES70"),
 ]
 
 

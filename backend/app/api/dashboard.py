@@ -220,6 +220,66 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                     (avg_stay_ine.value - prev_as.value) / prev_as.value * 100, 2
                 )
 
+    # EPA: Total occupied persons in Canarias (thousands)
+    emp_total = (
+        db.query(TimeSeries)
+        .filter(
+            TimeSeries.indicator == "epa_ocupados_total_canarias",
+            TimeSeries.geo_code == "ES70",
+            TimeSeries.measure == "ABSOLUTE",
+        )
+        .order_by(desc(TimeSeries.period))
+        .first()
+    )
+    if emp_total and emp_total.value is not None:
+        kpis["employment_total"] = emp_total.value
+        if emp_total.period and len(emp_total.period) >= 4:
+            prev_year_period = f"{int(emp_total.period[:4]) - 1}{emp_total.period[4:]}"
+            prev_et = (
+                db.query(TimeSeries)
+                .filter(
+                    TimeSeries.indicator == "epa_ocupados_total_canarias",
+                    TimeSeries.geo_code == "ES70",
+                    TimeSeries.measure == "ABSOLUTE",
+                    TimeSeries.period == prev_year_period,
+                )
+                .first()
+            )
+            if prev_et and prev_et.value and prev_et.value != 0:
+                kpis["employment_total_yoy"] = round(
+                    (emp_total.value - prev_et.value) / prev_et.value * 100, 2
+                )
+
+    # EPA: Occupied persons in services sector in Canarias (thousands)
+    emp_services = (
+        db.query(TimeSeries)
+        .filter(
+            TimeSeries.indicator == "epa_ocupados_servicios_canarias",
+            TimeSeries.geo_code == "ES70",
+            TimeSeries.measure == "ABSOLUTE",
+        )
+        .order_by(desc(TimeSeries.period))
+        .first()
+    )
+    if emp_services and emp_services.value is not None:
+        kpis["employment_services"] = emp_services.value
+        if emp_services.period and len(emp_services.period) >= 4:
+            prev_year_period = f"{int(emp_services.period[:4]) - 1}{emp_services.period[4:]}"
+            prev_es = (
+                db.query(TimeSeries)
+                .filter(
+                    TimeSeries.indicator == "epa_ocupados_servicios_canarias",
+                    TimeSeries.geo_code == "ES70",
+                    TimeSeries.measure == "ABSOLUTE",
+                    TimeSeries.period == prev_year_period,
+                )
+                .first()
+            )
+            if prev_es and prev_es.value and prev_es.value != 0:
+                kpis["employment_services_yoy"] = round(
+                    (emp_services.value - prev_es.value) / prev_es.value * 100, 2
+                )
+
     # Last updated
     last_fetched = db.query(func.max(TimeSeries.fetched_at)).scalar()
     kpis["last_updated"] = last_fetched
@@ -237,6 +297,10 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
             "daily_spend_yoy": None,
             "avg_stay_ine": None,
             "avg_stay_ine_yoy": None,
+            "employment_total": None,
+            "employment_total_yoy": None,
+            "employment_services": None,
+            "employment_services_yoy": None,
             "last_updated": kpis.get("last_updated"),
             "data_available": False,
             "reason": "no_data_available",

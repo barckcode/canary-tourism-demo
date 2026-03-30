@@ -38,6 +38,10 @@ class DashboardKPIsResponse(BaseModel):
     daily_spend_yoy: float | None = None
     avg_stay_ine: float | None = None
     avg_stay_ine_yoy: float | None = None
+    employment_total: float | None = None
+    employment_total_yoy: float | None = None
+    employment_services: float | None = None
+    employment_services_yoy: float | None = None
     last_updated: str | None = None
     data_available: bool = True
     reason: str | None = None
