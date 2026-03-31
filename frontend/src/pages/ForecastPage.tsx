@@ -385,8 +385,9 @@ export default function ForecastPage() {
                   </div>
                   <input
                     type="range"
-                    min={-20}
-                    max={20}
+                    min={-50}
+                    max={50}
+                    step={5}
                     value={scenarioValues[key]}
                     onChange={(e) => updateSlider(key, Number(e.target.value))}
                     aria-label={`${label} ${scenarioValues[key] > 0 ? "+" : ""}${scenarioValues[key]}%`}
