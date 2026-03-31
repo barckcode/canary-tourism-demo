@@ -84,13 +84,13 @@ export function useQuery<T>(
 // ── Dashboard ──
 
 export interface DashboardKPIs {
-  latest_arrivals: number;
-  latest_period: string;
-  yoy_change: number;
-  occupancy_rate: number;
-  adr: number;
-  revpar: number;
-  avg_stay: number;
+  latest_arrivals: number | null;
+  latest_period: string | null;
+  yoy_change: number | null;
+  occupancy_rate: number | null;
+  adr: number | null;
+  revpar: number | null;
+  avg_stay: number | null;
   daily_spend: number | null;
   daily_spend_yoy: number | null;
   avg_stay_ine: number | null;
@@ -504,9 +504,18 @@ export interface ScenarioInput {
   horizon?: number;
 }
 
+export interface ScenarioForecastPoint {
+  period: string;
+  value: number;
+  ci_lower_80?: number | null;
+  ci_upper_80?: number | null;
+  ci_lower_95?: number | null;
+  ci_upper_95?: number | null;
+}
+
 export interface ScenarioResponse {
-  baseline_forecast: ForecastPoint[];
-  scenario_forecast: ForecastPoint[];
+  baseline_forecast: ScenarioForecastPoint[];
+  scenario_forecast: ScenarioForecastPoint[];
   impact_summary: Record<string, number>;
 }
 

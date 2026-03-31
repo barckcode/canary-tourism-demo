@@ -32,11 +32,13 @@ import {
   type SavedScenarioSummary,
   type ModelAccuracyMetrics,
 } from "../api/hooks";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const COMPARE_COLORS = ["#38bdf8", "#f472b6", "#a78bfa"]; // sky-400, pink-400, violet-400
 
 export default function ForecastPage() {
   const { t, i18n } = useTranslation();
+  usePageTitle("nav.predictions");
   const [searchParams, setSearchParams] = useSearchParams();
   const mockData = useMemo(() => generateMockData(), []);
 
@@ -150,10 +152,10 @@ export default function ForecastPage() {
     return predData.forecast.map((d) => [
       d.period,
       d.value,
-      d.ci_lower_80,
-      d.ci_upper_80,
-      d.ci_lower_95,
-      d.ci_upper_95,
+      d.ci_lower_80 ?? "",
+      d.ci_upper_80 ?? "",
+      d.ci_lower_95 ?? "",
+      d.ci_upper_95 ?? "",
     ]);
   }, [predData]);
 
