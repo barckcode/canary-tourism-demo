@@ -121,6 +121,7 @@ class ScenarioEngine:
         self.feature_names = []
         self.latest_features = None
         self.latest_df = None
+        self._residual_std: float = 0.0
         self._predict_lock = threading.Lock()
 
     def fit(self, db: Session):
@@ -152,6 +153,11 @@ class ScenarioEngine:
         )
         self.model.fit(X, y)
 
+        # Compute residual standard error for confidence intervals
+        y_pred_train = self.model.predict(X)
+        residuals = y.values - y_pred_train
+        self._residual_std = float(np.std(residuals, ddof=1)) if len(residuals) > 1 else 0.0
+
         # Store latest state for scenario generation
         self.latest_df = df
         self.latest_features = features
@@ -179,6 +185,7 @@ class ScenarioEngine:
             self.feature_names = saved.feature_names
             self.latest_df = saved.latest_df
             self.latest_features = saved.latest_features
+            self._residual_std = getattr(saved, '_residual_std', 0.0)
             self.is_fitted = True
         else:
             self.fit(db)
@@ -278,17 +285,27 @@ class ScenarioEngine:
 
         baseline: list[dict] = []
         scenario: list[dict] = []
+        residual_std = self._residual_std
 
         ext_df = df.copy()
-        for period in future_periods:
+        for h, period in enumerate(future_periods, start=1):
             period_str = str(period)
 
             feat = self._build_period_features(ext_df, period)
 
+            # Standard error grows with the square root of horizon
+            se = residual_std * np.sqrt(h) if residual_std > 0 else 0.0
+
             # Baseline prediction
             X_base = pd.DataFrame([feat], columns=self.feature_names).fillna(0)
             base_pred = float(self.model.predict(X_base)[0])
-            baseline.append({"period": period_str, "value": round(base_pred)})
+            base_point: dict = {"period": period_str, "value": round(base_pred)}
+            if se > 0:
+                base_point["ci_lower_80"] = round(base_pred - 1.28 * se)
+                base_point["ci_upper_80"] = round(base_pred + 1.28 * se)
+                base_point["ci_lower_95"] = round(base_pred - 1.96 * se)
+                base_point["ci_upper_95"] = round(base_pred + 1.96 * se)
+            baseline.append(base_point)
 
             # Scenario prediction
             feat_sc = self._apply_scenario(
@@ -296,7 +313,13 @@ class ScenarioEngine:
             )
             X_sc = pd.DataFrame([feat_sc], columns=self.feature_names).fillna(0)
             sc_pred = float(self.model.predict(X_sc)[0])
-            scenario.append({"period": period_str, "value": round(sc_pred)})
+            sc_point: dict = {"period": period_str, "value": round(sc_pred)}
+            if se > 0:
+                sc_point["ci_lower_80"] = round(sc_pred - 1.28 * se)
+                sc_point["ci_upper_80"] = round(sc_pred + 1.28 * se)
+                sc_point["ci_lower_95"] = round(sc_pred - 1.96 * se)
+                sc_point["ci_upper_95"] = round(sc_pred + 1.96 * se)
+            scenario.append(sc_point)
 
             # Extend for next iteration
             last_foreign_ratio = feat["foreign_ratio"]

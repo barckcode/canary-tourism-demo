@@ -346,6 +346,10 @@ class NationalityTrendResponse(BaseModel):
 class ScenarioForecastPoint(BaseModel):
     period: str
     value: float
+    ci_lower_80: float | None = None
+    ci_upper_80: float | None = None
+    ci_lower_95: float | None = None
+    ci_upper_95: float | None = None
 
 
 class ImpactSummary(BaseModel):
