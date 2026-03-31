@@ -4,6 +4,7 @@ import re
 
 import numpy as np
 import pandas as pd
+import pytest
 from sqlalchemy import text
 
 from app.models.forecaster import Forecaster
@@ -294,3 +295,83 @@ def test_evaluate_ensemble_best_or_competitive(db):
     assert ensemble_mape <= max(best_individual * 10.0, 15.0), (
         f"Ensemble MAPE {ensemble_mape} much worse than best individual {best_individual}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Edge-case / regression tests for forecaster bug fixes
+# ---------------------------------------------------------------------------
+
+def _make_short_series(n: int) -> pd.Series:
+    """Create a short synthetic monthly series with *n* data points."""
+    periods = pd.period_range("2024-01", periods=n, freq="M")
+    values = np.random.default_rng(42).uniform(100, 500, size=n)
+    return pd.Series(values, index=periods, name="test")
+
+
+def test_seasonal_naive_fewer_than_12_points():
+    """Bug 1: _seasonal_naive must not IndexError when series has < 12 points."""
+    f = Forecaster()
+    short = _make_short_series(5)
+    f.series = short
+    f.is_fitted = True
+
+    result = f._seasonal_naive(horizon=12)
+    assert len(result) == 12
+    # Values should cycle the 5 available points
+    np.testing.assert_array_equal(result[:5], short.values)
+
+
+def test_seasonal_naive_empty_series():
+    """Bug 1 edge case: _seasonal_naive returns NaN for empty series."""
+    f = Forecaster()
+    f.series = pd.Series([], dtype=float)
+    f.is_fitted = True
+
+    result = f._seasonal_naive(horizon=6)
+    assert len(result) == 6
+    assert np.all(np.isnan(result))
+
+
+def test_hw_fit_with_zeros_falls_back():
+    """Bug 2: fit() should not crash when data contains zeros (COVID periods)."""
+    # Build a 36-month series with some zeros to force multiplicative HW to fail
+    periods = pd.period_range("2018-01", periods=36, freq="M")
+    rng = np.random.default_rng(0)
+    values = rng.uniform(100, 500, size=36)
+    values[12:15] = 0.0  # inject zeros
+
+    series = pd.Series(values, index=periods, name="test_zeros")
+    f = Forecaster()
+    f.fit(series, exclude_covid=False)
+
+    assert f.is_fitted
+    # HW may have fallen back to additive or be None, but fit() must not crash
+    # SARIMA should always succeed
+    assert f.sarima_result is not None
+
+
+def test_predict_ensemble_with_hw_none():
+    """Bug 2 follow-up: predict() should work when hw_result is None."""
+    periods = pd.period_range("2018-01", periods=36, freq="M")
+    rng = np.random.default_rng(0)
+    values = rng.uniform(100, 500, size=36)
+
+    series = pd.Series(values, index=periods, name="test")
+    f = Forecaster()
+    f.fit(series, exclude_covid=False)
+
+    # Force HW to None to simulate a failed fit
+    f.hw_result = None
+    f.hw_model = None
+
+    result = f.predict(horizon=6)
+    assert len(result.values) == 6
+    # All values should be finite (ensemble redistributes weights)
+    assert np.all(np.isfinite(result.values))
+
+
+def test_predict_naive_requires_fit():
+    """Bug 3: predict_naive() should raise RuntimeError if fit() was not called."""
+    f = Forecaster()
+    with pytest.raises(RuntimeError, match="fit"):
+        f.predict_naive(horizon=12)

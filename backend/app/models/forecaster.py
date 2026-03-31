@@ -98,24 +98,46 @@ class Forecaster:
 
         # 2) Holt-Winters (multiplicative seasonality)
         logger.info("Fitting Holt-Winters...")
-        self.hw_model = ExponentialSmoothing(
-            train,
-            trend="add",
-            seasonal="mul",
-            seasonal_periods=12,
-            initialization_method="estimated",
-        )
-        self.hw_result = self.hw_model.fit(optimized=True)
+        try:
+            self.hw_model = ExponentialSmoothing(
+                train,
+                trend="add",
+                seasonal="mul",
+                seasonal_periods=12,
+                initialization_method="estimated",
+            )
+            self.hw_result = self.hw_model.fit(optimized=True)
+        except (ValueError, np.linalg.LinAlgError):
+            logger.warning(
+                "HW multiplicative failed (likely zeros in data); "
+                "falling back to additive seasonality."
+            )
+            try:
+                self.hw_model = ExponentialSmoothing(
+                    train,
+                    trend="add",
+                    seasonal="add",
+                    seasonal_periods=12,
+                    initialization_method="estimated",
+                )
+                self.hw_result = self.hw_model.fit(optimized=True)
+            except Exception:
+                logger.exception("HW additive also failed; HW unavailable.")
+                self.hw_model = None
+                self.hw_result = None
 
         self.is_fitted = True
         logger.info("All models fitted successfully.")
 
     def _seasonal_naive(self, horizon: int) -> np.ndarray:
         """Forecast using same month last year."""
-        last_12 = self.series.values[-12:]
-        repeats = (horizon // 12) + 1
-        naive = np.tile(last_12, repeats)[:horizon]
-        return naive
+        values = self.series.values
+        season_len = min(12, len(values))
+        if season_len == 0:
+            return np.full(horizon, np.nan)
+        last_season = values[-season_len:]
+        repeats = (horizon // season_len) + 2
+        return np.tile(last_season, repeats)[:horizon]
 
     def evaluate(self, test_size: int = 12) -> dict[str, ModelMetrics]:
         """Evaluate all models using a train/test split.
@@ -248,21 +270,32 @@ class Forecaster:
         sarima_ci_80 = sarima_fc.conf_int(alpha=0.20).values
         sarima_ci_95 = sarima_fc.conf_int(alpha=0.05).values
 
-        # Holt-Winters forecast
-        hw_mean = self.hw_result.forecast(horizon).values
+        # Holt-Winters forecast (may be None if fitting failed)
+        if self.hw_result is not None:
+            hw_mean = self.hw_result.forecast(horizon).values
+        else:
+            hw_mean = np.full(horizon, np.nan)
 
         # Seasonal Naive
         naive_mean = self._seasonal_naive(horizon)
 
         # Ensemble (use short-term weights for h<=3, medium for h>3)
+        # If HW is unavailable, redistribute its weight to SARIMA and Naive
         ensemble = np.zeros(horizon)
         for h in range(horizon):
             w = WEIGHTS_SHORT if h < 3 else WEIGHTS_MEDIUM
-            ensemble[h] = (
-                w["sarima"] * sarima_mean[h]
-                + w["hw"] * hw_mean[h]
-                + w["naive"] * naive_mean[h]
-            )
+            if self.hw_result is not None:
+                ensemble[h] = (
+                    w["sarima"] * sarima_mean[h]
+                    + w["hw"] * hw_mean[h]
+                    + w["naive"] * naive_mean[h]
+                )
+            else:
+                total = w["sarima"] + w["naive"]
+                ensemble[h] = (
+                    (w["sarima"] / total) * sarima_mean[h]
+                    + (w["naive"] / total) * naive_mean[h]
+                )
 
         # Use SARIMA CIs scaled by ensemble/sarima ratio for CI bands
         epsilon = 1e-10
@@ -360,6 +393,9 @@ class Forecaster:
         same month one year prior) with expanding uncertainty proportional to
         sqrt(h / seasonal_period).
         """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before predict_naive()")
+
         last_period = self.series.index[-1]
         future_periods = pd.period_range(
             last_period + 1, periods=horizon, freq="M"
