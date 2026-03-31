@@ -214,6 +214,40 @@ def _seed_test_data(session: Session) -> None:
                     value=round(base_val * variation * growth, 2),
                 ))
 
+    # --- Time Series: Rural tourism data (Canarias, ES70) ---
+    rural_indicators = {
+        "rural_viajeros_canarias": ("ES70", 15000.0),
+        "rural_pernoctaciones_canarias": ("ES70", 45000.0),
+        "rural_plazas_canarias": ("ES70", 3500.0),
+    }
+    for ind, (geo, base_val) in rural_indicators.items():
+        for year in range(2022, 2026):
+            for month in range(1, 13):
+                variation = 1.0 + (month - 6) * 0.02
+                growth = 1.0 + (year - 2022) * 0.03
+                session.add(TimeSeries(
+                    source="ine",
+                    indicator=ind,
+                    geo_code=geo,
+                    period=f"{year}-{month:02d}",
+                    measure="ABSOLUTE",
+                    value=round(base_val * variation * growth, 2),
+                ))
+
+    # --- Time Series: Hotel plazas estimadas (Tenerife, ES709) ---
+    for year in range(2022, 2026):
+        for month in range(1, 13):
+            variation = 1.0 + (month - 6) * 0.01
+            growth = 1.0 + (year - 2022) * 0.03
+            session.add(TimeSeries(
+                source="ine",
+                indicator="hotel_plazas_estimadas_tenerife",
+                geo_code="ES709",
+                period=f"{year}-{month:02d}",
+                measure="ABSOLUTE",
+                value=round(120000.0 * variation * growth, 2),
+            ))
+
     # --- Time Series: EPA employment data (quarterly, Canarias) ---
     epa_indicators = {
         "epa_ocupados_total_canarias": 900.0,

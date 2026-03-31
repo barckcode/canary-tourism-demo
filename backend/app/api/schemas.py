@@ -428,6 +428,20 @@ class ProvinceComparisonResponse(BaseModel):
     provinces: dict[str, ProvinceData]
 
 
+class AccommodationTypeData(BaseModel):
+    """Time series data for a single accommodation type."""
+
+    name: str
+    data: list[ProvinceDataPoint]
+
+
+class AccommodationComparisonResponse(BaseModel):
+    """Side-by-side accommodation type comparison data (rural vs hotel)."""
+
+    indicator: str
+    types: dict[str, AccommodationTypeData]
+
+
 # ---------------------------------------------------------------------------
 # Events
 # ---------------------------------------------------------------------------

@@ -9,6 +9,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.schemas import (
+    AccommodationComparisonResponse,
+    AccommodationTypeData,
     ProvinceComparisonResponse,
     ProvinceData,
     ProvinceDataPoint,
@@ -122,4 +124,97 @@ def compare_provinces(
     return ProvinceComparisonResponse(
         indicator=indicator,
         provinces=provinces_result,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Accommodation type comparison (rural vs hotel)
+# ---------------------------------------------------------------------------
+
+ACCOMMODATION_INDICATORS = {
+    "viajeros": {
+        "rural": ("rural_viajeros_canarias", "ES70"),
+        "hotel": ("hotel_viajeros_tenerife", "ES709"),
+    },
+    "pernoctaciones": {
+        "rural": ("rural_pernoctaciones_canarias", "ES70"),
+        "hotel": ("hotel_pernoctaciones_tenerife", "ES709"),
+    },
+    "plazas": {
+        "rural": ("rural_plazas_canarias", "ES70"),
+        "hotel": ("hotel_plazas_estimadas_tenerife", "ES709"),
+    },
+}
+
+ACCOMMODATION_TYPE_NAMES = {
+    "rural": "Turismo Rural (Canarias)",
+    "hotel": "Hotel (SC Tenerife)",
+}
+
+VALID_ACCOMMODATION_INDICATORS = sorted(ACCOMMODATION_INDICATORS.keys())
+
+
+@router.get("/accommodation-types", response_model=AccommodationComparisonResponse)
+@limiter.limit("30/minute")
+def get_accommodation_comparison(
+    request: Request,
+    indicator: str = Query(
+        default="pernoctaciones",
+        description=(
+            f"Indicator to compare. Valid values: "
+            f"{', '.join(VALID_ACCOMMODATION_INDICATORS)}"
+        ),
+    ),
+    periods: int = Query(
+        default=24,
+        ge=1,
+        le=120,
+        description="Number of most recent monthly periods to return.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Compare rural tourism vs hotel accommodation indicators.
+
+    Returns side-by-side time series data for rural tourism (Canarias, ES70)
+    and hotel accommodation (Santa Cruz de Tenerife province, ES709).
+
+    - **indicator**: one of viajeros, pernoctaciones, plazas
+    - **periods**: number of most recent months to include (default 24)
+    """
+    if indicator not in ACCOMMODATION_INDICATORS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid indicator '{indicator}'. "
+                f"Valid values: {', '.join(VALID_ACCOMMODATION_INDICATORS)}"
+            ),
+        )
+
+    indicator_map = ACCOMMODATION_INDICATORS[indicator]
+    types_result: dict[str, AccommodationTypeData] = {}
+
+    for accom_type, (indicator_name, geo_code) in indicator_map.items():
+        rows = db.execute(
+            text(
+                "SELECT period, value FROM time_series "
+                "WHERE indicator = :indicator AND geo_code = :geo_code "
+                "ORDER BY period DESC LIMIT :limit"
+            ),
+            {"indicator": indicator_name, "geo_code": geo_code, "limit": periods},
+        ).fetchall()
+
+        # Reverse to chronological order
+        data_points = [
+            ProvinceDataPoint(period=row[0], value=row[1])
+            for row in reversed(rows)
+        ]
+
+        types_result[accom_type] = AccommodationTypeData(
+            name=ACCOMMODATION_TYPE_NAMES[accom_type],
+            data=data_points,
+        )
+
+    return AccommodationComparisonResponse(
+        indicator=indicator,
+        types=types_result,
     )
