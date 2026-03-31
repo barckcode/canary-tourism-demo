@@ -149,7 +149,9 @@ describe("AppShell", () => {
     it("renders GitHub link and About link", () => {
       renderAppShell();
       expect(screen.getByLabelText("View source on GitHub")).toBeInTheDocument();
-      expect(screen.getByText("About this project")).toBeInTheDocument();
+      // About link appears in both sidebar nav and footer
+      const aboutLinks = screen.getAllByText("About this project");
+      expect(aboutLinks.length).toBeGreaterThanOrEqual(1);
     });
   });
 });

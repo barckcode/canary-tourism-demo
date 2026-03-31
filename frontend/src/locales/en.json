@@ -256,6 +256,32 @@
       "indicator": "Indicator"
     }
   },
+  "indicators": {
+    "turistas": "Tourists (Tenerife)",
+    "turistas_extranjeros": "Foreign tourists (Tenerife)",
+    "alojatur_ocupacion": "Accommodation occupancy (Tenerife)",
+    "alojatur_adr": "ADR - Average daily rate (Tenerife)",
+    "alojatur_revpar": "RevPAR (Tenerife)",
+    "alojatur_pernoctaciones": "Accommodation overnight stays (Tenerife)",
+    "hotel_viajeros_tenerife": "Hotel travelers (Tenerife)",
+    "hotel_pernoctaciones_tenerife": "Hotel overnight stays (Tenerife)",
+    "hotel_estancia_media_tenerife": "Average hotel stay (Tenerife)",
+    "hotel_ocupacion_plazas_tenerife": "Hotel bed occupancy (Tenerife)",
+    "hotel_ocupacion_habitaciones_tenerife": "Room occupancy (Tenerife)",
+    "hotel_plazas_estimadas_tenerife": "Estimated beds (Tenerife)",
+    "hotel_adr_tenerife": "ADR - Average daily rate (Tenerife)",
+    "hotel_revpar_tenerife": "RevPAR (Tenerife)",
+    "apartamento_viajeros_tenerife": "Apartment travelers (Tenerife)",
+    "apartamento_pernoctaciones_tenerife": "Apartment overnight stays (Tenerife)",
+    "frontur_turistas_canarias": "International tourists (Canarias)",
+    "egatur_gasto_total_canarias": "Total tourist spending (Canarias)",
+    "egatur_gasto_medio_diario_canarias": "Average daily spending (Canarias)",
+    "epa_ocupados_total_canarias": "Total employment (Canarias)",
+    "epa_ocupados_servicios_canarias": "Services employment (Canarias)",
+    "iph_indice_canarias": "Hotel Price Index (Canarias)",
+    "rural_viajeros_canarias": "Rural travelers (Canarias)",
+    "rural_pernoctaciones_canarias": "Rural overnight stays (Canarias)"
+  },
   "notFound": {
     "title": "Page not found",
     "message": "The page you're looking for doesn't exist",

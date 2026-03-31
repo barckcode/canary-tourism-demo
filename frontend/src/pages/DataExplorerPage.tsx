@@ -250,7 +250,7 @@ export default function DataExplorerPage() {
                           selected ? "bg-ocean-500/10" : ""
                         }`}
                       >
-                        <td className="py-3 text-gray-200 font-mono text-xs">
+                        <td className="py-3 text-gray-200 text-xs">
                           <span className="flex items-center gap-2">
                             {selected && (
                               <span
@@ -259,7 +259,9 @@ export default function DataExplorerPage() {
                                 aria-hidden="true"
                               />
                             )}
-                            {ind.id}
+                            <span>
+                              {t(`indicators.${ind.id}`) !== `indicators.${ind.id}` ? t(`indicators.${ind.id}`) : ind.id}
+                            </span>
                           </span>
                         </td>
                         <td className="py-3 text-gray-400">{ind.source}</td>

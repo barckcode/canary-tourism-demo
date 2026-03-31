@@ -28,11 +28,13 @@ vi.mock("framer-motion", () => {
 const mockUseIndicators = vi.fn();
 const mockUseTimeSeries = vi.fn();
 const mockUseProvinceComparison = vi.fn();
+const mockUseAccommodationComparison = vi.fn();
 
 vi.mock("../api/hooks", () => ({
   useIndicators: () => mockUseIndicators(),
   useTimeSeries: (indicator: string) => mockUseTimeSeries(indicator),
   useProvinceComparison: (...args: unknown[]) => mockUseProvinceComparison(...args),
+  useAccommodationComparison: (...args: unknown[]) => mockUseAccommodationComparison(...args),
 }));
 
 // Mock chart components since they use D3 which doesn't work well in jsdom
@@ -107,6 +109,12 @@ describe("DataExplorerPage", () => {
       if (!indicator) return emptyTsResponse;
       return fakeTimeSeriesResponse(indicator);
     });
+    mockUseAccommodationComparison.mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
     mockUseProvinceComparison.mockReturnValue({
       data: {
         indicator: "pernoctaciones",
@@ -139,7 +147,9 @@ describe("DataExplorerPage", () => {
 
   it("renders the indicator table", () => {
     renderPage();
-    expect(screen.getByText("turistas")).toBeInTheDocument();
+    // "turistas" has a translation key, so it renders the human-readable label
+    expect(screen.getByText("Tourists (Tenerife)")).toBeInTheDocument();
+    // "ocupacion" and "adr" have no translation key, so they fall back to the raw ID
     expect(screen.getByText("ocupacion")).toBeInTheDocument();
     expect(screen.getByText("adr")).toBeInTheDocument();
   });
