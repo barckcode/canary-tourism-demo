@@ -54,7 +54,6 @@ def _log_pipeline_run(
             "finished_at": finished_at,
         },
     )
-    db.commit()
 
 
 def _upsert_timeseries(db: Session, records: list[dict[str, Any]]) -> int:
@@ -74,7 +73,6 @@ def _upsert_timeseries(db: Session, records: list[dict[str, Any]]) -> int:
         )
         count += 1
 
-    db.commit()
     return count
 
 
@@ -102,7 +100,6 @@ def _upsert_microdata(db: Session, records: list[dict[str, Any]]) -> int:
         )
         count += 1
 
-    db.commit()
     return count
 
 
@@ -157,6 +154,7 @@ async def _run_source_pipeline(
                 db, source, job_name, "no_new_data",
                 started_at=started_at, finished_at=finished_at,
             )
+            db.commit()
             return {"status": "no_new_data", "records_added": 0}
 
         valid_records, validation = validator(raw_records)
@@ -168,6 +166,7 @@ async def _run_source_pipeline(
                 error_message="All records failed validation",
                 started_at=started_at, finished_at=finished_at,
             )
+            db.commit()
             return {"status": "error", "validation": validation.summary()}
 
         count = upserter(db, valid_records)
@@ -183,6 +182,7 @@ async def _run_source_pipeline(
                 db, f"{source.upper()} pipeline added {count} records",
             )
 
+        db.commit()
         logger.info("%s pipeline complete: %d records stored.", source, count)
         return {
             "status": "success",
@@ -191,12 +191,14 @@ async def _run_source_pipeline(
         }
 
     except Exception as exc:
+        db.rollback()
         finished_at = datetime.now(timezone.utc).isoformat()
         _log_pipeline_run(
             db, source, job_name, "error",
             error_message=str(exc), started_at=started_at,
             finished_at=finished_at,
         )
+        db.commit()
         logger.exception("%s pipeline failed.", source)
         return {"status": "error", "error": str(exc)}
 
@@ -343,6 +345,7 @@ async def run_health_check() -> dict[str, Any]:
             db, "system", "health_check", overall,
             started_at=started_at, finished_at=finished_at,
         )
+        db.commit()
     finally:
         db.close()
 
