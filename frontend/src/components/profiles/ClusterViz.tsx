@@ -212,17 +212,20 @@ export default function ClusterViz({
       .text((d) => d.cluster.name);
 
     // Hover effects
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const hoverDuration = prefersReducedMotion ? 0 : 200;
+
     bubbleGroup
       .on("mouseenter", function (_, d) {
         d3.select(this)
           .select("circle")
           .transition()
-          .duration(200)
+          .duration(hoverDuration)
           .attr("stroke-width", 3)
           .attr("stroke-opacity", 1);
         d3.select(this)
           .transition()
-          .duration(200)
+          .duration(hoverDuration)
           .attr(
             "transform",
             `translate(${d.x},${d.y}) scale(1.06)`
@@ -232,12 +235,12 @@ export default function ClusterViz({
         d3.select(this)
           .select("circle")
           .transition()
-          .duration(200)
+          .duration(hoverDuration)
           .attr("stroke-width", 2)
           .attr("stroke-opacity", 0.6);
         d3.select(this)
           .transition()
-          .duration(200)
+          .duration(hoverDuration)
           .attr(
             "transform",
             `translate(${d.x},${d.y}) scale(1)`

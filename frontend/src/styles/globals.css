@@ -108,3 +108,13 @@ body {
     content: none;
   }
 }
+
+@media (forced-colors: active) {
+  .glass-panel {
+    background: Canvas;
+    border: 1px solid CanvasText;
+  }
+  .kpi-value, .kpi-label, .gradient-text {
+    color: CanvasText;
+  }
+}

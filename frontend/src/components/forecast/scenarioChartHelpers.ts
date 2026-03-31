@@ -256,8 +256,9 @@ export function renderLines(
     .attr("stroke", COLORS.scenario)
     .attr("stroke-width", 2.5);
 
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const totalLength = scenarioPath.node()?.getTotalLength() ?? 0;
-  if (totalLength > 0) {
+  if (totalLength > 0 && !prefersReducedMotion) {
     scenarioPath
       .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
       .attr("stroke-dashoffset", totalLength)

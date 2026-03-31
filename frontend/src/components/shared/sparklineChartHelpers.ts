@@ -182,6 +182,8 @@ export function renderLines(
     .y((d) => scales.y(d.value))
     .curve(d3.curveMonotoneX);
 
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   // Historical line with animation
   const historicalPath = g
     .append("path")
@@ -193,13 +195,17 @@ export function renderLines(
     .attr("stroke-linecap", "round");
 
   const totalLength = historicalPath.node()?.getTotalLength() || 0;
-  historicalPath
-    .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
-    .attr("stroke-dashoffset", totalLength)
-    .transition()
-    .duration(1200)
-    .ease(d3.easeCubicOut)
-    .attr("stroke-dashoffset", 0);
+  if (prefersReducedMotion) {
+    historicalPath.attr("stroke-dashoffset", 0);
+  } else {
+    historicalPath
+      .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
+      .attr("stroke-dashoffset", totalLength)
+      .transition()
+      .duration(1200)
+      .ease(d3.easeCubicOut)
+      .attr("stroke-dashoffset", 0);
+  }
 
   // Forecast dashed extension
   if (forecastPoints.length > 0) {
@@ -219,17 +225,19 @@ export function renderLines(
       .attr("stroke-linecap", "round")
       .attr("opacity", 0.5);
 
-    const forecastLength = forecastPath.node()?.getTotalLength() || 0;
-    forecastPath
-      .attr(
-        "stroke-dasharray",
-        `0 ${forecastLength} 0 ${forecastLength}`
-      )
-      .transition()
-      .delay(1200)
-      .duration(600)
-      .ease(d3.easeCubicOut)
-      .attr("stroke-dasharray", "4 3");
+    if (!prefersReducedMotion) {
+      const forecastLength = forecastPath.node()?.getTotalLength() || 0;
+      forecastPath
+        .attr(
+          "stroke-dasharray",
+          `0 ${forecastLength} 0 ${forecastLength}`
+        )
+        .transition()
+        .delay(1200)
+        .duration(600)
+        .ease(d3.easeCubicOut)
+        .attr("stroke-dasharray", "4 3");
+    }
   }
 }
 

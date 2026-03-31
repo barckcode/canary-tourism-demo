@@ -9,11 +9,16 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  retryCount: number;
 }
+
+const MAX_RETRIES = 3;
 
 /**
  * Reusable error boundary that catches render errors in its subtree
  * and displays a user-friendly fallback UI with a retry button.
+ * After MAX_RETRIES attempts, the retry button is replaced with a
+ * link to navigate back to the dashboard.
  */
 export default class ErrorBoundary extends Component<
   ErrorBoundaryProps,
@@ -21,10 +26,10 @@ export default class ErrorBoundary extends Component<
 > {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, retryCount: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
@@ -33,7 +38,11 @@ export default class ErrorBoundary extends Component<
   }
 
   handleRetry = (): void => {
-    this.setState({ hasError: false, error: null });
+    this.setState((prev) => ({
+      hasError: false,
+      error: null,
+      retryCount: prev.retryCount + 1,
+    }));
   };
 
   render(): ReactNode {
@@ -41,6 +50,8 @@ export default class ErrorBoundary extends Component<
       if (this.props.fallback) {
         return this.props.fallback;
       }
+
+      const exhaustedRetries = this.state.retryCount >= MAX_RETRIES;
 
       return (
         <div className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl bg-gray-900/60 border border-gray-700/40">
@@ -67,12 +78,21 @@ export default class ErrorBoundary extends Component<
               {this.state.error?.message || "An unexpected error occurred while rendering this component."}
             </p>
           </div>
-          <button
-            onClick={this.handleRetry}
-            className="px-4 py-2 text-xs font-medium rounded-lg bg-ocean-600 hover:bg-ocean-500 text-white transition-colors"
-          >
-            Retry
-          </button>
+          {exhaustedRetries ? (
+            <a
+              href="/"
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-ocean-600 hover:bg-ocean-500 text-white transition-colors"
+            >
+              Go to Dashboard
+            </a>
+          ) : (
+            <button
+              onClick={this.handleRetry}
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-ocean-600 hover:bg-ocean-500 text-white transition-colors"
+            >
+              Retry{this.state.retryCount > 0 ? ` (${this.state.retryCount}/${MAX_RETRIES})` : ""}
+            </button>
+          )}
         </div>
       );
     }
