@@ -87,6 +87,7 @@ def setup_scheduler() -> BackgroundScheduler:
         id="fetch_istac_indicators",
         name="Fetch ISTAC indicators",
         replace_existing=True,
+        max_instances=1,
         misfire_grace_time=3600,  # 1 hour grace period
     )
 
@@ -97,6 +98,7 @@ def setup_scheduler() -> BackgroundScheduler:
         id="fetch_ine_series",
         name="Fetch INE series",
         replace_existing=True,
+        max_instances=1,
         misfire_grace_time=3600,
     )
 
@@ -107,6 +109,7 @@ def setup_scheduler() -> BackgroundScheduler:
         id="fetch_egt_microdata",
         name="Fetch EGT microdata from CKAN",
         replace_existing=True,
+        max_instances=1,
         misfire_grace_time=7200,  # 2 hour grace period
     )
 
@@ -117,6 +120,7 @@ def setup_scheduler() -> BackgroundScheduler:
         id="fetch_cabildo_datasets",
         name="Fetch Cabildo datasets",
         replace_existing=True,
+        max_instances=1,
         misfire_grace_time=7200,
     )
 
@@ -127,6 +131,7 @@ def setup_scheduler() -> BackgroundScheduler:
         id="retrain_check",
         name="Check if models need retraining",
         replace_existing=True,
+        max_instances=1,
         misfire_grace_time=3600,
     )
 
@@ -137,6 +142,7 @@ def setup_scheduler() -> BackgroundScheduler:
         id="health_check",
         name="Daily health check",
         replace_existing=True,
+        max_instances=1,
         misfire_grace_time=3600,
     )
 
