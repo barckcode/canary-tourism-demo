@@ -132,15 +132,16 @@ export default function ForecastChart({
     renderConfidenceBands(g, forecast, scales);
     renderDividerLine(g, historical, forecast, scales, dims);
     renderLines(g, historical, forecast, scales);
-    setupTooltip(svg, g, historical, forecast, scales, dims, isMock);
+    const cleanupEsc = setupTooltip(svg, g, historical, forecast, scales, dims, isMock);
     renderLegend(g, dims);
 
     return () => {
+      cleanupEsc();
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
   }, [historical, forecast, width, height, yLabel, isMock, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.forecastChart')} />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.forecastChart')} tabIndex={0} />;
 }

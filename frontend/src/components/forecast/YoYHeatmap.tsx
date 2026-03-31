@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 import { useYoYHeatmap, type YoYCell } from "../../api/hooks";
+import { setupTooltipKeyboardDismiss } from "../../utils/chartAccessibility";
 
 interface YoYHeatmapProps {
   width: number;
@@ -188,7 +189,11 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
           : ""
       );
 
+    // ESC key dismiss for keyboard accessibility (WCAG 1.4.13)
+    const cleanupEsc = setupTooltipKeyboardDismiss(svgRef.current, () => setTooltip(null));
+
     return () => {
+      cleanupEsc();
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
@@ -250,7 +255,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
 
   return (
     <div className="relative">
-      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.yoyHeatmap')} />
+      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.yoyHeatmap')} tabIndex={0} />
       {tooltip && (
         <div
           className="absolute pointer-events-none z-10 glass-panel px-3 py-2 text-xs -translate-x-1/2 -translate-y-full"

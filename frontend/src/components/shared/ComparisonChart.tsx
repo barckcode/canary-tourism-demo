@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { formatCompactNumber } from "../../utils/format";
+import { setupTooltipKeyboardDismiss } from "../../utils/chartAccessibility";
 
 export interface SeriesData {
   name: string;
@@ -405,7 +406,11 @@ export default function ComparisonChart({
       legendX += 26 + textLen + 20;
     });
 
+    // ESC key dismiss for keyboard accessibility (WCAG 1.4.13)
+    const cleanupEsc = setupTooltipKeyboardDismiss(svgRef.current, hideTooltip);
+
     return () => {
+      cleanupEsc();
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
@@ -420,6 +425,7 @@ export default function ComparisonChart({
       className="overflow-visible"
       role="img"
       aria-label={`Comparison chart showing ${ariaLabel}`}
+      tabIndex={0}
     />
   );
 }

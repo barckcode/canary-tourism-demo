@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { formatCompactNumber } from "../../utils/format";
+import { setupTooltipKeyboardDismiss } from "../../utils/chartAccessibility";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -287,7 +288,7 @@ export function setupTooltip(
   scales: Scales,
   dims: Dimensions,
   isMock: boolean
-): void {
+): () => void {
   const { x, y } = scales;
   const { innerWidth: w, innerHeight: h } = dims;
 
@@ -455,6 +456,10 @@ export function setupTooltip(
       hideTooltip();
     });
   }
+
+  // ESC key dismiss for keyboard accessibility (WCAG 1.4.13)
+  const cleanupEsc = setupTooltipKeyboardDismiss(svg.node(), hideTooltip);
+  return cleanupEsc;
 }
 
 export function renderLegend(

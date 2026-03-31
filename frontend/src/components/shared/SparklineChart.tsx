@@ -69,9 +69,10 @@ export default function SparklineChart({
     renderXAxis(g, scales, dims);
     renderAreaFill(svg, g, historicalPoints, scales, dims);
     renderLines(g, historicalPoints, forecastPoints, scales);
-    setupTooltip(svg, g, allPoints, scales, dims);
+    const cleanupEsc = setupTooltip(svg, g, allPoints, scales, dims);
 
     return () => {
+      cleanupEsc();
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
@@ -85,7 +86,7 @@ export default function SparklineChart({
           <p className="text-sm">No data available</p>
         </div>
       ) : (
-        <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.sparklineChart')} />
+        <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.sparklineChart')} tabIndex={0} />
       )}
     </div>
   );

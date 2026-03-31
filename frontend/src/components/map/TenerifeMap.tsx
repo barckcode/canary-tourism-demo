@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import { DeckGL } from "@deck.gl/react";
 import { Map } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useMapData, MapMunicipality } from "../../api/hooks";
+import { setupTooltipKeyboardDismiss } from "../../utils/chartAccessibility";
 
 const INITIAL_VIEW_STATE = {
   longitude: -16.55,
@@ -50,6 +51,7 @@ interface TenerifeMapProps {
 }
 
 export default function TenerifeMap({ className = "", period }: TenerifeMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [geojsonData, setGeojsonData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hovered, setHovered] = useState<HoveredMunicipality | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -68,6 +70,11 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
       .then((r) => r.json())
       .then(setGeojsonData)
       .catch(console.error);
+  }, []);
+
+  // ESC key dismiss for keyboard accessibility (WCAG 1.4.13)
+  useEffect(() => {
+    return setupTooltipKeyboardDismiss(containerRef.current, () => setHovered(null));
   }, []);
 
   const getIntensity = useCallback(
@@ -143,7 +150,7 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
   }, [hovered]);
 
   return (
-    <div className={`relative w-full h-full ${className}`} role="region" aria-label="Interactive 3D map of Tenerife showing tourism intensity by municipality. Use mouse or touch to pan, zoom, and rotate. Hover over municipalities for details.">
+    <div ref={containerRef} className={`relative w-full h-full ${className}`} role="region" aria-label="Interactive 3D map of Tenerife showing tourism intensity by municipality. Use mouse or touch to pan, zoom, and rotate. Hover over municipalities for details." tabIndex={0}>
       <DeckGL
         initialViewState={INITIAL_VIEW_STATE}
         controller={true}
