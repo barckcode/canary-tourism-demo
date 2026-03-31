@@ -8,6 +8,7 @@ exploration with user-adjustable inputs.
 import logging
 import math
 import re
+import threading
 
 import joblib
 import numpy as np
@@ -120,6 +121,7 @@ class ScenarioEngine:
         self.feature_names = []
         self.latest_features = None
         self.latest_df = None
+        self._predict_lock = threading.Lock()
 
     def fit(self, db: Session):
         """Train GBR model on historical data."""
@@ -268,7 +270,9 @@ class ScenarioEngine:
         """
         self._ensure_fitted(db)
 
-        df = self.latest_df
+        with self._predict_lock:
+            df = self.latest_df.copy()
+            features = self.latest_features.copy() if self.latest_features is not None else None
         last_period = pd.Period(df.index[-1], freq="M")
         future_periods = pd.period_range(last_period + 1, periods=horizon, freq="M")
 
