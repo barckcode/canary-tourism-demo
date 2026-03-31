@@ -185,7 +185,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
                 .first()
             )
-            if prev_ds and prev_ds.value and prev_ds.value != 0:
+            if prev_ds is not None and prev_ds.value is not None and prev_ds.value != 0:
                 kpis["daily_spend_yoy"] = round(
                     (daily_spend.value - prev_ds.value) / prev_ds.value * 100, 2
                 )
@@ -215,7 +215,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
                 .first()
             )
-            if prev_as and prev_as.value and prev_as.value != 0:
+            if prev_as is not None and prev_as.value is not None and prev_as.value != 0:
                 kpis["avg_stay_ine_yoy"] = round(
                     (avg_stay_ine.value - prev_as.value) / prev_as.value * 100, 2
                 )
@@ -245,7 +245,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
                 .first()
             )
-            if prev_et and prev_et.value and prev_et.value != 0:
+            if prev_et is not None and prev_et.value is not None and prev_et.value != 0:
                 kpis["employment_total_yoy"] = round(
                     (emp_total.value - prev_et.value) / prev_et.value * 100, 2
                 )
@@ -275,7 +275,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
                 .first()
             )
-            if prev_es and prev_es.value and prev_es.value != 0:
+            if prev_es is not None and prev_es.value is not None and prev_es.value != 0:
                 kpis["employment_services_yoy"] = round(
                     (emp_services.value - prev_es.value) / prev_es.value * 100, 2
                 )

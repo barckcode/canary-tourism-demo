@@ -93,10 +93,17 @@ def _extract_dimension_codes(
         return {idx: entry.get("id", default_id) for idx, entry in enumerate(dim_values)}
     if isinstance(dim_values, dict):
         entries = dim_values.get("value", [])
-        return {
-            entry.get("order", idx): entry.get("id", default_id)
-            for idx, entry in enumerate(entries)
-        }
+        result: dict[int, str] = {}
+        for idx, entry in enumerate(entries):
+            key = entry.get("order", idx)
+            value = entry.get("id", default_id)
+            if key in result:
+                logger.warning(
+                    "ISTAC parser: duplicate key %s (old=%s, new=%s)",
+                    key, result[key], value,
+                )
+            result[key] = value
+        return result
     return {}
 
 
