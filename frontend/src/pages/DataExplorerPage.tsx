@@ -13,7 +13,7 @@ import ComparisonChart, {
   type SeriesData,
 } from "../components/shared/ComparisonChart";
 import ErrorState from "../components/shared/ErrorState";
-import { useIndicators, useTimeSeries, useProvinceComparison } from "../api/hooks";
+import { useIndicators, useTimeSeries, useProvinceComparison, useAccommodationComparison } from "../api/hooks";
 
 const MAX_INDICATORS = 3;
 
@@ -362,6 +362,8 @@ export default function DataExplorerPage() {
       </motion.div>
 
       <ProvinceComparisonSection />
+
+      <AccommodationComparisonSection />
     </motion.div>
   );
 }
@@ -521,6 +523,152 @@ function ProvinceComparisonSection() {
                         {row.diff != null
                           ? `${row.diff >= 0 ? "+" : ""}${row.diff.toLocaleString()}`
                           : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Panel>
+    </motion.div>
+  );
+}
+
+const ACCOMMODATION_INDICATORS = [
+  { key: "viajeros", labelKey: "dataExplorer.accommodation.indicator.viajeros" },
+  { key: "pernoctaciones", labelKey: "dataExplorer.accommodation.indicator.pernoctaciones" },
+  { key: "plazas", labelKey: "dataExplorer.accommodation.indicator.plazas" },
+] as const;
+
+function AccommodationComparisonSection() {
+  const { t } = useTranslation();
+  const [indicator, setIndicator] = useState<string>("pernoctaciones");
+  const { data, loading, error, refetch } = useAccommodationComparison(indicator, 24);
+
+  const ruralData = data?.types?.rural;
+  const hotelData = data?.types?.hotel;
+
+  const displayRows = useMemo(() => {
+    if (!ruralData?.data || !hotelData?.data) return [];
+    const ruralMap = new Map(ruralData.data.map((d) => [d.period, d.value]));
+    const hotelMap = new Map(hotelData.data.map((d) => [d.period, d.value]));
+    const allPeriods = [...new Set([...ruralData.data.map((d) => d.period), ...hotelData.data.map((d) => d.period)])].sort().reverse();
+    return allPeriods.slice(0, DISPLAY_PERIODS).map((period) => {
+      const rural = ruralMap.get(period);
+      const hotel = hotelMap.get(period);
+      const ruralShare = rural != null && hotel != null && hotel !== 0 ? (rural / hotel) * 100 : null;
+      return { period, rural, hotel, ruralShare };
+    });
+  }, [ruralData, hotelData]);
+
+  const summaryKpis = useMemo(() => {
+    if (displayRows.length === 0) return null;
+    const latest = displayRows[0];
+    const ruralShare = latest.rural != null && latest.hotel != null && latest.hotel !== 0
+      ? (latest.rural / latest.hotel) * 100
+      : null;
+    return { latest, ruralShare };
+  }, [displayRows]);
+
+  return (
+    <motion.div variants={fadeUp}>
+      <Panel title={t("dataExplorer.accommodation.title")}>
+        {/* Indicator selector */}
+        <div className="flex flex-wrap gap-2 mb-6" role="tablist" aria-label={t("dataExplorer.accommodation.title")}>
+          {ACCOMMODATION_INDICATORS.map((ind) => (
+            <button
+              key={ind.key}
+              role="tab"
+              aria-selected={indicator === ind.key}
+              onClick={() => setIndicator(ind.key)}
+              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                indicator === ind.key
+                  ? "bg-ocean-600 text-white"
+                  : "bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-gray-200"
+              }`}
+            >
+              {t(ind.labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {error ? (
+          <ErrorState message={t("dataExplorer.accommodation.couldNotLoad")} onRetry={refetch} />
+        ) : loading ? (
+          <div className="h-48 flex items-center justify-center" role="status" aria-live="polite">
+            <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
+            <span className="sr-only">{t("common.loading")}</span>
+          </div>
+        ) : displayRows.length === 0 ? (
+          <div className="h-48 flex items-center justify-center text-gray-400">
+            <p className="text-sm">{t("common.noDataAvailable")}</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary KPIs */}
+            {summaryKpis && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 mb-1">{t("dataExplorer.accommodation.rural")}</p>
+                  <p className="text-xl font-bold text-white">
+                    {summaryKpis.latest.rural != null ? summaryKpis.latest.rural.toLocaleString() : "-"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {summaryKpis.latest.period}
+                  </p>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 mb-1">{t("dataExplorer.accommodation.hotel")}</p>
+                  <p className="text-xl font-bold text-white">
+                    {summaryKpis.latest.hotel != null ? summaryKpis.latest.hotel.toLocaleString() : "-"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {summaryKpis.latest.period}
+                  </p>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 mb-1">{t("dataExplorer.accommodation.ruralShare")}</p>
+                  <p className="text-xl font-bold text-white">
+                    {summaryKpis.ruralShare != null ? `${summaryKpis.ruralShare.toFixed(1)}%` : "-"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t("dataExplorer.accommodation.rural")} / {t("dataExplorer.accommodation.hotel")}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Comparison table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <caption className="sr-only">{t("dataExplorer.accommodation.tableCaption")}</caption>
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-gray-700/50">
+                    <th scope="col" className="pb-3 font-medium">{t("dataExplorer.comparison.period")}</th>
+                    <th scope="col" className="pb-3 font-medium text-right">{t("dataExplorer.accommodation.rural")}</th>
+                    <th scope="col" className="pb-3 font-medium text-right">{t("dataExplorer.accommodation.hotel")}</th>
+                    <th scope="col" className="pb-3 font-medium text-right">{t("dataExplorer.accommodation.ruralShare")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayRows.map((row, i) => (
+                    <tr
+                      key={row.period}
+                      className={`border-b border-gray-800/30 ${
+                        i % 2 === 0 ? "bg-gray-800/20" : ""
+                      }`}
+                    >
+                      <td className="py-2.5 text-gray-300 font-mono text-xs">{row.period}</td>
+                      <td className="py-2.5 text-gray-200 text-right font-mono text-xs">
+                        {row.rural != null ? row.rural.toLocaleString() : "-"}
+                      </td>
+                      <td className="py-2.5 text-gray-200 text-right font-mono text-xs">
+                        {row.hotel != null ? row.hotel.toLocaleString() : "-"}
+                      </td>
+                      <td className="py-2.5 text-gray-400 text-right font-mono text-xs">
+                        {row.ruralShare != null ? `${row.ruralShare.toFixed(1)}%` : "-"}
                       </td>
                     </tr>
                   ))}

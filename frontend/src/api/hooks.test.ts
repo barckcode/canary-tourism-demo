@@ -11,6 +11,7 @@ import {
   useEventImpact,
   useNationalityTrends,
   useProvinceComparison,
+  useAccommodationComparison,
 } from "./hooks";
 
 // Mock the api client module
@@ -30,6 +31,7 @@ vi.mock("./client", () => ({
     },
     comparison: {
       provinces: vi.fn(),
+      accommodationTypes: vi.fn(),
     },
     predictions: {
       get: vi.fn(),
@@ -857,6 +859,79 @@ describe("useProvinceComparison", () => {
     );
 
     const { result } = renderHook(() => useProvinceComparison());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBe("API error: 500 Internal Server Error");
+  });
+});
+
+describe("useAccommodationComparison", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches accommodation comparison data with default parameters", async () => {
+    const mockComparison = {
+      indicator: "pernoctaciones",
+      types: {
+        rural: {
+          name: "Turismo Rural (Canarias)",
+          data: [
+            { period: "2025-01", value: 12345 },
+            { period: "2025-02", value: 13456 },
+          ],
+        },
+        hotel: {
+          name: "Hotel (SC Tenerife)",
+          data: [
+            { period: "2025-01", value: 678901 },
+            { period: "2025-02", value: 712345 },
+          ],
+        },
+      },
+    };
+
+    mockedApi.comparison.accommodationTypes.mockResolvedValueOnce(mockComparison);
+
+    const { result } = renderHook(() => useAccommodationComparison());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toEqual(mockComparison);
+    expect(result.current.error).toBeNull();
+    expect(result.current.data?.types.rural.name).toBe("Turismo Rural (Canarias)");
+    expect(result.current.data?.types.hotel.data).toHaveLength(2);
+    expect(mockedApi.comparison.accommodationTypes).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes custom indicator and periods", async () => {
+    mockedApi.comparison.accommodationTypes.mockResolvedValueOnce({
+      indicator: "viajeros",
+      types: {
+        rural: { name: "Turismo Rural (Canarias)", data: [] },
+        hotel: { name: "Hotel (SC Tenerife)", data: [] },
+      },
+    });
+
+    renderHook(() => useAccommodationComparison("viajeros", 12));
+
+    await waitFor(() => {
+      expect(mockedApi.comparison.accommodationTypes).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("handles API errors gracefully", async () => {
+    mockedApi.comparison.accommodationTypes.mockRejectedValueOnce(
+      new Error("API error: 500 Internal Server Error")
+    );
+
+    const { result } = renderHook(() => useAccommodationComparison());
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

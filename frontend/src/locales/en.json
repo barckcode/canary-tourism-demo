@@ -211,6 +211,19 @@
       "leading": "Leading",
       "couldNotLoad": "Could not load province comparison data.",
       "tableCaption": "Tourism data comparison between Canary Islands provinces"
+    },
+    "accommodation": {
+      "title": "Rural vs Hotel",
+      "indicator": {
+        "viajeros": "Travelers",
+        "pernoctaciones": "Overnight Stays",
+        "plazas": "Capacity"
+      },
+      "rural": "Rural",
+      "hotel": "Hotel",
+      "ruralShare": "Rural %",
+      "couldNotLoad": "Could not load accommodation comparison data.",
+      "tableCaption": "Tourism data comparison between rural and hotel accommodation"
     }
   },
   "events": {

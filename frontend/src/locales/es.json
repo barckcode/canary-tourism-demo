@@ -211,6 +211,19 @@
       "leading": "Lidera",
       "couldNotLoad": "No se pudieron cargar los datos de comparativa provincial.",
       "tableCaption": "Comparativa de datos turisticos entre provincias canarias"
+    },
+    "accommodation": {
+      "title": "Rural vs Hotel",
+      "indicator": {
+        "viajeros": "Viajeros",
+        "pernoctaciones": "Pernoctaciones",
+        "plazas": "Plazas"
+      },
+      "rural": "Rural",
+      "hotel": "Hotel",
+      "ruralShare": "% Rural",
+      "couldNotLoad": "No se pudieron cargar los datos de comparativa de alojamiento.",
+      "tableCaption": "Comparativa de datos turisticos entre alojamiento rural y hotelero"
     }
   },
   "events": {

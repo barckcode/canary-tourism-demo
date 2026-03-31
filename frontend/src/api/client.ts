@@ -104,6 +104,12 @@ export const api = {
       if (periods) params.set("periods", String(periods));
       return fetchJSON(`/comparison/provinces?${params}`);
     },
+    accommodationTypes: (indicator?: string, periods?: number) => {
+      const params = new URLSearchParams();
+      if (indicator) params.set("indicator", indicator);
+      if (periods) params.set("periods", String(periods));
+      return fetchJSON(`/comparison/accommodation-types?${params}`);
+    },
   },
   scenarios: {
     run: (body: Record<string, number>) =>

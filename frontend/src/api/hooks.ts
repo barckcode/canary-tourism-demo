@@ -476,6 +476,25 @@ export function useProvinceComparison(indicator: string = "pernoctaciones", peri
   );
 }
 
+// ── Accommodation Type Comparison ──
+
+export interface AccommodationTypeData {
+  name: string;
+  data: ProvinceDataPoint[];
+}
+
+export interface AccommodationComparisonResponse {
+  indicator: string;
+  types: Record<string, AccommodationTypeData>;
+}
+
+export function useAccommodationComparison(indicator: string = "pernoctaciones", periods: number = 24) {
+  return useQuery<AccommodationComparisonResponse>(
+    () => api.comparison.accommodationTypes(indicator, periods) as Promise<AccommodationComparisonResponse>,
+    [indicator, periods]
+  );
+}
+
 // ── Scenarios ──
 
 export interface ScenarioInput {
