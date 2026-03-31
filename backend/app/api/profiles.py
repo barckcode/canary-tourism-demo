@@ -125,6 +125,7 @@ def get_nationality_profiles(request: Request, db: Session = Depends(get_db)):
         .filter(Microdata.nacionalidad.isnot(None))
         .group_by(Microdata.nacionalidad)
         .order_by(func.count(Microdata.id).desc())
+        .limit(50)
         .all()
     )
     return [
@@ -154,6 +155,7 @@ def get_flows(request: Request, db: Session = Depends(get_db)):
         )
         .group_by(Microdata.nacionalidad, Microdata.aloj_categ)
         .having(func.count(Microdata.id) >= 10)
+        .limit(100)
         .all()
     )
 
