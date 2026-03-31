@@ -87,7 +87,7 @@ export default function ClusterViz({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    svg.append("title").text(t('profiles.clusterAriaLabel'));
+    svg.append("title").text(t('accessibility.clusterViz'));
 
     svg.attr("width", width).attr("height", height);
 
@@ -271,5 +271,5 @@ export default function ClusterViz({
     };
   }, [width, height, clusters, selected, onSelect, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('profiles.clusterAriaLabel')} tabIndex={0} />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.clusterViz')} tabIndex={0} />;
 }

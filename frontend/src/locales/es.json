@@ -283,7 +283,14 @@
     "rural_pernoctaciones_canarias": "Pernoctaciones rurales (Canarias)"
   },
   "accessibility": {
-    "navigatedTo": "Navegado a {{page}}"
+    "navigatedTo": "Navegado a {{page}}",
+    "forecastChart": "Gráfico de predicción de turistas",
+    "scenarioChart": "Gráfico de análisis de escenarios",
+    "yoyHeatmap": "Mapa de calor de variación interanual",
+    "clusterViz": "Visualización de segmentos turísticos",
+    "sankeyFlow": "Diagrama de flujo de origen de turistas",
+    "sparklineChart": "Gráfico de tendencia",
+    "timeSlider": "Control de periodo temporal"
   },
   "notFound": {
     "title": "Pagina no encontrada",

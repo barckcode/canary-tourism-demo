@@ -115,7 +115,7 @@ export default function ForecastChart({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    svg.append("title").text(t('forecast.chartAriaLabel'));
+    svg.append("title").text(t('accessibility.forecastChart'));
 
     const dims = computeDimensions(width, height);
 
@@ -142,5 +142,5 @@ export default function ForecastChart({
     };
   }, [historical, forecast, width, height, yLabel, isMock, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('forecast.chartAriaLabel')} />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.forecastChart')} />;
 }

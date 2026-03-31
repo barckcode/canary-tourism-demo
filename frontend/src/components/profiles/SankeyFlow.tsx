@@ -136,7 +136,7 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    svg.append("title").text(t('profiles.sankeyAriaLabel'));
+    svg.append("title").text(t('accessibility.sankeyFlow'));
 
     const w = width - MARGIN.left - MARGIN.right;
     const h = height - MARGIN.top - MARGIN.bottom;
@@ -262,7 +262,7 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
 
   return (
     <div>
-      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('profiles.sankeyAriaLabel')} />
+      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.sankeyFlow')} />
       {isMockData && (
         <p className="text-xs text-gray-500 mt-1">{t('profiles.sampleData')}</p>
       )}

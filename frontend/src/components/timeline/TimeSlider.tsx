@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 
 interface TimeSliderProps {
@@ -14,6 +15,7 @@ export default function TimeSlider({
   onChange,
   className = "",
 }: TimeSliderProps) {
+  const { t } = useTranslation();
   const totalMonths = (endYear - startYear) * 12;
   const [currentMonth, setCurrentMonth] = useState(totalMonths);
   const [playing, setPlaying] = useState(false);
@@ -124,7 +126,7 @@ export default function TimeSlider({
               setCurrentMonth(Number(e.target.value));
               setPlaying(false);
             }}
-            aria-label={`Time period slider, currently ${monthToLabel(currentMonth)}`}
+            aria-label={`${t('accessibility.timeSlider')}, ${monthToLabel(currentMonth)}`}
             className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-ocean-500"
           />
 

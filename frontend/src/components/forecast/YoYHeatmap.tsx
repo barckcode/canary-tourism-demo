@@ -61,7 +61,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    svg.append("title").text(t('forecast.heatmapAriaLabel'));
+    svg.append("title").text(t('accessibility.yoyHeatmap'));
 
     if (cellData.length === 0) return;
 
@@ -250,7 +250,7 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
 
   return (
     <div className="relative">
-      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('forecast.heatmapAriaLabel')} />
+      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.yoyHeatmap')} />
       {tooltip && (
         <div
           className="absolute pointer-events-none z-10 glass-panel px-3 py-2 text-xs -translate-x-1/2 -translate-y-full"

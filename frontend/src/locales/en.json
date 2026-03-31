@@ -283,7 +283,14 @@
     "rural_pernoctaciones_canarias": "Rural overnight stays (Canarias)"
   },
   "accessibility": {
-    "navigatedTo": "Navigated to {{page}}"
+    "navigatedTo": "Navigated to {{page}}",
+    "forecastChart": "Tourist forecast chart",
+    "scenarioChart": "Scenario analysis chart",
+    "yoyHeatmap": "Year-over-year variation heatmap",
+    "clusterViz": "Tourist segment visualization",
+    "sankeyFlow": "Tourist origin flow diagram",
+    "sparklineChart": "Trend sparkline chart",
+    "timeSlider": "Time period control"
   },
   "notFound": {
     "title": "Page not found",

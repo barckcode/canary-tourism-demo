@@ -50,7 +50,7 @@ export default function SparklineChart({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    svg.append("title").text(t('dashboard.sparklineAriaLabel'));
+    svg.append("title").text(t('accessibility.sparklineChart'));
 
     const dims = computeDimensions(containerWidth, containerHeight);
     const historicalPoints = parsePoints(data);
@@ -85,7 +85,7 @@ export default function SparklineChart({
           <p className="text-sm">No data available</p>
         </div>
       ) : (
-        <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('dashboard.sparklineAriaLabel')} />
+        <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.sparklineChart')} />
       )}
     </div>
   );

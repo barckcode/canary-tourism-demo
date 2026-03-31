@@ -132,7 +132,7 @@ export default function ScenarioChart({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    svg.append("title").text(t('forecast.scenarioChartAriaLabel'));
+    svg.append("title").text(t('accessibility.scenarioChart'));
 
     const dims = computeDimensions(width, height);
     const { baselineData, scenarioData, combinedData } = parseScenarioData(data);
@@ -160,5 +160,5 @@ export default function ScenarioChart({
     };
   }, [data, width, height, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('forecast.scenarioChartAriaLabel')} />;
+  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.scenarioChart')} />;
 }

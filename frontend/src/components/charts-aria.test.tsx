@@ -62,13 +62,13 @@ describe("SVG chart ARIA accessibility", () => {
     expect(svg).not.toBeNull();
     expect(svg!.getAttribute("role")).toBe("img");
     expect(svg!.getAttribute("aria-label")).toBe(
-      "Tourism forecast chart with historical data and predictions"
+      "Tourist forecast chart"
     );
     // D3 renders the <title> element after clearing the SVG
     const title = svg!.querySelector("title");
     expect(title).not.toBeNull();
     expect(title!.textContent).toBe(
-      "Tourism forecast chart with historical data and predictions"
+      "Tourist forecast chart"
     );
   });
 
@@ -83,12 +83,12 @@ describe("SVG chart ARIA accessibility", () => {
     const svg = document.querySelector("svg");
     expect(svg).not.toBeNull();
     expect(svg!.getAttribute("role")).toBe("img");
-    expect(svg!.getAttribute("aria-label")).toBe("Tourist cluster visualization");
+    expect(svg!.getAttribute("aria-label")).toBe("Tourist segment visualization");
     expect(svg!.getAttribute("tabindex")).toBe("0");
     // D3 renders the <title> element
     const title = svg!.querySelector("title");
     expect(title).not.toBeNull();
-    expect(title!.textContent).toBe("Tourist cluster visualization");
+    expect(title!.textContent).toBe("Tourist segment visualization");
   });
 
   it("SankeyFlow SVG has role=img, aria-label, and D3-rendered <title>", () => {
@@ -96,11 +96,11 @@ describe("SVG chart ARIA accessibility", () => {
     const svg = document.querySelector("svg");
     expect(svg).not.toBeNull();
     expect(svg!.getAttribute("role")).toBe("img");
-    expect(svg!.getAttribute("aria-label")).toBe("Tourist flow Sankey diagram");
+    expect(svg!.getAttribute("aria-label")).toBe("Tourist origin flow diagram");
     // D3 renders the <title> element
     const title = svg!.querySelector("title");
     expect(title).not.toBeNull();
-    expect(title!.textContent).toBe("Tourist flow Sankey diagram");
+    expect(title!.textContent).toBe("Tourist origin flow diagram");
   });
 
   it("ClusterViz bubble groups have keyboard accessibility via D3", () => {
