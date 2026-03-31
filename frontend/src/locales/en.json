@@ -282,6 +282,9 @@
     "rural_viajeros_canarias": "Rural travelers (Canarias)",
     "rural_pernoctaciones_canarias": "Rural overnight stays (Canarias)"
   },
+  "accessibility": {
+    "navigatedTo": "Navigated to {{page}}"
+  },
   "notFound": {
     "title": "Page not found",
     "message": "The page you're looking for doesn't exist",

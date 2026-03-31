@@ -2,9 +2,11 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
 import Panel from "../components/layout/Panel";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 export default function AboutPage() {
   const { t } = useTranslation();
+  usePageTitle("nav.aboutProject");
 
   const capabilities = [
     {

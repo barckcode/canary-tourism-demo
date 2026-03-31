@@ -14,6 +14,7 @@ import ComparisonChart, {
 } from "../components/shared/ComparisonChart";
 import ErrorState from "../components/shared/ErrorState";
 import { useIndicators, useTimeSeries, useProvinceComparison, useAccommodationComparison } from "../api/hooks";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const MAX_INDICATORS = 3;
 
@@ -61,6 +62,7 @@ function useMultiTimeSeries(indicators: string[]) {
 
 export default function DataExplorerPage() {
   const { t } = useTranslation();
+  usePageTitle("nav.dataExplorer");
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize selected indicators from URL params

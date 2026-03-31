@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { lazy, Suspense, useState, useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import AppShell from "./components/layout/AppShell";
@@ -26,9 +26,37 @@ function PageLoader() {
   );
 }
 
+function RouteAnnouncer() {
+  const location = useLocation();
+  const { t } = useTranslation();
+  const [announcement, setAnnouncement] = useState("");
+
+  useEffect(() => {
+    const routeNames: Record<string, string> = {
+      "/": t("nav.dashboard"),
+      "/forecast": t("nav.predictions"),
+      "/profiles": t("nav.profiles"),
+      "/data": t("nav.dataExplorer"),
+      "/events": t("nav.events"),
+      "/about": t("nav.aboutProject"),
+    };
+    const pageName = routeNames[location.pathname] || "";
+    if (pageName) {
+      setAnnouncement(t("accessibility.navigatedTo", { page: pageName }));
+    }
+  }, [location.pathname, t]);
+
+  return (
+    <div aria-live="polite" aria-atomic="true" className="sr-only">
+      {announcement}
+    </div>
+  );
+}
+
 function App() {
   return (
     <MotionConfig reducedMotion="user">
+      <RouteAnnouncer />
       <AppShell>
         <Suspense fallback={<PageLoader />}>
           <Routes>

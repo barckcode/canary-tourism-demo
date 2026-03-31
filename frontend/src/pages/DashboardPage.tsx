@@ -12,6 +12,7 @@ import SparklineChart from "../components/shared/SparklineChart";
 import TimeSlider from "../components/timeline/TimeSlider";
 import TenerifeMap from "../components/map/TenerifeMap";
 import { useDashboardKPIs, useDashboardSummary, useTopMarkets, useSeasonalPosition, DashboardKPIs } from "../api/hooks";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 interface KpiConfigItem {
   key: keyof DashboardKPIs;
@@ -95,6 +96,7 @@ const kpiConfig: KpiConfigItem[] = [
 
 export default function DashboardPage() {
   const { t } = useTranslation();
+  usePageTitle("nav.dashboard");
   const { data: kpis, loading, error: kpisError, refetch: refetchKpis } = useDashboardKPIs();
   const { data: summary, error: summaryError, refetch: refetchSummary } = useDashboardSummary();
   const { data: topMarkets, loading: marketsLoading, error: marketsError, refetch: refetchMarkets } = useTopMarkets();

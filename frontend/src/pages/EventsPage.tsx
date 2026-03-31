@@ -6,6 +6,7 @@ import Panel from "../components/layout/Panel";
 import ErrorState from "../components/shared/ErrorState";
 import { useEvents, useEventCategories, useEventImpact, type TourismEvent } from "../api/hooks";
 import { api } from "../api/client";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   cultural: { bg: "bg-tropical-500/20", text: "text-tropical-400", border: "border-tropical-500/40" },
@@ -252,6 +253,7 @@ function EventCard({
 
 export default function EventsPage() {
   const { t } = useTranslation();
+  usePageTitle("nav.events");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<EventFormData>(EMPTY_FORM);

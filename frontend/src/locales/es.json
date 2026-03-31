@@ -282,6 +282,9 @@
     "rural_viajeros_canarias": "Viajeros rurales (Canarias)",
     "rural_pernoctaciones_canarias": "Pernoctaciones rurales (Canarias)"
   },
+  "accessibility": {
+    "navigatedTo": "Navegado a {{page}}"
+  },
   "notFound": {
     "title": "Pagina no encontrada",
     "message": "La pagina que buscas no existe",

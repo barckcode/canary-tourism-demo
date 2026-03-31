@@ -14,11 +14,13 @@ import ErrorBoundary from "../components/shared/ErrorBoundary";
 import ErrorState from "../components/shared/ErrorState";
 import { useProfiles, useProfileDetail, useNationalityProfiles, useFlowData, useSpendingByCluster, useNationalityTrends } from "../api/hooks";
 import type { NationalityTrend } from "../api/hooks";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const CLUSTER_COLORS = ["#0087b9", "#f69b1a", "#28c066", "#a855f7"];
 
 export default function ProfilesPage() {
   const { t } = useTranslation();
+  usePageTitle("nav.profiles");
   const [searchParams, setSearchParams] = useSearchParams();
   const initialClusterId = searchParams.get("cluster");
 
