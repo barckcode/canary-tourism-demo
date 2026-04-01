@@ -9,7 +9,7 @@ interface UseQueryResult<T> {
 }
 
 export function useQuery<T>(
-  fetcher: (() => Promise<T>) | null,
+  fetcher: ((signal: AbortSignal) => Promise<T>) | null,
   deps: unknown[] = []
 ): UseQueryResult<T> {
   const [data, setData] = useState<T | null>(null);
@@ -40,7 +40,7 @@ export function useQuery<T>(
     abortControllerRef.current = controller;
 
     setLoading(true);
-    fetcher()
+    fetcher(controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) {
           setData(result);
@@ -49,6 +49,8 @@ export function useQuery<T>(
       })
       .catch((err) => {
         if (!controller.signal.aborted) {
+          // Suppress AbortError from cancelled requests
+          if (err instanceof DOMException && err.name === "AbortError") return;
           setError(err instanceof Error ? err.message : String(err));
         }
       })
@@ -106,7 +108,7 @@ export interface DashboardKPIs {
 
 export function useDashboardKPIs() {
   return useQuery<DashboardKPIs>(
-    () => api.dashboard.kpis() as Promise<DashboardKPIs>
+    (signal) => api.dashboard.kpis({ signal }) as Promise<DashboardKPIs>
   );
 }
 
@@ -118,7 +120,7 @@ export interface DashboardSummary {
 
 export function useDashboardSummary() {
   return useQuery<DashboardSummary>(
-    () => api.dashboard.summary() as Promise<DashboardSummary>
+    (signal) => api.dashboard.summary({ signal }) as Promise<DashboardSummary>
   );
 }
 
@@ -136,7 +138,7 @@ export interface TopMarketsResponse {
 
 export function useTopMarkets() {
   return useQuery<TopMarketsResponse>(
-    () => api.dashboard.topMarkets() as Promise<TopMarketsResponse>
+    (signal) => api.dashboard.topMarkets({ signal }) as Promise<TopMarketsResponse>
   );
 }
 
@@ -152,7 +154,7 @@ export interface SeasonalPositionResponse {
 
 export function useSeasonalPosition() {
   return useQuery<SeasonalPositionResponse>(
-    () => api.dashboard.seasonalPosition() as Promise<SeasonalPositionResponse>
+    (signal) => api.dashboard.seasonalPosition({ signal }) as Promise<SeasonalPositionResponse>
   );
 }
 
@@ -173,7 +175,7 @@ export interface MapDataResponse {
 
 export function useMapData(period?: string) {
   return useQuery<MapDataResponse>(
-    () => api.dashboard.mapData(period) as Promise<MapDataResponse>,
+    (signal) => api.dashboard.mapData(period, { signal }) as Promise<MapDataResponse>,
     [period]
   );
 }
@@ -205,7 +207,7 @@ export function useTimeSeries(
   if (from) params.from = from;
   if (to) params.to = to;
   return useQuery<TimeSeriesResponse>(
-    indicator ? () => api.timeseries.get(params) as Promise<TimeSeriesResponse> : null,
+    indicator ? (signal) => api.timeseries.get(params, { signal }) as Promise<TimeSeriesResponse> : null,
     [indicator, geo, from, to]
   );
 }
@@ -220,7 +222,7 @@ export interface IndicatorInfo {
 
 export function useIndicators() {
   return useQuery<IndicatorInfo[]>(
-    () => api.timeseries.indicators() as Promise<IndicatorInfo[]>
+    (signal) => api.timeseries.indicators({ signal }) as Promise<IndicatorInfo[]>
   );
 }
 
@@ -245,7 +247,7 @@ export function useYoYHeatmap(indicator?: string, geo = "ES709") {
   const params: Record<string, string> = { geo };
   if (indicator) params.indicator = indicator;
   return useQuery<YoYResponse>(
-    () => api.timeseries.yoy(params) as Promise<YoYResponse>,
+    (signal) => api.timeseries.yoy(params, { signal }) as Promise<YoYResponse>,
     [indicator, geo]
   );
 }
@@ -284,13 +286,13 @@ export function usePredictions(
   model = "ensemble"
 ) {
   return useQuery<PredictionResponse>(
-    () =>
+    (signal) =>
       api.predictions.get({
         indicator,
         geo,
         horizon: String(horizon),
         model,
-      }) as Promise<PredictionResponse>,
+      }, { signal }) as Promise<PredictionResponse>,
     [indicator, geo, horizon, model]
   );
 }
@@ -306,12 +308,12 @@ export function usePredictionCompare(
   horizon = 12
 ) {
   return useQuery<PredictionCompareResponse>(
-    () =>
+    (signal) =>
       api.predictions.compare({
         indicator,
         geo,
         horizon: String(horizon),
-      }) as Promise<PredictionCompareResponse>,
+      }, { signal }) as Promise<PredictionCompareResponse>,
     [indicator, geo, horizon]
   );
 }
@@ -328,7 +330,7 @@ export interface TrainingInfo {
 
 export function useTrainingInfo() {
   return useQuery<TrainingInfo>(
-    () => api.predictions.trainingInfo() as Promise<TrainingInfo>
+    (signal) => api.predictions.trainingInfo({ signal }) as Promise<TrainingInfo>
   );
 }
 
@@ -385,15 +387,15 @@ export interface ProfilesResponse {
 
 export function useProfiles() {
   return useQuery<ProfilesResponse>(
-    () => api.profiles.list() as Promise<ProfilesResponse>
+    (signal) => api.profiles.list({ signal }) as Promise<ProfilesResponse>
   );
 }
 
 export function useProfileDetail(clusterId: number | null) {
   return useQuery<ClusterDetail | null>(
-    () =>
+    (signal) =>
       clusterId !== null
-        ? (api.profiles.detail(clusterId) as Promise<ClusterDetail>)
+        ? (api.profiles.detail(clusterId, { signal }) as Promise<ClusterDetail>)
         : Promise.resolve(null),
     [clusterId]
   );
@@ -408,7 +410,7 @@ export interface NationalityProfile {
 
 export function useNationalityProfiles() {
   return useQuery<NationalityProfile[]>(
-    () => api.profiles.nationalities() as Promise<NationalityProfile[]>
+    (signal) => api.profiles.nationalities({ signal }) as Promise<NationalityProfile[]>
   );
 }
 
@@ -419,7 +421,7 @@ export interface FlowData {
 
 export function useFlowData() {
   return useQuery<FlowData>(
-    () => api.profiles.flows() as Promise<FlowData>
+    (signal) => api.profiles.flows({ signal }) as Promise<FlowData>
   );
 }
 
@@ -429,7 +431,7 @@ export interface SpendingByClusterResponse {
 
 export function useSpendingByCluster() {
   return useQuery<SpendingByClusterResponse>(
-    () => api.profiles.spending() as Promise<SpendingByClusterResponse>
+    (signal) => api.profiles.spending({ signal }) as Promise<SpendingByClusterResponse>
   );
 }
 
@@ -447,7 +449,7 @@ export interface NationalityTrend {
 
 export function useNationalityTrends() {
   return useQuery<NationalityTrend[]>(
-    () => api.profiles.nationalityTrends() as Promise<NationalityTrend[]>,
+    (signal) => api.profiles.nationalityTrends(undefined, { signal }) as Promise<NationalityTrend[]>,
     []
   );
 }
@@ -471,7 +473,7 @@ export interface ProvinceComparisonResponse {
 
 export function useProvinceComparison(indicator: string = "pernoctaciones", periods: number = 24) {
   return useQuery<ProvinceComparisonResponse>(
-    () => api.comparison.provinces(indicator, periods) as Promise<ProvinceComparisonResponse>,
+    (signal) => api.comparison.provinces(indicator, periods, { signal }) as Promise<ProvinceComparisonResponse>,
     [indicator, periods]
   );
 }
@@ -490,7 +492,7 @@ export interface AccommodationComparisonResponse {
 
 export function useAccommodationComparison(indicator: string = "pernoctaciones", periods: number = 24) {
   return useQuery<AccommodationComparisonResponse>(
-    () => api.comparison.accommodationTypes(indicator, periods) as Promise<AccommodationComparisonResponse>,
+    (signal) => api.comparison.accommodationTypes(indicator, periods, { signal }) as Promise<AccommodationComparisonResponse>,
     [indicator, periods]
   );
 }
@@ -577,14 +579,14 @@ export interface FeatureImportanceResponse {
 
 export function useSavedScenarios() {
   const result = useQuery<SavedScenarioSummary[]>(
-    () => api.scenarios.list() as Promise<SavedScenarioSummary[]>
+    (signal) => api.scenarios.list({ signal }) as Promise<SavedScenarioSummary[]>
   );
   return result;
 }
 
 export function useFeatureImportance() {
   return useQuery<FeatureImportanceResponse>(
-    () => api.scenarios.featureImportance() as Promise<FeatureImportanceResponse>
+    (signal) => api.scenarios.featureImportance({ signal }) as Promise<FeatureImportanceResponse>
   );
 }
 
@@ -617,14 +619,14 @@ export function useEvents(fromDate?: string, toDate?: string, category?: string)
   if (toDate) params.to_date = toDate;
   if (category) params.category = category;
   return useQuery<EventsResponse>(
-    () => api.events.list(Object.keys(params).length > 0 ? params : undefined) as Promise<EventsResponse>,
+    (signal) => api.events.list(Object.keys(params).length > 0 ? params : undefined, { signal }) as Promise<EventsResponse>,
     [fromDate, toDate, category]
   );
 }
 
 export function useEventCategories() {
   return useQuery<EventCategoriesResponse>(
-    () => api.events.categories() as Promise<EventCategoriesResponse>
+    (signal) => api.events.categories({ signal }) as Promise<EventCategoriesResponse>
   );
 }
 
@@ -650,7 +652,7 @@ export interface EventImpactResponse {
 export function useEventImpact(eventId: number | null) {
   return useQuery<EventImpactResponse>(
     eventId !== null
-      ? () => api.events.impact(eventId) as Promise<EventImpactResponse>
+      ? (signal) => api.events.impact(eventId, { signal }) as Promise<EventImpactResponse>
       : null,
     [eventId]
   );

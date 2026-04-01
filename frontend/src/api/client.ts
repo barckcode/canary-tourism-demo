@@ -5,15 +5,25 @@ async function fetchJSON<T>(
   path: string,
   options?: RequestInit & { timeout?: number },
 ): Promise<T> {
-  const { timeout = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options ?? {};
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
+  const { timeout = DEFAULT_TIMEOUT_MS, signal: externalSignal, ...fetchOptions } = options ?? {};
+  const timeoutController = new AbortController();
+  const timer = setTimeout(() => timeoutController.abort(), timeout);
+
+  // If the caller provided an external signal (e.g. from AbortController in useQuery),
+  // abort the timeout controller when the external signal fires so fetch is cancelled.
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      clearTimeout(timer);
+      throw new DOMException("The operation was aborted.", "AbortError");
+    }
+    externalSignal.addEventListener("abort", () => timeoutController.abort(), { once: true });
+  }
 
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
       headers: { "Content-Type": "application/json" },
       ...fetchOptions,
-      signal: controller.signal,
+      signal: timeoutController.signal,
     });
     if (!res.ok) {
       throw new Error(`API error: ${res.status} ${res.statusText}`);
@@ -21,6 +31,11 @@ async function fetchJSON<T>(
     return await res.json();
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
+      // Re-throw as AbortError if it came from the external signal so callers can
+      // distinguish cancellation from timeout.
+      if (externalSignal?.aborted) {
+        throw err;
+      }
       throw new Error("Request timed out");
     }
     throw err;
@@ -29,56 +44,62 @@ async function fetchJSON<T>(
   }
 }
 
+/** Options bag accepted by every API method so callers (e.g. useQuery) can
+ *  forward an AbortSignal for proper request cancellation. */
+export interface ApiCallOptions {
+  signal?: AbortSignal;
+}
+
 export const api = {
   dashboard: {
-    kpis: () => fetchJSON("/dashboard/kpis"),
-    summary: () => fetchJSON("/dashboard/summary"),
-    topMarkets: () => fetchJSON("/dashboard/top-markets"),
-    seasonalPosition: () => fetchJSON("/dashboard/seasonal-position"),
-    mapData: (period?: string) => {
+    kpis: (opts?: ApiCallOptions) => fetchJSON("/dashboard/kpis", { signal: opts?.signal }),
+    summary: (opts?: ApiCallOptions) => fetchJSON("/dashboard/summary", { signal: opts?.signal }),
+    topMarkets: (opts?: ApiCallOptions) => fetchJSON("/dashboard/top-markets", { signal: opts?.signal }),
+    seasonalPosition: (opts?: ApiCallOptions) => fetchJSON("/dashboard/seasonal-position", { signal: opts?.signal }),
+    mapData: (period?: string, opts?: ApiCallOptions) => {
       const params = period ? `?period=${period}` : "";
-      return fetchJSON(`/dashboard/map${params}`);
+      return fetchJSON(`/dashboard/map${params}`, { signal: opts?.signal });
     },
   },
   timeseries: {
-    get: (params: Record<string, string>) => {
+    get: (params: Record<string, string>, opts?: ApiCallOptions) => {
       const qs = new URLSearchParams(params).toString();
-      return fetchJSON(`/timeseries?${qs}`);
+      return fetchJSON(`/timeseries?${qs}`, { signal: opts?.signal });
     },
-    indicators: () => fetchJSON("/timeseries/indicators"),
-    yoy: (params?: Record<string, string>) => {
+    indicators: (opts?: ApiCallOptions) => fetchJSON("/timeseries/indicators", { signal: opts?.signal }),
+    yoy: (params?: Record<string, string>, opts?: ApiCallOptions) => {
       const qs = params ? new URLSearchParams(params).toString() : "";
-      return fetchJSON(`/timeseries/yoy${qs ? `?${qs}` : ""}`);
+      return fetchJSON(`/timeseries/yoy${qs ? `?${qs}` : ""}`, { signal: opts?.signal });
     },
   },
   predictions: {
-    get: (params?: Record<string, string>) => {
+    get: (params?: Record<string, string>, opts?: ApiCallOptions) => {
       const qs = params ? new URLSearchParams(params).toString() : "";
-      return fetchJSON(`/predictions?${qs}`);
+      return fetchJSON(`/predictions?${qs}`, { signal: opts?.signal });
     },
-    compare: (params?: Record<string, string>) => {
+    compare: (params?: Record<string, string>, opts?: ApiCallOptions) => {
       const qs = params ? new URLSearchParams(params).toString() : "";
-      return fetchJSON(`/predictions/compare?${qs}`);
+      return fetchJSON(`/predictions/compare?${qs}`, { signal: opts?.signal });
     },
-    trainingInfo: () => fetchJSON("/predictions/training-info"),
+    trainingInfo: (opts?: ApiCallOptions) => fetchJSON("/predictions/training-info", { signal: opts?.signal }),
   },
   profiles: {
-    list: () => fetchJSON("/profiles"),
-    detail: (id: number) => fetchJSON(`/profiles/${id}`),
-    nationalities: () => fetchJSON("/profiles/nationalities"),
-    flows: () => fetchJSON("/profiles/flows"),
-    spending: () => fetchJSON("/profiles/spending"),
-    nationalityTrends: (params?: Record<string, string>) => {
+    list: (opts?: ApiCallOptions) => fetchJSON("/profiles", { signal: opts?.signal }),
+    detail: (id: number, opts?: ApiCallOptions) => fetchJSON(`/profiles/${id}`, { signal: opts?.signal }),
+    nationalities: (opts?: ApiCallOptions) => fetchJSON("/profiles/nationalities", { signal: opts?.signal }),
+    flows: (opts?: ApiCallOptions) => fetchJSON("/profiles/flows", { signal: opts?.signal }),
+    spending: (opts?: ApiCallOptions) => fetchJSON("/profiles/spending", { signal: opts?.signal }),
+    nationalityTrends: (params?: Record<string, string>, opts?: ApiCallOptions) => {
       const qs = params ? new URLSearchParams(params).toString() : "";
-      return fetchJSON(`/profiles/nationality-trends${qs ? `?${qs}` : ""}`);
+      return fetchJSON(`/profiles/nationality-trends${qs ? `?${qs}` : ""}`, { signal: opts?.signal });
     },
   },
   events: {
-    list: (params?: Record<string, string>) => {
+    list: (params?: Record<string, string>, opts?: ApiCallOptions) => {
       const qs = params ? new URLSearchParams(params).toString() : "";
-      return fetchJSON(`/events${qs ? `?${qs}` : ""}`);
+      return fetchJSON(`/events${qs ? `?${qs}` : ""}`, { signal: opts?.signal });
     },
-    categories: () => fetchJSON("/events/categories"),
+    categories: (opts?: ApiCallOptions) => fetchJSON("/events/categories", { signal: opts?.signal }),
     create: (data: {
       name: string;
       description?: string;
@@ -94,21 +115,21 @@ export const api = {
       }),
     delete: (id: number) =>
       fetchJSON(`/events/${id}`, { method: "DELETE" }),
-    impact: (eventId: number) =>
-      fetchJSON(`/events/${eventId}/impact`),
+    impact: (eventId: number, opts?: ApiCallOptions) =>
+      fetchJSON(`/events/${eventId}/impact`, { signal: opts?.signal }),
   },
   comparison: {
-    provinces: (indicator?: string, periods?: number) => {
+    provinces: (indicator?: string, periods?: number, opts?: ApiCallOptions) => {
       const params = new URLSearchParams();
       if (indicator) params.set("indicator", indicator);
       if (periods) params.set("periods", String(periods));
-      return fetchJSON(`/comparison/provinces?${params}`);
+      return fetchJSON(`/comparison/provinces?${params}`, { signal: opts?.signal });
     },
-    accommodationTypes: (indicator?: string, periods?: number) => {
+    accommodationTypes: (indicator?: string, periods?: number, opts?: ApiCallOptions) => {
       const params = new URLSearchParams();
       if (indicator) params.set("indicator", indicator);
       if (periods) params.set("periods", String(periods));
-      return fetchJSON(`/comparison/accommodation-types?${params}`);
+      return fetchJSON(`/comparison/accommodation-types?${params}`, { signal: opts?.signal });
     },
   },
   scenarios: {
@@ -122,15 +143,15 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    list: () => fetchJSON("/scenarios/saved"),
-    get: (id: number) => fetchJSON(`/scenarios/saved/${id}`),
+    list: (opts?: ApiCallOptions) => fetchJSON("/scenarios/saved", { signal: opts?.signal }),
+    get: (id: number, opts?: ApiCallOptions) => fetchJSON(`/scenarios/saved/${id}`, { signal: opts?.signal }),
     delete: (id: number) =>
       fetchJSON(`/scenarios/saved/${id}`, { method: "DELETE" }),
     compare: (ids: number[]) =>
       fetchJSON("/scenarios/compare", {
         method: "POST",
-        body: JSON.stringify({ scenario_ids: ids }),
+        body: JSON.stringify(ids),
       }),
-    featureImportance: () => fetchJSON("/scenarios/feature-importance"),
+    featureImportance: (opts?: ApiCallOptions) => fetchJSON("/scenarios/feature-importance", { signal: opts?.signal }),
   },
 };

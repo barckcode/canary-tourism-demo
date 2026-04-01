@@ -277,10 +277,10 @@ describe("useTimeSeries", () => {
     });
 
     expect(result.current.data).toEqual(mockData);
-    expect(mockedApi.timeseries.get).toHaveBeenCalledWith({
-      indicator: "turistas",
-      geo: "ES709",
-    });
+    expect(mockedApi.timeseries.get).toHaveBeenCalledWith(
+      { indicator: "turistas", geo: "ES709" },
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("passes date range parameters when provided", async () => {
@@ -299,12 +299,10 @@ describe("useTimeSeries", () => {
     );
 
     await waitFor(() => {
-      expect(mockedApi.timeseries.get).toHaveBeenCalledWith({
-        indicator: "turistas",
-        geo: "ES709",
-        from: "2024-01",
-        to: "2024-12",
-      });
+      expect(mockedApi.timeseries.get).toHaveBeenCalledWith(
+        { indicator: "turistas", geo: "ES709", from: "2024-01", to: "2024-12" },
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
     });
   });
 
@@ -375,12 +373,10 @@ describe("usePredictions", () => {
     });
 
     expect(result.current.data).toEqual(mockPrediction);
-    expect(mockedApi.predictions.get).toHaveBeenCalledWith({
-      indicator: "turistas",
-      geo: "ES709",
-      horizon: "12",
-      model: "ensemble",
-    });
+    expect(mockedApi.predictions.get).toHaveBeenCalledWith(
+      { indicator: "turistas", geo: "ES709", horizon: "12", model: "ensemble" },
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("passes custom parameters correctly", async () => {
@@ -392,12 +388,10 @@ describe("usePredictions", () => {
     renderHook(() => usePredictions("turistas", "ES709", 6, "sarima"));
 
     await waitFor(() => {
-      expect(mockedApi.predictions.get).toHaveBeenCalledWith({
-        indicator: "turistas",
-        geo: "ES709",
-        horizon: "6",
-        model: "sarima",
-      });
+      expect(mockedApi.predictions.get).toHaveBeenCalledWith(
+        { indicator: "turistas", geo: "ES709", horizon: "6", model: "sarima" },
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
     });
   });
 
