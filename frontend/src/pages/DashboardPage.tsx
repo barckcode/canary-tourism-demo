@@ -150,6 +150,7 @@ export default function DashboardPage() {
         <motion.div
           variants={fadeUp}
           className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"
+          aria-busy={loading}
         >
           {kpiConfig.map(({ key, labelKey, format, color, yoyKey }) => (
             <Panel key={key}>
@@ -195,6 +196,7 @@ export default function DashboardPage() {
 
         <motion.div variants={fadeUp} className="space-y-4">
           <Panel title={t('dashboard.arrivalsTrend')} subtitle={t('dashboard.last24Months')}>
+            <div aria-busy={!summary && !summaryError}>
             {summaryError ? (
               <ErrorState message={t('dashboard.couldNotLoadTrend')} onRetry={refetchSummary} />
             ) : summary?.arrivals_trend_24m ? (
@@ -208,10 +210,11 @@ export default function DashboardPage() {
                 <div className="h-[100px] w-full bg-gray-800/50 rounded animate-pulse" />
               </div>
             )}
+            </div>
           </Panel>
 
           <Panel title={t('dashboard.topMarkets')}>
-            <div className="space-y-3">
+            <div className="space-y-3" aria-busy={marketsLoading}>
               {marketsError ? (
                 <ErrorState message={t('dashboard.couldNotLoadMarkets')} onRetry={refetchMarkets} />
               ) : marketsLoading ? (
@@ -253,6 +256,7 @@ export default function DashboardPage() {
           </Panel>
 
           <Panel title={t('dashboard.seasonalPosition')}>
+            <div aria-busy={seasonalLoading}>
             {seasonalError ? (
               <ErrorState message={t('dashboard.couldNotLoadSeasonal')} onRetry={refetchSeasonal} />
             ) : seasonalLoading ? (
@@ -287,6 +291,7 @@ export default function DashboardPage() {
             ) : (
               <span className="text-sm text-gray-400">{t('dashboard.noSeasonalData')}</span>
             )}
+            </div>
           </Panel>
         </motion.div>
       </div>

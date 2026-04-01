@@ -545,7 +545,7 @@ export default function ForecastPage() {
             title={t('forecast.modelPerformance')}
             subtitle={t('forecast.modelPerformanceSubtitle')}
           >
-            <div className="space-y-3 py-2">
+            <div className="space-y-3 py-2" aria-busy={compareLoading}>
               {compareError ? (
                 <ErrorState message={t('forecast.couldNotLoadModels')} onRetry={refetchCompare} />
               ) : compareLoading ? (

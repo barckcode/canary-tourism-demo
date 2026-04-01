@@ -310,7 +310,7 @@ export default function DataExplorerPage() {
                 onRetry={refetchFirstTs}
               />
             ) : tsLoading ? (
-              <div className="h-[360px] flex items-center justify-center" role="status" aria-live="polite">
+              <div className="h-[360px] flex items-center justify-center" role="status" aria-live="polite" aria-busy="true">
                 <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
                 <span className="sr-only">{t("common.loadingTimeSeries")}</span>
               </div>
@@ -441,7 +441,7 @@ function ProvinceComparisonSection() {
         {comparisonError ? (
           <ErrorState message={t("dataExplorer.comparison.couldNotLoad")} onRetry={refetchComparison} />
         ) : comparisonLoading ? (
-          <div className="h-48 flex items-center justify-center" role="status" aria-live="polite">
+          <div className="h-48 flex items-center justify-center" role="status" aria-live="polite" aria-busy="true">
             <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
             <span className="sr-only">{t("common.loading")}</span>
           </div>
@@ -601,7 +601,7 @@ function AccommodationComparisonSection() {
         {error ? (
           <ErrorState message={t("dataExplorer.accommodation.couldNotLoad")} onRetry={refetch} />
         ) : loading ? (
-          <div className="h-48 flex items-center justify-center" role="status" aria-live="polite">
+          <div className="h-48 flex items-center justify-center" role="status" aria-live="polite" aria-busy="true">
             <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
             <span className="sr-only">{t("common.loading")}</span>
           </div>
