@@ -121,6 +121,9 @@ export default function ForecastPage() {
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Action error feedback
+  const [actionError, setActionError] = useState<string | null>(null);
+
   // Saved scenarios panel
   const [savedPanelOpen, setSavedPanelOpen] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<number[]>([]);
@@ -180,23 +183,27 @@ export default function ForecastPage() {
       });
       setSaveName("");
       setShowSaveInput(false);
+      setActionError(null);
       refetchSaved();
     } catch {
-      // Save failed silently -- endpoint may not be available yet
+      setActionError(t('errors.saveFailed'));
+      setTimeout(() => setActionError(null), 5000);
     } finally {
       setSaving(false);
     }
-  }, [saveName, scenarioValues, refetchSaved]);
+  }, [saveName, scenarioValues, refetchSaved, t]);
 
   const handleDeleteScenario = useCallback(async (id: number) => {
     try {
       await api.scenarios.delete(id);
       setSelectedForCompare((prev) => prev.filter((sid) => sid !== id));
+      setActionError(null);
       refetchSaved();
     } catch {
-      // Delete failed silently
+      setActionError(t('errors.deleteFailed'));
+      setTimeout(() => setActionError(null), 5000);
     }
-  }, [refetchSaved]);
+  }, [refetchSaved, t]);
 
   const handleLoadScenario = useCallback((s: SavedScenarioSummary) => {
     setScenarioValues({
@@ -220,12 +227,14 @@ export default function ForecastPage() {
     try {
       const result = (await api.scenarios.compare(selectedForCompare)) as ScenarioCompareResponse;
       setCompareResult(result);
+      setActionError(null);
     } catch {
-      // Compare failed silently
+      setActionError(t('errors.actionFailed'));
+      setTimeout(() => setActionError(null), 5000);
     } finally {
       setComparing(false);
     }
-  }, [selectedForCompare]);
+  }, [selectedForCompare, t]);
 
   // Feature importance sorted descending
   const sortedFeatures = useMemo(() => {
@@ -410,6 +419,12 @@ export default function ForecastPage() {
                     <span className="font-medium">{t('forecast.scenarioError')}:</span>{" "}
                     {scenarioError}
                   </p>
+                </div>
+              )}
+
+              {actionError && (
+                <div role="alert" className="text-red-400 text-sm mt-2">
+                  {actionError}
                 </div>
               )}
 

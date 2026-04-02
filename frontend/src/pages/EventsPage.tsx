@@ -259,6 +259,7 @@ export default function EventsPage() {
   const [formData, setFormData] = useState<EventFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [expandedEventId, setExpandedEventId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const {
     data: eventsData,
@@ -290,12 +291,14 @@ export default function EventsPage() {
     async (id: number) => {
       try {
         await api.events.delete(id);
+        setActionError(null);
         refetchEvents();
       } catch {
-        // Silently fail - event might already be deleted
+        setActionError(t('errors.deleteFailed'));
+        setTimeout(() => setActionError(null), 5000);
       }
     },
-    [refetchEvents]
+    [refetchEvents, t]
   );
 
   const handleSubmit = useCallback(
@@ -315,14 +318,16 @@ export default function EventsPage() {
         });
         setFormData(EMPTY_FORM);
         setShowForm(false);
+        setActionError(null);
         refetchEvents();
       } catch {
-        // Error creating event
+        setActionError(t('errors.createFailed'));
+        setTimeout(() => setActionError(null), 5000);
       } finally {
         setSubmitting(false);
       }
     },
-    [formData, refetchEvents]
+    [formData, refetchEvents, t]
   );
 
   const updateField = useCallback(
@@ -356,6 +361,14 @@ export default function EventsPage() {
           {t("events.addEvent")}
         </button>
       </motion.div>
+
+      {actionError && (
+        <motion.div variants={fadeUp}>
+          <div role="alert" className="text-red-400 text-sm mt-2">
+            {actionError}
+          </div>
+        </motion.div>
+      )}
 
       {/* Add Event Form */}
       <AnimatePresence>

@@ -282,6 +282,12 @@
     "rural_viajeros_canarias": "Rural travelers (Canarias)",
     "rural_pernoctaciones_canarias": "Rural overnight stays (Canarias)"
   },
+  "errors": {
+    "saveFailed": "Failed to save scenario",
+    "deleteFailed": "Failed to delete",
+    "createFailed": "Failed to create",
+    "actionFailed": "Action could not be completed"
+  },
   "accessibility": {
     "navigatedTo": "Navigated to {{page}}",
     "forecastChart": "Tourist forecast chart",
