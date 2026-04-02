@@ -69,7 +69,7 @@ export function ScenarioImpactStats({
   const isNeutral = stats.direction === "neutral";
 
   return (
-    <div className="grid grid-cols-3 gap-4 mt-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
       <div className="bg-white/5 backdrop-blur rounded-lg p-4 text-center">
         <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
           Avg Change
