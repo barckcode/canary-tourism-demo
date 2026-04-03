@@ -162,7 +162,7 @@ describe("DataExplorerPage", () => {
 
   it("selects a single indicator and shows the chart", () => {
     renderPage();
-    const viewButton = screen.getByRole("button", { name: /view turistas/i });
+    const viewButton = screen.getByRole("button", { name: /view.*tourists/i });
     fireEvent.click(viewButton);
 
     expect(screen.getByTestId("forecast-chart")).toBeInTheDocument();
@@ -171,8 +171,8 @@ describe("DataExplorerPage", () => {
   it("selects multiple indicators and shows comparison chart", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /view turistas/i }));
-    fireEvent.click(screen.getByRole("button", { name: /view ocupacion/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*tourists/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*ocupacion/i }));
 
     expect(screen.getByTestId("comparison-chart")).toBeInTheDocument();
     expect(screen.getByTestId("comparison-chart").textContent).toContain("turistas");
@@ -182,21 +182,21 @@ describe("DataExplorerPage", () => {
   it("limits selection to 3 indicators", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /view turistas/i }));
-    fireEvent.click(screen.getByRole("button", { name: /view ocupacion/i }));
-    fireEvent.click(screen.getByRole("button", { name: /view adr/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*tourists/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*ocupacion/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*adr/i }));
 
     // Fourth indicator button should be disabled
-    const revparButton = screen.getByRole("button", { name: /view revpar/i });
+    const revparButton = screen.getByRole("button", { name: /view.*revpar/i });
     expect(revparButton).toBeDisabled();
   });
 
   it("shows max indicators message when 3 are selected", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /view turistas/i }));
-    fireEvent.click(screen.getByRole("button", { name: /view ocupacion/i }));
-    fireEvent.click(screen.getByRole("button", { name: /view adr/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*tourists/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*ocupacion/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*adr/i }));
 
     expect(screen.getByText("Max 3 indicators")).toBeInTheDocument();
   });
@@ -204,12 +204,12 @@ describe("DataExplorerPage", () => {
   it("deselects an indicator when clicking its button again", () => {
     renderPage();
 
-    const viewButton = screen.getByRole("button", { name: /view turistas/i });
+    const viewButton = screen.getByRole("button", { name: /view.*tourists/i });
     fireEvent.click(viewButton);
     expect(screen.getByTestId("forecast-chart")).toBeInTheDocument();
 
     // Click the same button (now "Selected") to deselect
-    const selectedButton = screen.getByRole("button", { name: /deselect turistas/i });
+    const selectedButton = screen.getByRole("button", { name: /deselect.*tourists/i });
     fireEvent.click(selectedButton);
 
     expect(screen.queryByTestId("forecast-chart")).not.toBeInTheDocument();
@@ -220,15 +220,15 @@ describe("DataExplorerPage", () => {
 
     expect(screen.queryByRole("button", { name: /clear selection/i })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /view turistas/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*tourists/i }));
     expect(screen.getByRole("button", { name: /clear selection/i })).toBeInTheDocument();
   });
 
   it("clears all selections when clear button is clicked", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /view turistas/i }));
-    fireEvent.click(screen.getByRole("button", { name: /view ocupacion/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*tourists/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*ocupacion/i }));
 
     const clearButton = screen.getByRole("button", { name: /clear selection/i });
     fireEvent.click(clearButton);
@@ -240,12 +240,12 @@ describe("DataExplorerPage", () => {
   it("shows selection count badge", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /view turistas/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*tourists/i }));
     // The badge renders "{count} selected" -- may appear in badge + panel subtitle
     const badges1 = screen.getAllByText(/1 selected/);
     expect(badges1.length).toBeGreaterThanOrEqual(1);
 
-    fireEvent.click(screen.getByRole("button", { name: /view ocupacion/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view.*ocupacion/i }));
     const badges2 = screen.getAllByText(/2 selected/);
     expect(badges2.length).toBeGreaterThanOrEqual(1);
   });
@@ -253,12 +253,12 @@ describe("DataExplorerPage", () => {
   it("uses aria-pressed attribute to reflect selection state", () => {
     renderPage();
 
-    const button = screen.getByRole("button", { name: /view turistas/i });
+    const button = screen.getByRole("button", { name: /view.*tourists/i });
     expect(button).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(button);
 
-    const selectedButton = screen.getByRole("button", { name: /deselect turistas/i });
+    const selectedButton = screen.getByRole("button", { name: /deselect.*tourists/i });
     expect(selectedButton).toHaveAttribute("aria-pressed", "true");
   });
 

@@ -404,6 +404,10 @@ export default function ForecastPage() {
                     aria-label={`${label} ${scenarioValues[key] > 0 ? "+" : ""}${scenarioValues[key]}%`}
                     className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-ocean-500"
                   />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>-50%</span>
+                    <span>+50%</span>
+                  </div>
                 </div>
               ))}
               <button

@@ -277,7 +277,7 @@ export default function DataExplorerPage() {
                           <button
                             onClick={() => toggleIndicator(ind.id)}
                             disabled={atMax}
-                            aria-label={`${selected ? t("dataExplorer.deselect") : t("dataExplorer.view")} ${ind.id}`}
+                            aria-label={`${selected ? t("dataExplorer.deselect") : t("dataExplorer.view")}: ${t(`indicators.${ind.id}`) !== `indicators.${ind.id}` ? t(`indicators.${ind.id}`) : ind.id}`}
                             aria-pressed={selected}
                             className={`px-3 py-1 text-xs rounded transition-colors ${
                               selected
