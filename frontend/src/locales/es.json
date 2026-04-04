@@ -72,7 +72,8 @@
     "sparklineAriaLabel": "Grafico de tendencia",
     "employmentTotal": "Empleo Total Canarias",
     "employmentServices": "Empleo Servicios",
-    "iphIndex": "Índice Precios Hoteleros"
+    "iphIndex": "Índice Precios Hoteleros",
+    "dataAsOf": "Datos hasta: {{period}}"
   },
   "forecast": {
     "title": "Motor de Prediccion",

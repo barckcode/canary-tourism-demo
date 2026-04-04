@@ -72,7 +72,8 @@
     "sparklineAriaLabel": "Trend sparkline chart",
     "employmentTotal": "Total Employment Canarias",
     "employmentServices": "Services Employment",
-    "iphIndex": "Hotel Price Index"
+    "iphIndex": "Hotel Price Index",
+    "dataAsOf": "Data as of: {{period}}"
   },
   "forecast": {
     "title": "Prediction Engine",

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { formatCompactNumber } from "../utils/format";
@@ -20,6 +20,12 @@ interface KpiConfigItem {
   format: (n: number) => string;
   color: string;
   yoyKey?: keyof DashboardKPIs;
+}
+
+function getDefaultPeriod(): string {
+  const now = new Date();
+  now.setMonth(now.getMonth() - 1);
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
 const kpiConfig: KpiConfigItem[] = [
@@ -101,10 +107,16 @@ export default function DashboardPage() {
   const { data: summary, error: summaryError, refetch: refetchSummary } = useDashboardSummary();
   const { data: topMarkets, loading: marketsLoading, error: marketsError, refetch: refetchMarkets } = useTopMarkets();
   const { data: seasonal, loading: seasonalLoading, error: seasonalError, refetch: refetchSeasonal } = useSeasonalPosition();
-  const [selectedPeriod, setSelectedPeriod] = useState("2026-01");
+  const [selectedPeriod, setSelectedPeriod] = useState(getDefaultPeriod);
   const handlePeriodChange = useCallback((period: string) => {
     setSelectedPeriod(period);
   }, []);
+
+  useEffect(() => {
+    if (kpis?.latest_period) {
+      setSelectedPeriod(kpis.latest_period);
+    }
+  }, [kpis?.latest_period]);
 
   const csvRows = useMemo<(string | number)[][]>(() => {
     if (!kpis) return [];
@@ -122,6 +134,11 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {kpis?.latest_period && (
+            <span className="text-xs text-gray-500">
+              {t('dashboard.dataAsOf', { period: kpis.latest_period })}
+            </span>
+          )}
           {kpis?.last_updated && (
             <span className="text-xs text-gray-400">
               {t('common.updated')}: {kpis.last_updated}
