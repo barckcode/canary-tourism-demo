@@ -72,8 +72,12 @@ export default function ClusterViz({
   onSelect,
 }: ClusterVizProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const onSelectRef = useRef(onSelect);
   const { t } = useTranslation();
   const [selected, setSelected] = useState<number | null>(null);
+
+  // Keep ref in sync so D3 event handlers always call the latest callback
+  useEffect(() => { onSelectRef.current = onSelect; });
 
   // Reset selected state when clusters change to avoid stale selection
   useEffect(() => {
@@ -143,14 +147,14 @@ export default function ClusterViz({
       .on("click", (_event, d) => {
         const newId = selected === d.cluster.id ? null : d.cluster.id;
         setSelected(newId);
-        onSelect?.(newId !== null ? d.cluster : null);
+        onSelectRef.current?.(newId !== null ? d.cluster : null);
       })
       .on("keydown", (event: KeyboardEvent, d) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           const newId = selected === d.cluster.id ? null : d.cluster.id;
           setSelected(newId);
-          onSelect?.(newId !== null ? d.cluster : null);
+          onSelectRef.current?.(newId !== null ? d.cluster : null);
         }
       });
 
@@ -258,7 +262,7 @@ export default function ClusterViz({
           const d = d3.select<SVGGElement, SimNode>(node).datum();
           const newId = selected === d.cluster.id ? null : d.cluster.id;
           setSelected(newId);
-          onSelect?.(newId !== null ? d.cluster : null);
+          onSelectRef.current?.(newId !== null ? d.cluster : null);
         },
         { passive: false }
       );
@@ -269,7 +273,7 @@ export default function ClusterViz({
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [width, height, clusters, selected, onSelect, t]);
+  }, [width, height, clusters, selected, t]);
 
   return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.clusterViz')} tabIndex={0} />;
 }
