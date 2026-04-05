@@ -98,8 +98,11 @@ docker compose -f docker-compose.prod.yml up -d
 | GET | `/api/predictions` | Forecast with confidence intervals |
 | GET | `/api/predictions/compare` | Compare all 4 models |
 | GET | `/api/profiles` | Tourist cluster summaries |
+| GET | `/api/profiles/{id}` | Detailed profile by cluster ID |
 | GET | `/api/profiles/nationalities` | Stats by nationality |
 | GET | `/api/profiles/flows` | Sankey flow data |
+| GET | `/api/comparison/provinces` | Inter-island province comparison |
+| GET | `/api/comparison/accommodation-types` | Hotel vs rural accommodation comparison |
 | POST | `/api/scenarios` | Run what-if scenario |
 | GET | `/health` | Health check |
 
