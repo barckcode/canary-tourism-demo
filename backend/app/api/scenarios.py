@@ -32,6 +32,11 @@ _engine_lock = threading.Lock()
 
 
 def _get_engine(db: Session) -> ScenarioEngine:
+    """Get or create the ScenarioEngine singleton.
+
+    WARNING: May trigger full model training on first call if no
+    persisted model exists. Subsequent calls load from pickle.
+    """
     global _engine
     if _engine is not None and _engine.is_fitted:
         return _engine

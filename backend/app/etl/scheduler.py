@@ -30,7 +30,14 @@ def _run_async(coro_func):
             finally:
                 loop.close()
         except Exception:
-            logger.exception("Job %s failed.", coro_func.__name__)
+            # Log with full traceback. The exception is intentionally
+            # swallowed: if it propagates, APScheduler may permanently
+            # de-schedule the job after repeated failures.
+            logger.exception(
+                "Job %s failed — exception swallowed to prevent "
+                "APScheduler from removing the job",
+                coro_func.__name__,
+            )
     wrapper.__name__ = coro_func.__name__
     return wrapper
 
@@ -48,7 +55,13 @@ def _run_retrain_check():
         finally:
             db.close()
     except Exception:
-        logger.exception("Retrain check job failed.")
+        # Log with full traceback. The exception is intentionally
+        # swallowed: if it propagates, APScheduler may permanently
+        # de-schedule the job after repeated failures.
+        logger.exception(
+            "Retrain check job failed — exception swallowed to prevent "
+            "APScheduler from removing the job"
+        )
 
 
 def setup_scheduler() -> BackgroundScheduler:
