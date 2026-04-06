@@ -74,7 +74,14 @@ export function setupScales(
     .range([0, dims.innerWidth]);
 
   const yExtent = d3.extent(allPoints, (d) => d.value) as [number, number];
-  const yPadding = (yExtent[1] - yExtent[0]) * 0.15;
+  let yPadding = (yExtent[1] - yExtent[0]) * 0.15;
+
+  // Guard: when all values are equal the domain collapses to a single point,
+  // producing an invalid D3 linear scale. Expand it so the line renders centred.
+  if (yExtent[0] === yExtent[1]) {
+    const val = yExtent[0];
+    yPadding = val !== 0 ? Math.abs(val) * 0.1 : 1;
+  }
   const y = d3
     .scaleLinear()
     .domain([Math.max(0, yExtent[0] - yPadding), yExtent[1] + yPadding])
