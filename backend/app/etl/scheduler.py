@@ -179,7 +179,7 @@ def shutdown_scheduler():
     """Gracefully shut down the scheduler."""
     global scheduler
     if scheduler and scheduler.running:
-        scheduler.shutdown(wait=False)
+        scheduler.shutdown(wait=True)
         logger.info("Scheduler shut down.")
         scheduler = None
 

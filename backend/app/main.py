@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -57,7 +58,7 @@ async def lifespan(app: FastAPI):
         # Train or retrain models if needed (new data or no prior training)
         from app.models.trainer import retrain_if_needed
 
-        result = retrain_if_needed(db)
+        result = await asyncio.to_thread(retrain_if_needed, db)
         if result.get("retrained"):
             logger.info("Model training complete (%.1fs).", result.get("duration_seconds", 0))
         else:
