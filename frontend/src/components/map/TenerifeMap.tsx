@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import { DeckGL } from "@deck.gl/react";
 import { Map } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useMapData, MapMunicipality } from "../../api/hooks";
 import { setupTooltipKeyboardDismiss } from "../../utils/chartAccessibility";
+import ErrorState from "../shared/ErrorState";
 
 const INITIAL_VIEW_STATE = {
   longitude: -16.55,
@@ -51,8 +53,11 @@ interface TenerifeMapProps {
 }
 
 export default function TenerifeMap({ className = "", period }: TenerifeMapProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [geojsonData, setGeojsonData] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [geojsonLoading, setGeojsonLoading] = useState(true);
+  const [geojsonError, setGeojsonError] = useState(false);
   const [hovered, setHovered] = useState<HoveredMunicipality | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
@@ -65,12 +70,27 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
     return null;
   }, [mapData]);
 
-  useEffect(() => {
+  const fetchGeojson = useCallback(() => {
+    setGeojsonLoading(true);
+    setGeojsonError(false);
     fetch("/tenerife.geojson")
-      .then((r) => r.json())
-      .then(setGeojsonData)
-      .catch(console.error);
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setGeojsonData(data);
+        setGeojsonLoading(false);
+      })
+      .catch(() => {
+        setGeojsonError(true);
+        setGeojsonLoading(false);
+      });
   }, []);
+
+  useEffect(() => {
+    fetchGeojson();
+  }, [fetchGeojson]);
 
   // ESC key dismiss for keyboard accessibility (WCAG 1.4.13)
   useEffect(() => {
@@ -148,6 +168,25 @@ export default function TenerifeMap({ className = "", period }: TenerifeMapProps
     if (!hovered) return null;
     return null; // We render our own tooltip below
   }, [hovered]);
+
+  if (geojsonError) {
+    return (
+      <div className={`relative w-full h-full flex items-center justify-center ${className}`} role="region" aria-label="Interactive 3D map of Tenerife">
+        <ErrorState message={t('common.errorLoading')} onRetry={fetchGeojson} />
+      </div>
+    );
+  }
+
+  if (geojsonLoading) {
+    return (
+      <div className={`relative w-full h-full flex items-center justify-center ${className}`} role="region" aria-label="Interactive 3D map of Tenerife">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-ocean-400 border-t-transparent rounded-full animate-spin" role="status" aria-label={t('common.loading')} />
+          <span className="text-sm text-gray-400">{t('common.loading')}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className={`relative w-full h-full ${className}`} role="region" aria-label="Interactive 3D map of Tenerife showing tourism intensity by municipality. Use mouse or touch to pan, zoom, and rotate. Hover over municipalities for details." tabIndex={0}>
