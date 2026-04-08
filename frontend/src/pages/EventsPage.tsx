@@ -77,7 +77,7 @@ function EventImpactPanel({ eventId, t }: { eventId: number; t: (key: string) =>
 
   return (
     <div className="mt-3 pt-3 border-t border-gray-700/50">
-      <h5 className="text-xs font-semibold text-gray-300 mb-2">{t("events.impact_kpi.title")}</h5>
+      <h4 className="text-xs font-semibold text-gray-300 mb-2">{t("events.impact_kpi.title")}</h4>
       <div className="overflow-x-auto">
         <table className="w-full text-xs" aria-label={t("events.impact_kpi.title")}>
           <thead>
@@ -170,7 +170,7 @@ function EventCard({
         <div className="flex items-start gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-sm font-semibold text-white truncate">{event.name}</h4>
+              <h3 className="text-sm font-semibold text-white truncate">{event.name}</h3>
               <span
                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border ${style.bg} ${style.text} ${style.border}`}
               >
@@ -561,9 +561,9 @@ export default function EventsPage() {
             {Array.from(groupedEvents.entries()).map(([monthKey, events]) => (
               <Panel key={monthKey}>
                 <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
                     {formatMonthLabel(monthKey)}
-                  </h3>
+                  </h2>
                 </div>
                 <div className="space-y-3">
                   {events.map((event) => (
