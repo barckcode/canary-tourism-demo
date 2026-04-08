@@ -324,6 +324,8 @@ class Forecaster:
 
     def predict_sarima(self, horizon: int = 12) -> ForecastResult:
         """SARIMA-only forecast."""
+        if not self.is_fitted:
+            raise RuntimeError("Models not fitted. Call fit() first.")
         if not self.sarima_result:
             raise RuntimeError("SARIMA not fitted.")
 
@@ -352,6 +354,8 @@ class Forecaster:
         Computes CIs using in-sample residual standard error with expanding
         uncertainty proportional to sqrt(h) for each forecast step h.
         """
+        if not self.is_fitted:
+            raise RuntimeError("Models not fitted. Call fit() first.")
         if not self.hw_result:
             raise RuntimeError("Holt-Winters not fitted.")
 
