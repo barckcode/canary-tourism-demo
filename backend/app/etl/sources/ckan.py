@@ -176,36 +176,6 @@ def _extract_quarter_from_resource(resource: dict[str, Any]) -> str | None:
     return None
 
 
-async def check_for_updates(
-    last_known_modified: dict[str, str] | None = None,
-) -> dict[str, str]:
-    """Check if CKAN packages have new data based on metadata_modified.
-
-    Args:
-        last_known_modified: Dict mapping package name to last known
-            metadata_modified timestamp.
-
-    Returns:
-        Dict of package names with new data, mapped to their
-        metadata_modified timestamp.
-    """
-    if last_known_modified is None:
-        last_known_modified = {}
-
-    updated: dict[str, str] = {}
-    async with httpx.AsyncClient() as client:
-        for package_name in EGT_PACKAGE_NAMES:
-            pkg = await _ckan_package_show(client, ISTAC_CKAN_URL, package_name)
-            if pkg is None:
-                continue
-
-            modified = pkg.get("metadata_modified", "")
-            if modified and modified != last_known_modified.get(package_name):
-                updated[package_name] = modified
-
-    return updated
-
-
 async def fetch_egt_microdata(
     package_names: list[str] | None = None,
 ) -> list[dict[str, Any]]:

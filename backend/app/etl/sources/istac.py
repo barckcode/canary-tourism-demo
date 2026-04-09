@@ -221,36 +221,6 @@ def get_last_update(metadata: dict[str, Any]) -> str | None:
     return metadata.get("lastUpdate") or metadata.get("lastUpdated")
 
 
-async def check_for_updates(
-    last_known_updates: dict[str, str] | None = None,
-) -> dict[str, str]:
-    """Check which indicators have new data since last known update.
-
-    Args:
-        last_known_updates: Dict mapping indicator code to last known
-            lastUpdate timestamp string.
-
-    Returns:
-        Dict of indicator codes that have new data mapped to their
-        new lastUpdate timestamp.
-    """
-    if last_known_updates is None:
-        last_known_updates = {}
-
-    updated: dict[str, str] = {}
-    async with httpx.AsyncClient() as client:
-        for code in INDICATOR_CODES:
-            metadata = await _fetch_indicator_metadata(client, code)
-            if metadata is None:
-                continue
-
-            last_update = get_last_update(metadata)
-            if last_update and last_update != last_known_updates.get(code):
-                updated[code] = last_update
-
-    return updated
-
-
 async def fetch_indicators(
     indicator_codes: list[str] | None = None,
 ) -> list[dict[str, Any]]:

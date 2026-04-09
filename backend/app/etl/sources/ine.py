@@ -189,34 +189,6 @@ def _parse_series_records(
     return records
 
 
-async def check_for_updates(
-    last_known_periods: dict[str, str] | None = None,
-) -> dict[str, str]:
-    """Check which INE series have new data.
-
-    Args:
-        last_known_periods: Dict mapping series_id to last known period string.
-
-    Returns:
-        Dict of series IDs that have new data, mapped to their latest period.
-    """
-    if last_known_periods is None:
-        last_known_periods = {}
-
-    updated: dict[str, str] = {}
-    async with httpx.AsyncClient() as client:
-        for series_id, indicator, geo_code in INE_SERIES:
-            latest = await _fetch_latest_period(client, series_id)
-            if latest is None:
-                continue
-
-            period = _parse_period(latest)
-            if period and period != last_known_periods.get(series_id):
-                updated[series_id] = period
-
-    return updated
-
-
 async def fetch_series(
     series_list: list[tuple[str, str, str]] | None = None,
 ) -> list[dict[str, Any]]:
