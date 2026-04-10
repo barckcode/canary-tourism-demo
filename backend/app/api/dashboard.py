@@ -47,6 +47,24 @@ NATIONALITY_LABELS = {
 PERIOD_PATTERN = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
+def _latest_value(
+    db: Session,
+    indicator: str,
+    geo_code: str,
+    measure: str = "ABSOLUTE",
+    period: str | None = None,
+) -> TimeSeries | None:
+    """Get latest TimeSeries value for given indicator/geo/measure, optionally filtered by period."""
+    query = db.query(TimeSeries).filter(
+        TimeSeries.indicator == indicator,
+        TimeSeries.geo_code == geo_code,
+        TimeSeries.measure == measure,
+    )
+    if period:
+        query = query.filter(TimeSeries.period == period)
+    return query.order_by(TimeSeries.period.desc()).first()
+
+
 def _validate_period(value: str | None, name: str) -> str | None:
     """Validate that a period string matches YYYY-MM format.
 
@@ -72,16 +90,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
     kpis = {}
 
     # Latest arrivals
-    latest = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "turistas",
-            TimeSeries.geo_code == "ES709",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    latest = _latest_value(db, "turistas", "ES709")
     if latest and latest.value is not None:
         kpis["latest_arrivals"] = latest.value
         kpis["latest_period"] = latest.period
@@ -89,101 +98,40 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
         # YoY change — guard against malformed period strings
         if latest.period and len(latest.period) >= 4:
             prev_year_period = f"{int(latest.period[:4]) - 1}{latest.period[4:]}"
-            prev = (
-                db.query(TimeSeries)
-                .filter(
-                    TimeSeries.indicator == "turistas",
-                    TimeSeries.geo_code == "ES709",
-                    TimeSeries.measure == "ABSOLUTE",
-                    TimeSeries.period == prev_year_period,
-                )
-                .first()
-            )
+            prev = _latest_value(db, "turistas", "ES709", period=prev_year_period)
             if prev is not None and prev.value is not None and prev.value != 0:
                 kpis["yoy_change"] = round(
                     (latest.value - prev.value) / prev.value * 100, 2
                 )
 
     # Occupancy rate
-    occ = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "alojatur_habitaciones_ocupacion",
-            TimeSeries.geo_code == "ES709",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    occ = _latest_value(db, "alojatur_habitaciones_ocupacion", "ES709")
     if occ:
         kpis["occupancy_rate"] = occ.value
 
     # ADR
-    adr = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "alojatur_ingresos_habitacion",
-            TimeSeries.geo_code == "ES709",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    adr = _latest_value(db, "alojatur_ingresos_habitacion", "ES709")
     if adr:
         kpis["adr"] = adr.value
 
     # RevPAR = Revenue Per Available Room (ISTAC: ALOJATUR_REVPAR)
-    revpar = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "alojatur_revpar",
-            TimeSeries.geo_code == "ES709",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    revpar = _latest_value(db, "alojatur_revpar", "ES709")
     if revpar:
         kpis["revpar"] = revpar.value
 
     # Average stay
-    avg_stay = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "alojatur_estancias_medias",
-            TimeSeries.geo_code == "ES709",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    avg_stay = _latest_value(db, "alojatur_estancias_medias", "ES709")
     if avg_stay:
         kpis["avg_stay"] = avg_stay.value
 
     # Egatur: average daily spending per tourist (Canarias)
-    daily_spend = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "egatur_gasto_medio_diario_canarias",
-            TimeSeries.geo_code == "ES70",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    daily_spend = _latest_value(db, "egatur_gasto_medio_diario_canarias", "ES70")
     if daily_spend and daily_spend.value is not None:
         kpis["daily_spend"] = daily_spend.value
         if daily_spend.period and len(daily_spend.period) >= 4:
             prev_year_period = f"{int(daily_spend.period[:4]) - 1}{daily_spend.period[4:]}"
-            prev_ds = (
-                db.query(TimeSeries)
-                .filter(
-                    TimeSeries.indicator == "egatur_gasto_medio_diario_canarias",
-                    TimeSeries.geo_code == "ES70",
-                    TimeSeries.measure == "ABSOLUTE",
-                    TimeSeries.period == prev_year_period,
-                )
-                .first()
+            prev_ds = _latest_value(
+                db, "egatur_gasto_medio_diario_canarias", "ES70", period=prev_year_period
             )
             if prev_ds is not None and prev_ds.value is not None and prev_ds.value != 0:
                 kpis["daily_spend_yoy"] = round(
@@ -191,29 +139,13 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # Egatur: average stay duration from INE (Canarias)
-    avg_stay_ine = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "egatur_estancia_media_canarias",
-            TimeSeries.geo_code == "ES70",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    avg_stay_ine = _latest_value(db, "egatur_estancia_media_canarias", "ES70")
     if avg_stay_ine and avg_stay_ine.value is not None:
         kpis["avg_stay_ine"] = avg_stay_ine.value
         if avg_stay_ine.period and len(avg_stay_ine.period) >= 4:
             prev_year_period = f"{int(avg_stay_ine.period[:4]) - 1}{avg_stay_ine.period[4:]}"
-            prev_as = (
-                db.query(TimeSeries)
-                .filter(
-                    TimeSeries.indicator == "egatur_estancia_media_canarias",
-                    TimeSeries.geo_code == "ES70",
-                    TimeSeries.measure == "ABSOLUTE",
-                    TimeSeries.period == prev_year_period,
-                )
-                .first()
+            prev_as = _latest_value(
+                db, "egatur_estancia_media_canarias", "ES70", period=prev_year_period
             )
             if prev_as is not None and prev_as.value is not None and prev_as.value != 0:
                 kpis["avg_stay_ine_yoy"] = round(
@@ -221,29 +153,13 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # EPA: Total occupied persons in Canarias (thousands)
-    emp_total = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "epa_ocupados_total_canarias",
-            TimeSeries.geo_code == "ES70",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    emp_total = _latest_value(db, "epa_ocupados_total_canarias", "ES70")
     if emp_total and emp_total.value is not None:
         kpis["employment_total"] = emp_total.value
         if emp_total.period and len(emp_total.period) >= 4:
             prev_year_period = f"{int(emp_total.period[:4]) - 1}{emp_total.period[4:]}"
-            prev_et = (
-                db.query(TimeSeries)
-                .filter(
-                    TimeSeries.indicator == "epa_ocupados_total_canarias",
-                    TimeSeries.geo_code == "ES70",
-                    TimeSeries.measure == "ABSOLUTE",
-                    TimeSeries.period == prev_year_period,
-                )
-                .first()
+            prev_et = _latest_value(
+                db, "epa_ocupados_total_canarias", "ES70", period=prev_year_period
             )
             if prev_et is not None and prev_et.value is not None and prev_et.value != 0:
                 kpis["employment_total_yoy"] = round(
@@ -251,29 +167,13 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # EPA: Occupied persons in services sector in Canarias (thousands)
-    emp_services = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "epa_ocupados_servicios_canarias",
-            TimeSeries.geo_code == "ES70",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    emp_services = _latest_value(db, "epa_ocupados_servicios_canarias", "ES70")
     if emp_services and emp_services.value is not None:
         kpis["employment_services"] = emp_services.value
         if emp_services.period and len(emp_services.period) >= 4:
             prev_year_period = f"{int(emp_services.period[:4]) - 1}{emp_services.period[4:]}"
-            prev_es = (
-                db.query(TimeSeries)
-                .filter(
-                    TimeSeries.indicator == "epa_ocupados_servicios_canarias",
-                    TimeSeries.geo_code == "ES70",
-                    TimeSeries.measure == "ABSOLUTE",
-                    TimeSeries.period == prev_year_period,
-                )
-                .first()
+            prev_es = _latest_value(
+                db, "epa_ocupados_servicios_canarias", "ES70", period=prev_year_period
             )
             if prev_es is not None and prev_es.value is not None and prev_es.value != 0:
                 kpis["employment_services_yoy"] = round(
@@ -281,29 +181,11 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # Hotel Price Index (IPH) - Canarias
-    iph_index = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "iph_indice_canarias",
-            TimeSeries.geo_code == "ES70",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    iph_index = _latest_value(db, "iph_indice_canarias", "ES70")
     if iph_index and iph_index.value is not None:
         kpis["iph_index"] = iph_index.value
 
-    iph_var = (
-        db.query(TimeSeries)
-        .filter(
-            TimeSeries.indicator == "iph_variacion_canarias",
-            TimeSeries.geo_code == "ES70",
-            TimeSeries.measure == "ABSOLUTE",
-        )
-        .order_by(desc(TimeSeries.period))
-        .first()
-    )
+    iph_var = _latest_value(db, "iph_variacion_canarias", "ES70")
     if iph_var and iph_var.value is not None:
         kpis["iph_variation"] = iph_var.value
 
