@@ -53,9 +53,18 @@ function RouteAnnouncer() {
   );
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   return (
     <MotionConfig reducedMotion="user">
+      <ScrollToTop />
       <RouteAnnouncer />
       <AppShell>
         <Suspense fallback={<PageLoader />}>
