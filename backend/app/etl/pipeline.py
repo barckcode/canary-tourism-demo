@@ -61,19 +61,19 @@ def _upsert_timeseries(db: Session, records: list[dict[str, Any]]) -> int:
 
     Returns the number of records upserted.
     """
-    count = 0
-    for rec in records:
-        db.execute(
-            text("""
-                INSERT OR REPLACE INTO time_series
-                    (source, indicator, geo_code, period, measure, value)
-                VALUES (:source, :indicator, :geo_code, :period, :measure, :value)
-            """),
-            rec,
-        )
-        count += 1
+    if not records:
+        return 0
 
-    return count
+    db.execute(
+        text("""
+            INSERT OR REPLACE INTO time_series
+                (source, indicator, geo_code, period, measure, value)
+            VALUES (:source, :indicator, :geo_code, :period, :measure, :value)
+        """),
+        records,
+    )
+
+    return len(records)
 
 
 def _upsert_microdata(db: Session, records: list[dict[str, Any]]) -> int:
@@ -81,26 +81,26 @@ def _upsert_microdata(db: Session, records: list[dict[str, Any]]) -> int:
 
     Returns the number of records upserted.
     """
-    count = 0
-    for rec in records:
-        db.execute(
-            text("""
-                INSERT OR REPLACE INTO microdata
-                    (quarter, cuestionario, isla, aeropuerto, sexo, edad,
-                     nacionalidad, pais_residencia, proposito, noches,
-                     aloj_categ, gasto_euros, coste_vuelos_euros,
-                     coste_aloj_euros, satisfaccion, raw_json)
-                VALUES (:quarter, :cuestionario, :isla, :aeropuerto, :sexo,
-                        :edad, :nacionalidad, :pais_residencia, :proposito,
-                        :noches, :aloj_categ, :gasto_euros,
-                        :coste_vuelos_euros, :coste_aloj_euros,
-                        :satisfaccion, :raw_json)
-            """),
-            rec,
-        )
-        count += 1
+    if not records:
+        return 0
 
-    return count
+    db.execute(
+        text("""
+            INSERT OR REPLACE INTO microdata
+                (quarter, cuestionario, isla, aeropuerto, sexo, edad,
+                 nacionalidad, pais_residencia, proposito, noches,
+                 aloj_categ, gasto_euros, coste_vuelos_euros,
+                 coste_aloj_euros, satisfaccion, raw_json)
+            VALUES (:quarter, :cuestionario, :isla, :aeropuerto, :sexo,
+                    :edad, :nacionalidad, :pais_residencia, :proposito,
+                    :noches, :aloj_categ, :gasto_euros,
+                    :coste_vuelos_euros, :coste_aloj_euros,
+                    :satisfaccion, :raw_json)
+        """),
+        records,
+    )
+
+    return len(records)
 
 
 def _trigger_retraining(db: Session, reason: str):
