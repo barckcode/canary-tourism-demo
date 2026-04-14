@@ -384,7 +384,7 @@ def get_spending_by_cluster(request: Request, db: Session = Depends(get_db)):
         categories.sort(key=lambda x: x["amount"], reverse=True)
         result[cid] = categories
 
-    return {"spending_by_cluster": result}
+    return {"spending_by_cluster": {str(cid): cats for cid, cats in result.items()}}
 
 
 @router.get("/{cluster_id}", response_model=ProfileDetailResponse)

@@ -162,7 +162,9 @@ def detailed_health_check(db: Session = Depends(get_db)):
     )
 
     # --- Data freshness ---
-    latest_period = db.query(func.max(TimeSeries.period)).scalar()
+    latest_period = db.query(func.max(TimeSeries.period)).filter(
+        TimeSeries.period.op("GLOB")("[0-9][0-9][0-9][0-9]-[0-9][0-9]")
+    ).scalar()
     days_since_update: int | None = None
     if latest_period:
         try:
