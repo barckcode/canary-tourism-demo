@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.database import Base, get_db
+from app.rate_limit import limiter
 from app.db.models import (
     Microdata,
     ModelMetric,
@@ -487,6 +488,15 @@ def setup_test_db():
         session.close()
     yield
     Base.metadata.drop_all(bind=test_engine)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Reset the rate limiter storage before each test to prevent 429 errors
+    when running the full test suite. Without this, request counts accumulate
+    across test modules and hit the 30/min limit."""
+    limiter.reset()
+    yield
 
 
 @pytest.fixture
