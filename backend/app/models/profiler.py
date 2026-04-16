@@ -46,8 +46,8 @@ IMPORTANCE_COLS = [
 
 CLUSTER_NAMES = {
     0: "Budget / Young / Short-stay",
-    1: "High-spend / Family",
-    2: "Budget / Older / Medium-stay",
+    1: "Budget / Older / Medium-stay",
+    2: "High-spend / Family",
     3: "Premium / Long-stay",
 }
 
@@ -178,7 +178,28 @@ class TouristProfiler:
             max_iter=300,
             random_state=42,
         )
-        self.labels = self.model.fit_predict(X)
+        raw_labels = self.model.fit_predict(X)
+
+        # ---- Stabilise cluster IDs by avg_spend ranking ----
+        # K-Means label assignment is non-deterministic across runs.
+        # Re-map so that the lowest-spending cluster always gets ID 0,
+        # the next gets ID 1, etc.  This makes IDs reproducible.
+        spend_col = pd.to_numeric(
+            self.raw_df.get("GASTO_EUROS", pd.Series(dtype=float)),
+            errors="coerce",
+        )
+        avg_spend_per_cluster = {}
+        for cid in range(self.n_clusters):
+            mask = raw_labels == cid
+            avg = spend_col[mask].mean()
+            avg_spend_per_cluster[cid] = avg if not np.isnan(avg) else 0.0
+
+        # Sort original IDs by ascending avg_spend
+        sorted_old_ids = sorted(avg_spend_per_cluster,
+                                key=avg_spend_per_cluster.get)
+        remap = {old: new for new, old in enumerate(sorted_old_ids)}
+        self.labels = np.array([remap[l] for l in raw_labels])
+
         self.is_fitted = True
 
         # Log cluster sizes

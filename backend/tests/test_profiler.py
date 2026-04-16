@@ -250,6 +250,34 @@ def test_find_optimal_k_respects_max_k():
     assert 2 <= k <= 3
 
 
+def test_profiler_cluster_ids_deterministic_by_spend(db):
+    """Cluster IDs must be deterministic: lowest avg_spend always gets ID 0."""
+    raw_jsons = _load_raw_jsons(db)
+
+    # Fit twice independently
+    profiler1 = TouristProfiler(n_clusters=4)
+    profiler1.fit(raw_jsons)
+    profiles1 = profiler1.get_profiles()
+
+    profiler2 = TouristProfiler(n_clusters=4)
+    profiler2.fit(raw_jsons)
+    profiles2 = profiler2.get_profiles()
+
+    # Same cluster IDs must map to the same avg_spend values
+    spends1 = {p["cluster_id"]: p["avg_spend"] for p in profiles1}
+    spends2 = {p["cluster_id"]: p["avg_spend"] for p in profiles2}
+    assert spends1 == spends2, (
+        f"Cluster spend mapping changed between runs: {spends1} vs {spends2}"
+    )
+
+    # Verify IDs are sorted by ascending spend
+    sorted_spends = sorted(spends1.values())
+    for i, spend in enumerate(sorted_spends):
+        assert spends1[i] == spend, (
+            f"Cluster {i} should have spend {spend} but has {spends1[i]}"
+        )
+
+
 def test_find_optimal_k_limited_by_samples():
     """When max_k exceeds n_samples-1, search range should be clamped."""
     profiler = TouristProfiler(n_clusters=4)
