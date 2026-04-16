@@ -9,7 +9,8 @@
     "exportCSV": "Export CSV",
     "exported": "Exported",
     "updated": "Updated",
-    "noDataAvailable": "No data available"
+    "noDataAvailable": "No data available",
+    "sampleData": "Sample data"
   },
   "nav": {
     "skipToMain": "Skip to main content",

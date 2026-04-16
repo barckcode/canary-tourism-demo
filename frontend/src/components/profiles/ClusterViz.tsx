@@ -17,6 +17,7 @@ interface ClusterVizProps {
   width: number;
   height: number;
   clusters?: ClusterData[];
+  loading?: boolean;
   onSelect?: (cluster: ClusterData | null) => void;
 }
 
@@ -69,12 +70,14 @@ export default function ClusterViz({
   width,
   height,
   clusters = DEFAULT_CLUSTERS,
+  loading = false,
   onSelect,
 }: ClusterVizProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const onSelectRef = useRef(onSelect);
   const { t } = useTranslation();
   const [selected, setSelected] = useState<number | null>(null);
+  const isUsingDefaults = clusters === DEFAULT_CLUSTERS;
 
   // Keep ref in sync so D3 event handlers always call the latest callback
   useEffect(() => { onSelectRef.current = onSelect; });
@@ -275,5 +278,29 @@ export default function ClusterViz({
     };
   }, [width, height, clusters, selected, t]);
 
-  return <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.clusterViz')} tabIndex={0} />;
+  if (loading) {
+    return (
+      <div
+        className="animate-pulse space-y-4"
+        style={{ width, height }}
+        role="status"
+        aria-live="polite"
+        aria-label={t('common.loading')}
+      >
+        <div className="h-8 bg-white/10 rounded w-1/3"></div>
+        <div className="h-64 bg-white/10 rounded"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.clusterViz')} tabIndex={0} />
+      {isUsingDefaults && (
+        <span className="text-xs text-amber-400/70 bg-amber-400/10 px-2 py-0.5 rounded inline-block mt-1">
+          {t('common.sampleData', 'Datos de ejemplo')}
+        </span>
+      )}
+    </div>
+  );
 }

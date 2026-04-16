@@ -27,10 +27,10 @@ export default function ProfilesPage() {
   const [selectedCluster, setSelectedClusterState] = useState<ClusterData | null>(
     null
   );
-  const { data: profilesData, error: profilesError, refetch: refetchProfiles } = useProfiles();
+  const { data: profilesData, loading: profilesLoading, error: profilesError, refetch: refetchProfiles } = useProfiles();
   const { data: detailData } = useProfileDetail(selectedCluster?.id ?? null);
   const { data: nationalityData, error: nationalityError, refetch: refetchNationality } = useNationalityProfiles();
-  const { data: flowData, error: flowError, refetch: refetchFlow } = useFlowData();
+  const { data: flowData, loading: flowLoading, error: flowError, refetch: refetchFlow } = useFlowData();
   const { data: spendingData } = useSpendingByCluster();
   const { data: trendsData, error: trendsError, refetch: refetchTrends } = useNationalityTrends();
 
@@ -210,6 +210,7 @@ export default function ProfilesPage() {
                     width={width}
                     height={height}
                     clusters={apiClusters}
+                    loading={profilesLoading}
                     onSelect={setSelectedCluster}
                   />
                 )}
@@ -470,7 +471,7 @@ export default function ProfilesPage() {
             <ErrorBoundary>
               <ChartContainer height={420}>
                 {({ width, height }) => (
-                  <SankeyFlow width={width} height={height} data={flowData} />
+                  <SankeyFlow width={width} height={height} loading={flowLoading} data={flowData} />
                 )}
               </ChartContainer>
             </ErrorBoundary>

@@ -11,6 +11,7 @@ import {
 interface SankeyFlowProps {
   width: number;
   height: number;
+  loading?: boolean;
   data?: {
     nodes: { id: string; label: string }[];
     links: { source: string; target: string; value: number }[];
@@ -126,7 +127,7 @@ function convertApiData(apiData: {
   return { nodes, links };
 }
 
-export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowProps) {
+export default function SankeyFlow({ width, height, loading = false, data: apiData }: SankeyFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isMockData, setIsMockData] = useState(false);
   const { t } = useTranslation();
@@ -228,19 +229,21 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
       .attr("font-size", "11px")
       .text((d) => d.name);
 
-    // Category labels (top) — adapt to 2-level (API) or 3-level (mock)
+    // Category labels (top) — dynamically derived from data
     const uniqueCategories = [...new Set(data.nodes.map((n) => n.category))];
+    const N = uniqueCategories.length;
     const categoryLabels: { label: string; x: number; anchor: string }[] =
-      uniqueCategories.length === 2
-        ? [
-            { label: "Country", x: 0, anchor: "start" },
-            { label: "Accommodation", x: w, anchor: "end" },
-          ]
-        : [
-            { label: "Country", x: 0, anchor: "start" },
-            { label: "Zone", x: w / 2, anchor: "middle" },
-            { label: "Accommodation", x: w, anchor: "end" },
-          ];
+      N <= 1
+        ? uniqueCategories.map((cat) => ({
+            label: cat.charAt(0).toUpperCase() + cat.slice(1),
+            x: w / 2,
+            anchor: "middle",
+          }))
+        : uniqueCategories.map((cat, i) => ({
+            label: cat.charAt(0).toUpperCase() + cat.slice(1),
+            x: (i / (N - 1)) * w,
+            anchor: i === 0 ? "start" : i === N - 1 ? "end" : "middle",
+          }));
     g.append("g")
       .selectAll("text")
       .data(categoryLabels)
@@ -260,11 +263,28 @@ export default function SankeyFlow({ width, height, data: apiData }: SankeyFlowP
     };
   }, [width, height, apiData, t]);
 
+  if (loading) {
+    return (
+      <div
+        className="animate-pulse space-y-4"
+        style={{ width, height }}
+        role="status"
+        aria-live="polite"
+        aria-label={t('common.loading')}
+      >
+        <div className="h-8 bg-white/10 rounded w-1/3"></div>
+        <div className="h-64 bg-white/10 rounded"></div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.sankeyFlow')} />
       {isMockData && (
-        <p className="text-xs text-gray-500 mt-1">{t('profiles.sampleData')}</p>
+        <span className="text-xs text-amber-400/70 bg-amber-400/10 px-2 py-0.5 rounded inline-block mt-1">
+          {t('common.sampleData', 'Datos de ejemplo')}
+        </span>
       )}
     </div>
   );

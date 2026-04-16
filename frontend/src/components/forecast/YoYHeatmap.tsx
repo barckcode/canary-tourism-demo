@@ -204,14 +204,14 @@ export default function YoYHeatmap({ width, height }: YoYHeatmapProps) {
   if (loading) {
     return (
       <div
-        className="flex items-center justify-center"
+        className="animate-pulse space-y-4 p-4"
         style={{ width, height }}
         role="status"
         aria-live="polite"
+        aria-label={t('common.loading')}
       >
-        <div className="text-gray-400 text-sm animate-pulse">
-          Loading heatmap data...
-        </div>
+        <div className="h-6 bg-white/10 rounded w-1/4"></div>
+        <div className="flex-1 h-48 bg-white/10 rounded"></div>
       </div>
     );
   }

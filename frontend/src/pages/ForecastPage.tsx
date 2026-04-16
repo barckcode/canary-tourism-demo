@@ -56,8 +56,8 @@ export default function ForecastPage() {
   }, [setSearchParams]);
 
   // Real API data (will fail gracefully if backend not running)
-  const { data: tsData, error: tsError, refetch: refetchTs } = useTimeSeries("turistas");
-  const { data: predData, error: predError, refetch: refetchPred } = usePredictions("turistas", "ES709", 12, selectedModel);
+  const { data: tsData, loading: tsLoading, error: tsError, refetch: refetchTs } = useTimeSeries("turistas");
+  const { data: predData, loading: predLoading, error: predError, refetch: refetchPred } = usePredictions("turistas", "ES709", 12, selectedModel);
   const { data: scenarioData, runScenario, loading: scenarioLoading, error: scenarioError } = useScenarios();
   const { data: compareData, loading: compareLoading, error: compareError, refetch: refetchCompare } = usePredictionCompare();
   const { data: trainingInfo } = useTrainingInfo();
@@ -339,6 +339,12 @@ export default function ForecastPage() {
           title={t('forecast.forecastChart')}
           subtitle={t('forecast.forecastChartSubtitle')}
         >
+          {(tsLoading || predLoading) ? (
+            <div className="animate-pulse space-y-4" role="status" aria-label={t('common.loading')}>
+              <div className="h-8 bg-white/10 rounded w-1/4"></div>
+              <div className="h-72 bg-white/10 rounded"></div>
+            </div>
+          ) : (
           <ErrorBoundary>
             <div className={isMockData ? "relative" : ""}>
               {isMockData && (
@@ -370,6 +376,7 @@ export default function ForecastPage() {
               </div>
             </div>
           </ErrorBoundary>
+          )}
         </Panel>
       </motion.div>
 
