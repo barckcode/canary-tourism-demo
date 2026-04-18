@@ -68,6 +68,12 @@ def get_timeseries(
     _validate_period(from_period, "from_period")
     _validate_period(to_period, "to_period")
 
+    if from_period and to_period and from_period > to_period:
+        raise HTTPException(
+            status_code=400,
+            detail="'from' period must be before or equal to 'to' period",
+        )
+
     q = db.query(TimeSeries).filter(
         TimeSeries.indicator == indicator,
         TimeSeries.geo_code == geo,
@@ -89,7 +95,7 @@ def get_timeseries(
     )
 
     return {
-        "data": [{"period": r.period, "value": r.value} for r in results],
+        "data": [{"period": r.period, "value": r.value} for r in results if r.value is not None],
         "pagination": {
             "total": total,
             "page": page,
