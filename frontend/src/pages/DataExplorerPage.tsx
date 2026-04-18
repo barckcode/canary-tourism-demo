@@ -113,10 +113,12 @@ export default function DataExplorerPage() {
     if (selectedIndicators.length !== 1) return [];
     const tsData = tsResults[0]?.data;
     if (!tsData?.data) return [];
-    return tsData.data.map((d) => ({
-      date: new Date(d.period + "-01"),
-      value: d.value,
-    }));
+    return tsData.data
+      .filter((d) => d.value != null)
+      .map((d) => ({
+        date: new Date(d.period + "-01"),
+        value: d.value,
+      }));
   }, [selectedIndicators.length, tsResults]);
 
   // Multi-indicator mode: series data for ComparisonChart
@@ -128,7 +130,7 @@ export default function DataExplorerPage() {
         if (!tsData?.data) return null;
         return {
           name,
-          data: tsData.data,
+          data: tsData.data.filter((d) => d.value != null),
           color: SERIES_COLORS[i],
         };
       })
@@ -141,9 +143,11 @@ export default function DataExplorerPage() {
     selectedIndicators.forEach((name, i) => {
       const tsData = tsResults[i]?.data;
       if (!tsData?.data) return;
-      tsData.data.forEach((d) => {
-        rows.push([name, d.period, d.value]);
-      });
+      tsData.data
+        .filter((d) => d.value != null)
+        .forEach((d) => {
+          rows.push([name, d.period, d.value]);
+        });
     });
     return rows;
   }, [selectedIndicators, tsResults]);
