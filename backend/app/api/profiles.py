@@ -82,17 +82,31 @@ def get_profiles(request: Request, db: Session = Depends(get_db)):
 
         # Convert nationality codes to labeled objects
         raw_nationalities = safe_json_loads(p.top_nationalities)
-        nat_entries = [
-            {"nationality": NATIONALITY_LABELS.get(code, code), "percentage": 0}
-            for code in raw_nationalities
-        ] if isinstance(raw_nationalities, list) else []
+        nat_entries = []
+        if isinstance(raw_nationalities, list):
+            for item in raw_nationalities:
+                if isinstance(item, dict):
+                    nat_entries.append({
+                        "nationality": NATIONALITY_LABELS.get(item.get("value", ""), item.get("value", "")),
+                        "percentage": item.get("percentage", 0),
+                    })
+                else:
+                    # Legacy format: plain string code
+                    nat_entries.append({"nationality": NATIONALITY_LABELS.get(item, item), "percentage": 0})
 
         # Convert accommodation codes to labeled objects
         raw_accommodations = safe_json_loads(p.top_accommodations)
-        acc_entries = [
-            {"type": ACCOMMODATION_LABELS.get(code, code), "percentage": 0}
-            for code in raw_accommodations
-        ] if isinstance(raw_accommodations, list) else []
+        acc_entries = []
+        if isinstance(raw_accommodations, list):
+            for item in raw_accommodations:
+                if isinstance(item, dict):
+                    acc_entries.append({
+                        "type": ACCOMMODATION_LABELS.get(item.get("value", ""), item.get("value", "")),
+                        "percentage": item.get("percentage", 0),
+                    })
+                else:
+                    # Legacy format: plain string code
+                    acc_entries.append({"type": ACCOMMODATION_LABELS.get(item, item), "percentage": 0})
 
         clusters.append({
             "id": p.cluster_id,
@@ -407,17 +421,31 @@ def get_profile_detail(
 
     # Convert nationality codes to labeled objects
     raw_nationalities = safe_json_loads(profile.top_nationalities)
-    nat_entries = [
-        {"nationality": NATIONALITY_LABELS.get(code, code), "percentage": 0}
-        for code in raw_nationalities
-    ] if isinstance(raw_nationalities, list) else []
+    nat_entries = []
+    if isinstance(raw_nationalities, list):
+        for item in raw_nationalities:
+            if isinstance(item, dict):
+                nat_entries.append({
+                    "nationality": NATIONALITY_LABELS.get(item.get("value", ""), item.get("value", "")),
+                    "percentage": item.get("percentage", 0),
+                })
+            else:
+                # Legacy format: plain string code
+                nat_entries.append({"nationality": NATIONALITY_LABELS.get(item, item), "percentage": 0})
 
     # Convert accommodation codes to labeled objects
     raw_accommodations = safe_json_loads(profile.top_accommodations)
-    acc_entries = [
-        {"type": ACCOMMODATION_LABELS.get(code, code), "percentage": 0}
-        for code in raw_accommodations
-    ] if isinstance(raw_accommodations, list) else []
+    acc_entries = []
+    if isinstance(raw_accommodations, list):
+        for item in raw_accommodations:
+            if isinstance(item, dict):
+                acc_entries.append({
+                    "type": ACCOMMODATION_LABELS.get(item.get("value", ""), item.get("value", "")),
+                    "percentage": item.get("percentage", 0),
+                })
+            else:
+                # Legacy format: plain string code
+                acc_entries.append({"type": ACCOMMODATION_LABELS.get(item, item), "percentage": 0})
 
     return {
         "id": profile.cluster_id,

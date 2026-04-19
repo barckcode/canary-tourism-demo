@@ -231,6 +231,20 @@ class TouristProfiler:
         )
         return [k for k, _ in counts.most_common(n)]
 
+    @staticmethod
+    def _top_items_with_pct(series, n: int = 5) -> list[dict]:
+        """Return the top *n* most common non-placeholder values with percentage."""
+        counts = Counter(
+            v for v in series if v and v not in ("_Z", "_U", "_N")
+        )
+        total = sum(counts.values())
+        if total == 0:
+            return []
+        return [
+            {"value": k, "percentage": round(v / total * 100, 1)}
+            for k, v in counts.most_common(n)
+        ]
+
     def get_profiles(self) -> list[dict]:
         """Return cluster profile summaries."""
         if not self.is_fitted:
@@ -246,8 +260,8 @@ class TouristProfiler:
 
             stats = self._compute_cluster_stats(cluster_df)
 
-            top_nat = self._top_items(cluster_df.get("NACIONALIDAD", []), 5)
-            top_acc = self._top_items(cluster_df.get("ALOJ_CATEG", []), 5)
+            top_nat = self._top_items_with_pct(cluster_df.get("NACIONALIDAD", []), 5)
+            top_acc = self._top_items_with_pct(cluster_df.get("ALOJ_CATEG", []), 5)
 
             # Top activities (columns where > 30% of cluster did it)
             top_activities = []

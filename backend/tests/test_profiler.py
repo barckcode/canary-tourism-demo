@@ -89,7 +89,7 @@ def test_profiler_avg_spend_positive(db):
 
 
 def test_profiler_nationalities_are_lists(db):
-    """Top nationalities should be non-empty lists."""
+    """Top nationalities should be non-empty lists of dicts with value and percentage."""
     raw_jsons = _load_raw_jsons(db)
     profiler = TouristProfiler(n_clusters=4)
     profiler.fit(raw_jsons)
@@ -100,6 +100,40 @@ def test_profiler_nationalities_are_lists(db):
         assert len(p["top_nationalities"]) > 0, (
             f"Cluster {p['cluster_id']} has no nationalities"
         )
+        for entry in p["top_nationalities"]:
+            assert isinstance(entry, dict), f"Expected dict, got {type(entry)}"
+            assert "value" in entry, "Missing 'value' key in nationality entry"
+            assert "percentage" in entry, "Missing 'percentage' key in nationality entry"
+            assert entry["percentage"] > 0, f"Percentage should be > 0, got {entry['percentage']}"
+
+
+def test_profiler_accommodations_have_percentages(db):
+    """Top accommodations should be dicts with value and percentage."""
+    raw_jsons = _load_raw_jsons(db)
+    profiler = TouristProfiler(n_clusters=4)
+    profiler.fit(raw_jsons)
+    profiles = profiler.get_profiles()
+
+    for p in profiles:
+        assert isinstance(p["top_accommodations"], list)
+        for entry in p["top_accommodations"]:
+            assert isinstance(entry, dict), f"Expected dict, got {type(entry)}"
+            assert "value" in entry, "Missing 'value' key in accommodation entry"
+            assert "percentage" in entry, "Missing 'percentage' key in accommodation entry"
+            assert entry["percentage"] > 0, f"Percentage should be > 0, got {entry['percentage']}"
+
+
+def test_profiler_nationality_percentages_sum_to_reasonable_total(db):
+    """Top nationality percentages should sum to <= 100."""
+    raw_jsons = _load_raw_jsons(db)
+    profiler = TouristProfiler(n_clusters=4)
+    profiler.fit(raw_jsons)
+    profiles = profiler.get_profiles()
+
+    for p in profiles:
+        total = sum(entry["percentage"] for entry in p["top_nationalities"])
+        assert total <= 100.1, f"Cluster {p['cluster_id']} nationality percentages sum to {total}"
+        assert total > 0, f"Cluster {p['cluster_id']} has zero total percentage"
 
 
 def test_profiler_cluster_names_fallback_with_extra_clusters(db):
