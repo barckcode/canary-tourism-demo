@@ -296,14 +296,14 @@ class ScenarioEngine:
             # Standard error grows with the square root of horizon
             se = residual_std * np.sqrt(h) if residual_std > 0 else 0.0
 
-            # Baseline prediction
+            # Baseline prediction (clamped to non-negative: arrivals cannot be negative)
             X_base = pd.DataFrame([feat], columns=self.feature_names).fillna(0)
-            base_pred = float(self.model.predict(X_base)[0])
+            base_pred = max(0.0, float(self.model.predict(X_base)[0]))
             base_point: dict = {"period": period_str, "value": round(base_pred)}
             if se > 0:
-                base_point["ci_lower_80"] = round(base_pred - 1.28 * se)
+                base_point["ci_lower_80"] = max(0, round(base_pred - 1.28 * se))
                 base_point["ci_upper_80"] = round(base_pred + 1.28 * se)
-                base_point["ci_lower_95"] = round(base_pred - 1.96 * se)
+                base_point["ci_lower_95"] = max(0, round(base_pred - 1.96 * se))
                 base_point["ci_upper_95"] = round(base_pred + 1.96 * se)
             baseline.append(base_point)
 
@@ -312,12 +312,12 @@ class ScenarioEngine:
                 feat, occupancy_change_pct, adr_change_pct, foreign_ratio_change_pct
             )
             X_sc = pd.DataFrame([feat_sc], columns=self.feature_names).fillna(0)
-            sc_pred = float(self.model.predict(X_sc)[0])
+            sc_pred = max(0.0, float(self.model.predict(X_sc)[0]))
             sc_point: dict = {"period": period_str, "value": round(sc_pred)}
             if se > 0:
-                sc_point["ci_lower_80"] = round(sc_pred - 1.28 * se)
+                sc_point["ci_lower_80"] = max(0, round(sc_pred - 1.28 * se))
                 sc_point["ci_upper_80"] = round(sc_pred + 1.28 * se)
-                sc_point["ci_lower_95"] = round(sc_pred - 1.96 * se)
+                sc_point["ci_lower_95"] = max(0, round(sc_pred - 1.96 * se))
                 sc_point["ci_upper_95"] = round(sc_pred + 1.96 * se)
             scenario.append(sc_point)
 

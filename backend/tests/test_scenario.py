@@ -334,3 +334,37 @@ def test_singleton_reuses_fitted_engine():
 
     # Clean up
     scenarios_mod._engine = None
+
+
+# ---------- Bug #3: Negative predictions clamping ----------
+
+
+def test_scenario_extreme_inputs_non_negative():
+    """Extreme pessimistic scenario should never produce negative arrivals.
+
+    With -90% changes on all inputs, the GBR model could predict negative
+    tourist arrivals. The engine must clamp all values to zero or above.
+    """
+    engine = _make_fitted_engine()
+    # Set a large residual_std to ensure CI bands go wide
+    engine._residual_std = 500_000.0
+
+    result = engine.predict_scenario(
+        db=MagicMock(),
+        occupancy_change_pct=-90.0,
+        adr_change_pct=-90.0,
+        foreign_ratio_change_pct=-90.0,
+        horizon=12,
+    )
+
+    for point in result["scenario_forecast"]:
+        assert point["value"] >= 0, f"Negative scenario prediction: {point}"
+        for key in ("ci_lower_80", "ci_lower_95"):
+            if key in point:
+                assert point[key] >= 0, f"Negative scenario CI: {key}={point[key]}"
+
+    for point in result["baseline_forecast"]:
+        assert point["value"] >= 0, f"Negative baseline prediction: {point}"
+        for key in ("ci_lower_80", "ci_lower_95"):
+            if key in point:
+                assert point[key] >= 0, f"Negative baseline CI: {key}={point[key]}"
