@@ -103,6 +103,41 @@ def test_dashboard_kpis_yoy_change(client):
     )
 
 
+def test_dashboard_kpis_with_period(client):
+    """KPIs endpoint returns data for a specific period."""
+    r = client.get("/api/dashboard/kpis?period=2024-06")
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("latest_period") == "2024-06"
+    assert data["latest_arrivals"] is not None
+    assert data["latest_arrivals"] > 0
+
+
+def test_dashboard_kpis_invalid_period(client):
+    """KPIs endpoint rejects invalid period format."""
+    r = client.get("/api/dashboard/kpis?period=abc")
+    assert r.status_code == 400
+    assert "period" in r.json()["detail"]
+
+
+def test_dashboard_kpis_period_no_data(client):
+    """KPIs endpoint returns gracefully when period has no data."""
+    r = client.get("/api/dashboard/kpis?period=1999-01")
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("data_available") is False
+
+
+def test_dashboard_kpis_without_period_returns_latest(client):
+    """KPIs endpoint without period still returns the latest data."""
+    r = client.get("/api/dashboard/kpis")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["latest_arrivals"] is not None
+    # Latest period should be 2025-12 based on seeded data
+    assert data["latest_period"] == "2025-12"
+
+
 def test_dashboard_summary_trends(client):
     """Summary should include arrival and occupancy trends."""
     r = client.get("/api/dashboard/summary")

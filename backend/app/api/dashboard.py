@@ -85,12 +85,23 @@ router = APIRouter()
 
 @router.get("/kpis", response_model=DashboardKPIsResponse)
 @limiter.limit("60/minute")
-def get_kpis(request: Request, db: Session = Depends(get_db)):
-    """Return latest KPI values for the dashboard."""
+def get_kpis(
+    request: Request,
+    period: str = Query(None, description="Period in YYYY-MM format. If omitted, latest available."),
+    db: Session = Depends(get_db),
+):
+    """Return latest KPI values for the dashboard.
+
+    Optionally accepts a ``period`` query parameter (YYYY-MM) so the frontend
+    TimeSlider can request KPIs for a specific month.  When omitted the most
+    recent available data is returned.
+    """
+    _validate_period(period, "period")
+
     kpis = {}
 
     # Latest arrivals
-    latest = _latest_value(db, "turistas", "ES709")
+    latest = _latest_value(db, "turistas", "ES709", period=period)
     if latest and latest.value is not None:
         kpis["latest_arrivals"] = latest.value
         kpis["latest_period"] = latest.period
@@ -105,27 +116,27 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # Occupancy rate
-    occ = _latest_value(db, "alojatur_habitaciones_ocupacion", "ES709")
+    occ = _latest_value(db, "alojatur_habitaciones_ocupacion", "ES709", period=period)
     if occ:
         kpis["occupancy_rate"] = occ.value
 
     # ADR
-    adr = _latest_value(db, "alojatur_ingresos_habitacion", "ES709")
+    adr = _latest_value(db, "alojatur_ingresos_habitacion", "ES709", period=period)
     if adr:
         kpis["adr"] = adr.value
 
     # RevPAR = Revenue Per Available Room (ISTAC: ALOJATUR_REVPAR)
-    revpar = _latest_value(db, "alojatur_revpar", "ES709")
+    revpar = _latest_value(db, "alojatur_revpar", "ES709", period=period)
     if revpar:
         kpis["revpar"] = revpar.value
 
     # Average stay
-    avg_stay = _latest_value(db, "alojatur_estancias_medias", "ES709")
+    avg_stay = _latest_value(db, "alojatur_estancias_medias", "ES709", period=period)
     if avg_stay:
         kpis["avg_stay"] = avg_stay.value
 
     # Egatur: average daily spending per tourist (Canarias)
-    daily_spend = _latest_value(db, "egatur_gasto_medio_diario_canarias", "ES70")
+    daily_spend = _latest_value(db, "egatur_gasto_medio_diario_canarias", "ES70", period=period)
     if daily_spend and daily_spend.value is not None:
         kpis["daily_spend"] = daily_spend.value
         if daily_spend.period and len(daily_spend.period) >= 4:
@@ -139,7 +150,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # Egatur: average stay duration from INE (Canarias)
-    avg_stay_ine = _latest_value(db, "egatur_estancia_media_canarias", "ES70")
+    avg_stay_ine = _latest_value(db, "egatur_estancia_media_canarias", "ES70", period=period)
     if avg_stay_ine and avg_stay_ine.value is not None:
         kpis["avg_stay_ine"] = avg_stay_ine.value
         if avg_stay_ine.period and len(avg_stay_ine.period) >= 4:
@@ -153,7 +164,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # EPA: Total occupied persons in Canarias (thousands)
-    emp_total = _latest_value(db, "epa_ocupados_total_canarias", "ES70")
+    emp_total = _latest_value(db, "epa_ocupados_total_canarias", "ES70", period=period)
     if emp_total and emp_total.value is not None:
         kpis["employment_total"] = emp_total.value
         if emp_total.period and len(emp_total.period) >= 4:
@@ -167,7 +178,7 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # EPA: Occupied persons in services sector in Canarias (thousands)
-    emp_services = _latest_value(db, "epa_ocupados_servicios_canarias", "ES70")
+    emp_services = _latest_value(db, "epa_ocupados_servicios_canarias", "ES70", period=period)
     if emp_services and emp_services.value is not None:
         kpis["employment_services"] = emp_services.value
         if emp_services.period and len(emp_services.period) >= 4:
@@ -181,11 +192,11 @@ def get_kpis(request: Request, db: Session = Depends(get_db)):
                 )
 
     # Hotel Price Index (IPH) - Canarias
-    iph_index = _latest_value(db, "iph_indice_canarias", "ES70")
+    iph_index = _latest_value(db, "iph_indice_canarias", "ES70", period=period)
     if iph_index and iph_index.value is not None:
         kpis["iph_index"] = iph_index.value
 
-    iph_var = _latest_value(db, "iph_variacion_canarias", "ES70")
+    iph_var = _latest_value(db, "iph_variacion_canarias", "ES70", period=period)
     if iph_var and iph_var.value is not None:
         kpis["iph_variation"] = iph_var.value
 
