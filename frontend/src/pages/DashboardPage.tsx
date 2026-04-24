@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { formatCompactNumber } from "../utils/format";
@@ -103,20 +103,15 @@ const kpiConfig: KpiConfigItem[] = [
 export default function DashboardPage() {
   const { t } = useTranslation();
   usePageTitle("nav.dashboard");
-  const { data: kpis, loading, error: kpisError, refetch: refetchKpis } = useDashboardKPIs();
+  const [selectedPeriod, setSelectedPeriod] = useState(getDefaultPeriod);
+  const { data: kpis, loading, error: kpisError, refetch: refetchKpis } = useDashboardKPIs(selectedPeriod);
   const { data: summary, error: summaryError, refetch: refetchSummary } = useDashboardSummary();
   const { data: topMarkets, loading: marketsLoading, error: marketsError, refetch: refetchMarkets } = useTopMarkets();
   const { data: seasonal, loading: seasonalLoading, error: seasonalError, refetch: refetchSeasonal } = useSeasonalPosition();
-  const [selectedPeriod, setSelectedPeriod] = useState(getDefaultPeriod);
   const handlePeriodChange = useCallback((period: string) => {
     setSelectedPeriod(period);
   }, []);
 
-  useEffect(() => {
-    if (kpis?.latest_period) {
-      setSelectedPeriod(kpis.latest_period);
-    }
-  }, [kpis?.latest_period]);
 
   const csvRows = useMemo<(string | number)[][]>(() => {
     if (!kpis) return [];
@@ -156,6 +151,13 @@ export default function DashboardPage() {
             ariaLabel={t('dashboard.exportAriaLabel')}
           />
         </div>
+      </motion.div>
+
+      {/* Viewing period indicator */}
+      <motion.div variants={fadeUp} className="flex items-center gap-2">
+        <span className="text-xs text-gray-500">
+          {t('dashboard.viewingPeriod')}: {selectedPeriod || kpis?.latest_period || '\u2014'}
+        </span>
       </motion.div>
 
       {/* KPI cards */}

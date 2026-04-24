@@ -106,9 +106,10 @@ export interface DashboardKPIs {
   last_updated: string;
 }
 
-export function useDashboardKPIs() {
+export function useDashboardKPIs(period?: string) {
   return useQuery<DashboardKPIs>(
-    (signal) => api.dashboard.kpis({ signal }) as Promise<DashboardKPIs>
+    (signal) => api.dashboard.kpis(period, { signal }) as Promise<DashboardKPIs>,
+    [period]
   );
 }
 

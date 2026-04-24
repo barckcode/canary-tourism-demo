@@ -29,7 +29,7 @@ const mockUseTopMarkets = vi.fn();
 const mockUseSeasonalPosition = vi.fn();
 
 vi.mock("../api/hooks", () => ({
-  useDashboardKPIs: () => mockUseDashboardKPIs(),
+  useDashboardKPIs: (...args: unknown[]) => mockUseDashboardKPIs(...args),
   useDashboardSummary: () => mockUseDashboardSummary(),
   useTopMarkets: () => mockUseTopMarkets(),
   useSeasonalPosition: () => mockUseSeasonalPosition(),

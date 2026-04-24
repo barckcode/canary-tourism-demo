@@ -52,7 +52,10 @@ export interface ApiCallOptions {
 
 export const api = {
   dashboard: {
-    kpis: (opts?: ApiCallOptions) => fetchJSON("/dashboard/kpis", { signal: opts?.signal }),
+    kpis: (period?: string, opts?: ApiCallOptions) => {
+      const params = period ? `?period=${period}` : "";
+      return fetchJSON(`/dashboard/kpis${params}`, { signal: opts?.signal });
+    },
     summary: (opts?: ApiCallOptions) => fetchJSON("/dashboard/summary", { signal: opts?.signal }),
     topMarkets: (opts?: ApiCallOptions) => fetchJSON("/dashboard/top-markets", { signal: opts?.signal }),
     seasonalPosition: (opts?: ApiCallOptions) => fetchJSON("/dashboard/seasonal-position", { signal: opts?.signal }),

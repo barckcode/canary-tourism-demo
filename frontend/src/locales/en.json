@@ -74,7 +74,8 @@
     "employmentTotal": "Total Employment Canarias",
     "employmentServices": "Services Employment",
     "iphIndex": "Hotel Price Index",
-    "dataAsOf": "Data as of: {{period}}"
+    "dataAsOf": "Data as of: {{period}}",
+    "viewingPeriod": "Viewing period"
   },
   "forecast": {
     "title": "Prediction Engine",
