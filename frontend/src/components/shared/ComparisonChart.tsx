@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { formatCompactNumber } from "../../utils/format";
 import { setupTooltipKeyboardDismiss } from "../../utils/chartAccessibility";
+import { parsePeriodToDate } from "../../utils/dateUtils";
 
 export interface SeriesData {
   name: string;
@@ -34,7 +35,7 @@ function parseSeries(series: SeriesData[]): ParsedSeries[] {
     color: s.color,
     points: s.data
       .map((d) => ({
-        date: new Date(d.period + "-01"),
+        date: parsePeriodToDate(d.period),
         value: d.value,
       }))
       .sort((a, b) => a.date.getTime() - b.date.getTime()),

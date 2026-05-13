@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { formatCompactNumber } from "../../utils/format";
+import { parsePeriodToDate } from "../../utils/dateUtils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,11 +64,11 @@ export function parseScenarioData(data: ScenarioResultData): {
   combinedData: CombinedPoint[];
 } {
   const baselineData = data.baseline_forecast.map((d) => ({
-    date: new Date(d.period + "-01"),
+    date: parsePeriodToDate(d.period),
     value: d.value,
   }));
   const scenarioData = data.scenario_forecast.map((d) => ({
-    date: new Date(d.period + "-01"),
+    date: parsePeriodToDate(d.period),
     value: d.value,
   }));
   const combinedData = baselineData.map((b, i) => ({

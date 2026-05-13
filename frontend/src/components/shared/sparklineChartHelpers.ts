@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import { formatCompactNumber } from "../../utils/format";
 import { setupTooltipKeyboardDismiss } from "../../utils/chartAccessibility";
+import { parsePeriodToDate } from "../../utils/dateUtils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,9 +40,9 @@ export const MARGIN = { top: 8, right: 12, bottom: 20, left: 6 };
 // Pure helpers
 // ---------------------------------------------------------------------------
 
+/** @deprecated Use parsePeriodToDate from utils/dateUtils instead */
 export function parsePeriod(p: string): Date {
-  const [year, month] = p.split("-").map(Number);
-  return new Date(year, month - 1, 1);
+  return parsePeriodToDate(p);
 }
 
 export function parsePoints(data: SparklineDataPoint[]): ParsedPoint[] {

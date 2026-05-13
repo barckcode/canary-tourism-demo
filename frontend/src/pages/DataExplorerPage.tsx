@@ -14,6 +14,7 @@ import ComparisonChart, {
 } from "../components/shared/ComparisonChart";
 import ErrorState from "../components/shared/ErrorState";
 import { useIndicators, useTimeSeries, useProvinceComparison, useAccommodationComparison } from "../api/hooks";
+import { parsePeriodToDate } from "../utils/dateUtils";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 const MAX_INDICATORS = 3;
@@ -116,7 +117,7 @@ export default function DataExplorerPage() {
     return tsData.data
       .filter((d) => d.value != null)
       .map((d) => ({
-        date: new Date(d.period + "-01"),
+        date: parsePeriodToDate(d.period),
         value: d.value,
       }));
   }, [selectedIndicators.length, tsResults]);

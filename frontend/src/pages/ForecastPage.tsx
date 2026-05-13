@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { stagger, fadeUp } from "../utils/animations";
+import { parsePeriodToDate } from "../utils/dateUtils";
 import Panel from "../components/layout/Panel";
 import ChartContainer from "../components/shared/ChartContainer";
 import ExportCSVButton from "../components/shared/ExportCSVButton";
@@ -134,11 +135,11 @@ export default function ForecastPage() {
   const chartData = useMemo(() => {
     if (tsData?.data && predData?.forecast) {
       const historical: ChartTimePoint[] = tsData.data.map((d) => ({
-        date: new Date(d.period + "-01"),
+        date: parsePeriodToDate(d.period),
         value: d.value,
       }));
       const forecast: ChartForecastPoint[] = predData.forecast.map((d) => ({
-        date: new Date(d.period + "-01"),
+        date: parsePeriodToDate(d.period),
         value: d.value,
         ci80Lower: d.ci_lower_80,
         ci80Upper: d.ci_upper_80,
