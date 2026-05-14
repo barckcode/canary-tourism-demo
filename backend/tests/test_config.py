@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from app.config import _read_version, settings
+from app.config import Settings, _read_version, settings
 
 
 def test_app_version_matches_version_file():
@@ -37,3 +37,27 @@ def test_read_version_reads_file_content(tmp_path):
         mock_resolve.parent.parent.parent.__truediv__ = lambda self, name: tmp_path / name
         result = _read_version()
     assert result == "1.2.3"
+
+
+def test_cors_origins_default():
+    """Default cors_origins includes localhost dev servers."""
+    s = Settings()
+    assert "http://localhost:5173" in s.cors_origins
+    assert "http://localhost:3000" in s.cors_origins
+
+
+def test_cors_origins_from_env_with_prefix(monkeypatch):
+    """TOURISM_CORS_ORIGINS_STR env var is parsed as comma-separated list."""
+    monkeypatch.setenv(
+        "TOURISM_CORS_ORIGINS_STR",
+        "https://app.example.com, https://staging.example.com",
+    )
+    s = Settings()
+    assert s.cors_origins == ["https://app.example.com", "https://staging.example.com"]
+
+
+def test_cors_origins_single_value_from_env(monkeypatch):
+    """A single origin in TOURISM_CORS_ORIGINS_STR works correctly."""
+    monkeypatch.setenv("TOURISM_CORS_ORIGINS_STR", "https://app.example.com")
+    s = Settings()
+    assert s.cors_origins == ["https://app.example.com"]
