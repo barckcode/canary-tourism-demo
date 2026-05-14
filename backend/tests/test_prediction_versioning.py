@@ -124,6 +124,47 @@ def test_compare_endpoint_returns_only_current(client, db):
 
 
 # ---------------------------------------------------------------------------
+# Dynamic model discovery tests
+# ---------------------------------------------------------------------------
+
+def test_compare_endpoint_discovers_new_model(client, db):
+    """GET /predictions/compare should discover models dynamically from the DB.
+
+    If a new model is inserted, it must appear in the compare response without
+    any code change (i.e., no hardcoded model list).
+    """
+    # Insert predictions for a brand-new model name
+    for i in range(1, 4):
+        db.execute(
+            text("""
+                INSERT INTO predictions
+                    (model, indicator, geo_code, period, value_predicted,
+                     version, is_current)
+                VALUES ('custom_xgboost', 'turistas', 'ES709', :period,
+                        :value, 1, 1)
+            """),
+            {"period": f"2027-{i:02d}", "value": 50000.0 + i * 1000},
+        )
+    db.commit()
+
+    r = client.get("/api/predictions/compare?indicator=turistas&geo=ES709")
+    assert r.status_code == 200
+    data = r.json()
+
+    # The dynamically-inserted model must appear in the response
+    assert "custom_xgboost" in data["models"], (
+        "compare endpoint should discover models dynamically from the DB"
+    )
+    assert len(data["models"]["custom_xgboost"]) == 3
+
+    # Clean up
+    db.execute(
+        text("DELETE FROM predictions WHERE model = 'custom_xgboost'")
+    )
+    db.commit()
+
+
+# ---------------------------------------------------------------------------
 # History endpoint tests
 # ---------------------------------------------------------------------------
 

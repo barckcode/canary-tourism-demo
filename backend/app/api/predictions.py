@@ -1,6 +1,7 @@
 """Prediction and forecast endpoints."""
 
 from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy import distinct
 from sqlalchemy.orm import Session
 
 from app.api.schemas import (
@@ -113,8 +114,19 @@ def compare_models(
     """
     all_metrics = _get_metrics(db, indicator, geo)
 
+    # Discover available models dynamically from the database
+    available = (
+        db.query(distinct(Prediction.model))
+        .filter(
+            Prediction.indicator == indicator,
+            Prediction.geo_code == geo,
+            Prediction.is_current == True,  # noqa: E712
+        )
+        .all()
+    )
+
     models = {}
-    for model_name in ["sarima", "holt_winters", "seasonal_naive", "ensemble"]:
+    for (model_name,) in available:
         results = (
             db.query(Prediction)
             .filter(
@@ -220,8 +232,6 @@ def get_prediction_history(
     Each version includes the forecast points and the version metadata
     (version number and trained_at timestamp).
     """
-    from sqlalchemy import distinct
-
     # Get the last N distinct versions, ordered newest first
     version_rows = (
         db.query(distinct(Prediction.version), Prediction.trained_at)
