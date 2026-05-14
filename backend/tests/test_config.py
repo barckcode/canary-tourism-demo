@@ -47,9 +47,9 @@ def test_cors_origins_default():
 
 
 def test_cors_origins_from_env_with_prefix(monkeypatch):
-    """TOURISM_CORS_ORIGINS_STR env var is parsed as comma-separated list."""
+    """TOURISM_CORS_ORIGINS env var is parsed as comma-separated list."""
     monkeypatch.setenv(
-        "TOURISM_CORS_ORIGINS_STR",
+        "TOURISM_CORS_ORIGINS",
         "https://app.example.com, https://staging.example.com",
     )
     s = Settings()
@@ -57,7 +57,7 @@ def test_cors_origins_from_env_with_prefix(monkeypatch):
 
 
 def test_cors_origins_single_value_from_env(monkeypatch):
-    """A single origin in TOURISM_CORS_ORIGINS_STR works correctly."""
-    monkeypatch.setenv("TOURISM_CORS_ORIGINS_STR", "https://app.example.com")
+    """A single origin in TOURISM_CORS_ORIGINS works correctly."""
+    monkeypatch.setenv("TOURISM_CORS_ORIGINS", "https://app.example.com")
     s = Settings()
     assert s.cors_origins == ["https://app.example.com"]

@@ -1,6 +1,5 @@
 """Application configuration."""
 
-from functools import cached_property
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
@@ -31,13 +30,8 @@ class Settings(BaseSettings):
     # Database
     database_url: str = ""
 
-    # CORS – comma-separated string; use TOURISM_CORS_ORIGINS env var
-    cors_origins_str: str = "http://localhost:5173,http://localhost:3000"
-
-    @cached_property
-    def cors_origins(self) -> list[str]:
-        """Parse comma-separated CORS origins into a list."""
-        return [origin.strip() for origin in self.cors_origins_str.split(",")]
+    # CORS – set via TOURISM_CORS_ORIGINS as comma-separated string
+    cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
     # API
     api_prefix: str = "/api"
@@ -51,6 +45,8 @@ class Settings(BaseSettings):
         super().__init__(**kwargs)
         if not self.database_url:
             self.database_url = f"sqlite:///{self.db_path}"
+        # Parse comma-separated CORS origins into a list
+        self.cors_origins = [o.strip() for o in self.cors_origins.split(",")]  # type: ignore[assignment]
 
 
 settings = Settings()
