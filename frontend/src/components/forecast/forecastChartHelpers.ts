@@ -24,6 +24,10 @@ export interface DataPointWithType {
   date: Date;
   value: number;
   isForecast: boolean;
+  ci80Lower?: number;
+  ci80Upper?: number;
+  ci95Lower?: number;
+  ci95Upper?: number;
 }
 
 export interface Dimensions {
@@ -333,6 +337,16 @@ export function setupTooltip(
 
   const tooltipType = tooltip.append("text").attr("font-size", "9px");
 
+  const tooltipCI80 = tooltip
+    .append("text")
+    .attr("fill", "rgba(40, 192, 102, 0.7)")
+    .attr("font-size", "10px");
+
+  const tooltipCI95 = tooltip
+    .append("text")
+    .attr("fill", "rgba(40, 192, 102, 0.5)")
+    .attr("font-size", "10px");
+
   const allDataPoints: DataPointWithType[] = [
     ...historical.map((d) => ({
       date: d.date,
@@ -343,6 +357,10 @@ export function setupTooltip(
       date: d.date,
       value: d.value,
       isForecast: true,
+      ci80Lower: d.ci80Lower,
+      ci80Upper: d.ci80Upper,
+      ci95Lower: d.ci95Lower,
+      ci95Upper: d.ci95Upper,
     })),
   ];
 
@@ -389,8 +407,24 @@ export function setupTooltip(
     tooltipValue.text(formattedValue);
     tooltipType.text(typeLabel).attr("fill", typeColor);
 
-    const tooltipW = 90;
-    const tooltipH = 54;
+    // Show confidence interval values for forecast points
+    const hasCi = d.isForecast && d.ci80Lower != null && d.ci80Upper != null;
+    if (hasCi) {
+      tooltipCI80.text(
+        `80% CI: ${formatCompactNumber(d.ci80Lower!)} \u2013 ${formatCompactNumber(d.ci80Upper!)}`
+      );
+      tooltipCI95.text(
+        d.ci95Lower != null && d.ci95Upper != null
+          ? `95% CI: ${formatCompactNumber(d.ci95Lower!)} \u2013 ${formatCompactNumber(d.ci95Upper!)}`
+          : ""
+      );
+    } else {
+      tooltipCI80.text("");
+      tooltipCI95.text("");
+    }
+
+    const tooltipW = hasCi ? 160 : 90;
+    const tooltipH = hasCi ? 82 : 54;
     const tooltipX =
       cx + 12 > w - tooltipW ? cx - tooltipW - 12 : cx + 12;
     const tooltipY = cy - tooltipH / 2;
@@ -401,8 +435,12 @@ export function setupTooltip(
       .attr("width", tooltipW)
       .attr("height", tooltipH);
     tooltipDate.attr("x", 8).attr("y", 16);
-    tooltipValue.attr("x", 8).attr("y", 32);
-    tooltipType.attr("x", 8).attr("y", 46);
+    tooltipValue.attr("x", 8).attr("y", 30);
+    tooltipType.attr("x", 8).attr("y", 42);
+    if (hasCi) {
+      tooltipCI80.attr("x", 8).attr("y", 56);
+      tooltipCI95.attr("x", 8).attr("y", 68);
+    }
   }
 
   function showTooltip(): void {
