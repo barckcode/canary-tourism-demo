@@ -75,12 +75,14 @@ export default function ClusterViz({
 }: ClusterVizProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const onSelectRef = useRef(onSelect);
+  const selectedRef = useRef<number | null>(null);
   const { t } = useTranslation();
   const [selected, setSelected] = useState<number | null>(null);
   const isUsingDefaults = clusters === DEFAULT_CLUSTERS;
 
-  // Keep ref in sync so D3 event handlers always call the latest callback
+  // Keep refs in sync so D3 event handlers always use the latest values
   useEffect(() => { onSelectRef.current = onSelect; });
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
 
   // Reset selected state when clusters change to avoid stale selection
   useEffect(() => {
@@ -114,11 +116,11 @@ export default function ClusterViz({
       r: number;
     }
 
-    const nodes: SimNode[] = clusters.map((c) => ({
+    const nodes: SimNode[] = clusters.map((c, i) => ({
       cluster: c,
       r: radiusScale(c.sizePct),
-      x: cx + (Math.random() - 0.5) * 50,
-      y: cy + (Math.random() - 0.5) * 50,
+      x: cx + Math.cos((i * 2 * Math.PI) / clusters.length) * 30,
+      y: cy + Math.sin((i * 2 * Math.PI) / clusters.length) * 30,
     }));
 
     // Force simulation
@@ -148,14 +150,14 @@ export default function ClusterViz({
       .attr("role", "button")
       .attr("aria-label", (d) => `${d.cluster.name}: ${d.cluster.sizePct}% of tourists, average age ${d.cluster.avgAge}, average spend ${d.cluster.avgSpend} euros, ${d.cluster.avgNights} nights`)
       .on("click", (_event, d) => {
-        const newId = selected === d.cluster.id ? null : d.cluster.id;
+        const newId = selectedRef.current === d.cluster.id ? null : d.cluster.id;
         setSelected(newId);
         onSelectRef.current?.(newId !== null ? d.cluster : null);
       })
       .on("keydown", (event: KeyboardEvent, d) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          const newId = selected === d.cluster.id ? null : d.cluster.id;
+          const newId = selectedRef.current === d.cluster.id ? null : d.cluster.id;
           setSelected(newId);
           onSelectRef.current?.(newId !== null ? d.cluster : null);
         }
@@ -263,7 +265,7 @@ export default function ClusterViz({
           event.preventDefault();
           // Trigger the click handler via a synthetic approach
           const d = d3.select<SVGGElement, SimNode>(node).datum();
-          const newId = selected === d.cluster.id ? null : d.cluster.id;
+          const newId = selectedRef.current === d.cluster.id ? null : d.cluster.id;
           setSelected(newId);
           onSelectRef.current?.(newId !== null ? d.cluster : null);
         },
@@ -276,7 +278,47 @@ export default function ClusterViz({
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [width, height, clusters, selected, t]);
+  }, [width, height, clusters, t]);
+
+  // Separate effect for selection highlight (no full re-render)
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const svg = d3.select(svgRef.current);
+
+    interface SimNode extends d3.SimulationNodeDatum {
+      cluster: ClusterData;
+      r: number;
+    }
+
+    svg.selectAll<SVGGElement, SimNode>(".bubble").each(function (d) {
+      const group = d3.select(this);
+      const isSelected = d.cluster.id === selected;
+      const isAnySelected = selected !== null;
+
+      // Outer circle
+      group
+        .select("circle:first-of-type")
+        .transition()
+        .duration(200)
+        .attr("stroke-width", isSelected ? 4 : 2)
+        .attr("stroke-opacity", isSelected ? 1 : isAnySelected ? 0.3 : 0.6)
+        .attr("fill-opacity", isSelected ? 0.35 : isAnySelected ? 0.1 : 0.2);
+
+      // Inner circle
+      group
+        .select("circle:nth-of-type(2)")
+        .transition()
+        .duration(200)
+        .attr("fill-opacity", isSelected ? 0.25 : isAnySelected ? 0.08 : 0.15);
+
+      // Text opacity
+      group
+        .selectAll("text")
+        .transition()
+        .duration(200)
+        .attr("opacity", isSelected ? 1 : isAnySelected ? 0.5 : 1);
+    });
+  }, [selected, clusters]);
 
   if (loading) {
     return (
