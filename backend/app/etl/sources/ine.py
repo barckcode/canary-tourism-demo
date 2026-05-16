@@ -5,6 +5,7 @@ Frontur (international arrivals), and Egatur (tourist spending) series
 from the INE REST API at servicios.ine.es.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -203,19 +204,36 @@ async def fetch_series(
     """
     targets = series_list or INE_SERIES
     all_records: list[dict[str, Any]] = []
+    sem = asyncio.Semaphore(5)
 
-    async with httpx.AsyncClient() as client:
-        for series_id, indicator, geo_code in targets:
+    async def _fetch_one(
+        client: httpx.AsyncClient,
+        series_id: str,
+        indicator: str,
+        geo_code: str,
+    ) -> list[dict[str, Any]]:
+        async with sem:
             logger.info("Fetching INE series: %s (%s)", series_id, indicator)
             data = await _fetch_series_data(client, series_id)
             if data is None:
-                continue
-
+                return []
             records = _parse_series_records(data, indicator, geo_code)
             logger.info(
                 "INE %s: parsed %d records.", series_id, len(records)
             )
-            all_records.extend(records)
+            return records
+
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            _fetch_one(client, sid, ind, geo)
+            for sid, ind, geo in targets
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error("INE fetch failed: %s", result)
+                continue
+            all_records.extend(result)
 
     logger.info("INE fetch complete: %d total records.", len(all_records))
     return all_records
