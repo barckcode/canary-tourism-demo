@@ -217,7 +217,7 @@ def test_scenario_with_nan_accommodation_data():
     engine = _make_fitted_engine()
 
     # Inject NaN explicitly
-    for col_name in ["room_occ", "bed_occ", "adr", "revpar"]:
+    for col_name in ["room_occ", "bed_occ", "adr", "total_revenue"]:
         engine.latest_df.iloc[-1, engine.latest_df.columns.get_loc(col_name)] = np.nan
 
     result = engine.predict_scenario(

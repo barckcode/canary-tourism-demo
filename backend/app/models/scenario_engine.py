@@ -44,7 +44,7 @@ ACCOM_INDICATORS = {
     "alojatur_habitaciones_ocupacion": "room_occ",
     "alojatur_plazas_ocupacion": "bed_occ",
     "alojatur_tarifa_adr": "adr",
-    "alojatur_ingresos": "revpar",
+    "alojatur_ingresos": "total_revenue",
     "alojatur_pernoctaciones": "overnight_stays",
 }
 
@@ -240,7 +240,7 @@ class ScenarioEngine:
             feat_sc["bed_occ_lag1"] = _safe_numeric(feat_sc["bed_occ_lag1"]) * (1 + occupancy_change_pct / 100)
         if adr_change_pct:
             feat_sc["adr_lag1"] = _safe_numeric(feat_sc["adr_lag1"]) * (1 + adr_change_pct / 100)
-            feat_sc["revpar_lag1"] = _safe_numeric(feat_sc["revpar_lag1"]) * (1 + adr_change_pct / 100)
+            feat_sc["total_revenue_lag1"] = _safe_numeric(feat_sc["total_revenue_lag1"]) * (1 + adr_change_pct / 100)
         if foreign_ratio_change_pct:
             feat_sc["foreign_ratio"] = _safe_numeric(feat_sc["foreign_ratio"], 0.5) * (1 + foreign_ratio_change_pct / 100)
         return feat_sc
