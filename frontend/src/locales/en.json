@@ -192,6 +192,7 @@
     "selectedCount": "selected",
     "maxIndicators": "Max 3 indicators",
     "clearSelection": "Clear selection",
+    "geoSelector": "Select geographic area",
     "tableCaption": "Available tourism indicators with source, date range, and data points",
     "comparison": {
       "title": "Province Comparison",

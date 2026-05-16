@@ -21,6 +21,14 @@ const MAX_INDICATORS = 3;
 
 const SERIES_COLORS = ["#1aa0d2", "#28c066", "#f472b6"];
 
+const GEO_OPTIONS = [
+  { value: "ES709", label: "Tenerife" },
+  { value: "ES709_ADEJE", label: "Adeje" },
+  { value: "ES709_ARONA", label: "Arona" },
+  { value: "ES709_PCRUZ", label: "Puerto de la Cruz" },
+  { value: "ES70", label: "Canarias" },
+];
+
 const COMPARISON_INDICATORS = [
   { key: "viajeros", labelKey: "dataExplorer.comparison.indicator.viajeros" },
   { key: "pernoctaciones", labelKey: "dataExplorer.comparison.indicator.pernoctaciones" },
@@ -43,10 +51,10 @@ const fallbackIndicators = [
   { id: "alojatur_pernoctaciones", source: "istac", available_from: "2009-01", available_to: "2026-01", total_points: 205 },
 ];
 
-function useMultiTimeSeries(indicators: string[]) {
-  const ts0 = useTimeSeries(indicators[0] || "");
-  const ts1 = useTimeSeries(indicators[1] || "");
-  const ts2 = useTimeSeries(indicators[2] || "");
+function useMultiTimeSeries(indicators: string[], geo: string) {
+  const ts0 = useTimeSeries(indicators[0] || "", geo);
+  const ts1 = useTimeSeries(indicators[1] || "", geo);
+  const ts2 = useTimeSeries(indicators[2] || "", geo);
 
   const results = useMemo(() => {
     const all = [ts0, ts1, ts2];
@@ -75,6 +83,7 @@ export default function DataExplorerPage() {
   }, []);
 
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>(initialIndicators);
+  const [selectedGeo, setSelectedGeo] = useState("ES709");
   const { data: apiIndicators, error: indicatorsError, refetch: refetchIndicators } = useIndicators();
 
   // Sync selected indicators to URL
@@ -89,7 +98,7 @@ export default function DataExplorerPage() {
     }, { replace: true });
   }, [selectedIndicators, setSearchParams]);
 
-  const { results: tsResults, loading: tsLoading, errors: tsErrors } = useMultiTimeSeries(selectedIndicators);
+  const { results: tsResults, loading: tsLoading, errors: tsErrors } = useMultiTimeSeries(selectedIndicators, selectedGeo);
 
   const indicators = apiIndicators || fallbackIndicators;
 
@@ -189,6 +198,18 @@ export default function DataExplorerPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <select
+            value={selectedGeo}
+            onChange={(e) => setSelectedGeo(e.target.value)}
+            aria-label={t("dataExplorer.geoSelector")}
+            className="px-3 py-1.5 text-xs rounded bg-gray-700/50 text-gray-300 border border-gray-600 hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          >
+            {GEO_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
           {hasSelection && (
             <button
               onClick={clearSelection}

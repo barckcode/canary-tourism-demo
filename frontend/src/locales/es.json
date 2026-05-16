@@ -192,6 +192,7 @@
     "selectedCount": "seleccionados",
     "maxIndicators": "Maximo 3 indicadores",
     "clearSelection": "Limpiar seleccion",
+    "geoSelector": "Seleccionar area geografica",
     "tableCaption": "Indicadores turisticos disponibles con fuente, rango de fechas y puntos de datos",
     "comparison": {
       "title": "Comparativa Provincial",
