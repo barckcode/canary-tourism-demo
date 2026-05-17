@@ -127,16 +127,31 @@ def get_profiles(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/nationalities", response_model=list[NationalityProfileEntry])
 @limiter.limit("60/minute")
-def get_nationality_profiles(request: Request, db: Session = Depends(get_db)):
-    """Return aggregate stats by nationality from microdata."""
+def get_nationality_profiles(
+    request: Request,
+    from_quarter: str | None = Query(None, description="Start quarter inclusive (e.g., '2025-Q1')"),
+    to_quarter: str | None = Query(None, description="End quarter inclusive (e.g., '2026-Q2')"),
+    db: Session = Depends(get_db),
+):
+    """Return aggregate stats by nationality from microdata.
+
+    Optionally filter by quarter range using from_quarter and to_quarter
+    parameters. Without filters, all available data is aggregated.
+    """
+    query = db.query(
+        Microdata.nacionalidad,
+        func.count(Microdata.id).label("count"),
+        func.avg(Microdata.gasto_euros).label("avg_spend"),
+        func.avg(Microdata.noches).label("avg_nights"),
+    ).filter(Microdata.nacionalidad.isnot(None))
+
+    if from_quarter:
+        query = query.filter(Microdata.quarter >= from_quarter)
+    if to_quarter:
+        query = query.filter(Microdata.quarter <= to_quarter)
+
     results = (
-        db.query(
-            Microdata.nacionalidad,
-            func.count(Microdata.id).label("count"),
-            func.avg(Microdata.gasto_euros).label("avg_spend"),
-            func.avg(Microdata.noches).label("avg_nights"),
-        )
-        .filter(Microdata.nacionalidad.isnot(None))
+        query
         .group_by(Microdata.nacionalidad)
         .order_by(func.count(Microdata.id).desc())
         .limit(50)
