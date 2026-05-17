@@ -44,12 +44,36 @@ IMPORTANCE_COLS = [
     "IMPORTANCIA_EXOTISMO", "IMPORTANCIA_AUTENTICIDAD",
 ]
 
-CLUSTER_NAMES = {
-    0: "Budget / Young / Short-stay",
-    1: "Budget / Older / Medium-stay",
-    2: "High-spend / Family",
-    3: "Premium / Long-stay",
-}
+def _generate_cluster_name(avg_spend: float, avg_age: float, avg_nights: float) -> str:
+    """Generate a descriptive cluster name based on actual cluster characteristics.
+
+    Rules:
+        - Spend: <500 → Budget, 500-1000 → Mid-spend, >1000 → Premium
+        - Age: <35 → Young, 35-55 → Mid-age, >55 → Older
+        - Stay: <5 → Short-stay, 5-10 → Medium-stay, >10 → Long-stay
+    """
+    if avg_spend < 500:
+        spend_label = "Budget"
+    elif avg_spend <= 1000:
+        spend_label = "Mid-spend"
+    else:
+        spend_label = "Premium"
+
+    if avg_age < 35:
+        age_label = "Young"
+    elif avg_age <= 55:
+        age_label = "Mid-age"
+    else:
+        age_label = "Older"
+
+    if avg_nights < 5:
+        stay_label = "Short-stay"
+    elif avg_nights <= 10:
+        stay_label = "Medium-stay"
+    else:
+        stay_label = "Long-stay"
+
+    return f"{spend_label} / {age_label} / {stay_label}"
 
 
 class TouristProfiler:
@@ -310,11 +334,14 @@ class TouristProfiler:
                 ) if "PERSONAS_TOTAL" in cluster_df.columns else None,
             }
 
-            name = CLUSTER_NAMES.get(cluster_id, f"Cluster {cluster_id}")
-
             avg_age = stats["avg_age"]
             avg_spend = stats["avg_spend"]
             avg_nights = stats["avg_nights"]
+
+            if np.isnan(avg_spend) or np.isnan(avg_age) or np.isnan(avg_nights):
+                name = f"Cluster {cluster_id}"
+            else:
+                name = _generate_cluster_name(avg_spend, avg_age, avg_nights)
 
             profiles.append({
                 "cluster_id": cluster_id,

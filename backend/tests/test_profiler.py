@@ -5,7 +5,7 @@ import json
 import numpy as np
 from sqlalchemy import text
 
-from app.models.profiler import CLUSTER_NAMES, TouristProfiler
+from app.models.profiler import _generate_cluster_name, TouristProfiler
 
 
 def _load_raw_jsons(db):
@@ -136,24 +136,21 @@ def test_profiler_nationality_percentages_sum_to_reasonable_total(db):
         assert total > 0, f"Cluster {p['cluster_id']} has zero total percentage"
 
 
-def test_profiler_cluster_names_fallback_with_extra_clusters(db):
-    """When n_clusters exceeds CLUSTER_NAMES, extra clusters get fallback names."""
+def test_profiler_cluster_names_generated_dynamically(db):
+    """Cluster names should be generated based on actual cluster characteristics."""
     raw_jsons = _load_raw_jsons(db)
-    n = len(CLUSTER_NAMES) + 1  # one more than defined names
-    profiler = TouristProfiler(n_clusters=n)
+    profiler = TouristProfiler(n_clusters=4)
     profiler.fit(raw_jsons)
     profiles = profiler.get_profiles()
 
-    assert len(profiles) == n
-    names = [p["cluster_name"] for p in profiles]
-    # First len(CLUSTER_NAMES) profiles should use the defined names
-    defined_names = list(CLUSTER_NAMES.values())
-    for name in defined_names:
-        assert name in names, f"Expected defined name '{name}' in profiles"
-    # The extra cluster should have a fallback name like "Cluster 5"
-    fallback_names = [n for n in names if n not in defined_names]
-    assert len(fallback_names) == 1
-    assert fallback_names[0].startswith("Cluster ")
+    for p in profiles:
+        name = p["cluster_name"]
+        # Name should follow the format "X / Y / Z"
+        parts = name.split(" / ")
+        assert len(parts) == 3, f"Expected 3 parts in name, got: {name}"
+        assert parts[0] in ("Budget", "Mid-spend", "Premium")
+        assert parts[1] in ("Young", "Mid-age", "Older")
+        assert parts[2] in ("Short-stay", "Medium-stay", "Long-stay")
 
 
 def test_profiler_cluster_names_no_index_error(db):
