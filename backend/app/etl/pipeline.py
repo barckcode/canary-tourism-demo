@@ -122,12 +122,12 @@ async def _run_source_pipeline(
     fetcher: Any,
     validator: Any,
     upserter: Any,
-    retrain: bool = True,
 ) -> dict[str, Any]:
     """Run a generic ETL pipeline for a single data source.
 
     Handles the common pattern shared by all source pipelines:
-    fetch data, validate, store, log the run, and optionally retrain models.
+    fetch data, validate, store, and log the run. Model retraining
+    is handled centrally by ``run_pipeline()`` after all sources complete.
 
     Args:
         source: Data source identifier (e.g. "istac", "ine", "ckan").
@@ -135,7 +135,6 @@ async def _run_source_pipeline(
         fetcher: Async callable that returns raw records.
         validator: Callable that validates records, returning (valid, result).
         upserter: Callable(db, records) that stores records and returns count.
-        retrain: Whether to trigger model retraining on new data.
 
     Returns:
         Dict with pipeline run results.
@@ -176,11 +175,6 @@ async def _run_source_pipeline(
             db, source, job_name, "success",
             records_added=count, started_at=started_at, finished_at=finished_at,
         )
-
-        if retrain and count > 0:
-            _trigger_retraining(
-                db, f"{source.upper()} pipeline added {count} records",
-            )
 
         db.commit()
         logger.info("%s pipeline complete: %d records stored.", source, count)
@@ -260,7 +254,6 @@ async def run_cabildo_pipeline() -> dict[str, Any]:
         fetcher=ckan.fetch_cabildo_datasets,
         validator=validate_timeseries,
         upserter=_upsert_timeseries,
-        retrain=False,
     )
 
 
@@ -355,7 +348,10 @@ async def run_health_check() -> dict[str, Any]:
 def run_pipeline():
     """Run the full ETL pipeline synchronously.
 
-    Executes all pipeline stages concurrently via asyncio.gather.
+    Executes all pipeline stages concurrently via asyncio.gather,
+    then triggers model retraining exactly once if any pipeline
+    added new data.
+
     This is the main entry point for manual pipeline execution.
     """
     logger.info("Starting full ETL pipeline...")
@@ -379,6 +375,15 @@ def run_pipeline():
     total_added = sum(
         r.get("records_added", 0) for r in results.values()
     )
+
+    if total_added > 0:
+        db = SessionLocal()
+        try:
+            _trigger_retraining(
+                db, f"Pipeline added {total_added} total records",
+            )
+        finally:
+            db.close()
 
     logger.info(
         "Full ETL pipeline complete. Total records added: %d", total_added

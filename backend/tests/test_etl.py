@@ -678,8 +678,7 @@ class TestPipeline:
         )
         mock_upserter = MagicMock(return_value=1)
 
-        with patch("app.etl.pipeline.SessionLocal", return_value=db), \
-             patch("app.etl.pipeline._trigger_retraining"):
+        with patch("app.etl.pipeline.SessionLocal", return_value=db):
             result = _run_async(_run_source_pipeline(
                 source="test_src",
                 job_name="test_job",
@@ -809,8 +808,8 @@ class TestPipeline:
         else:
             assert len(valid) == 0, "2031 should be rejected when outside dynamic range"
 
-    def test_run_source_pipeline_no_retrain(self, db):
-        """Should skip retraining when retrain=False."""
+    def test_run_source_pipeline_does_not_retrain(self, db):
+        """Individual pipelines should never trigger retraining directly."""
         from app.etl.pipeline import _run_source_pipeline
 
         async def mock_fetcher():
@@ -831,10 +830,43 @@ class TestPipeline:
                 fetcher=mock_fetcher,
                 validator=mock_validator,
                 upserter=MagicMock(return_value=5),
-                retrain=False,
             ))
 
         assert result["status"] == "success"
+        assert result["records_added"] == 5
+        mock_retrain.assert_not_called()
+
+    def test_run_pipeline_retrains_once(self):
+        """run_pipeline should trigger retraining exactly once after all pipelines."""
+        from app.etl.pipeline import run_pipeline
+
+        mock_result = {"status": "success", "records_added": 10}
+
+        with patch("app.etl.pipeline.run_istac_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline.run_ine_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline.run_ckan_microdata_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline.run_cabildo_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline._trigger_retraining") as mock_retrain, \
+             patch("app.etl.pipeline.SessionLocal") as mock_session_cls:
+            results = run_pipeline()
+
+        mock_retrain.assert_called_once()
+        call_args = mock_retrain.call_args
+        assert "40 total records" in call_args[0][1]
+
+    def test_run_pipeline_skips_retrain_when_no_data(self):
+        """run_pipeline should not retrain when no pipeline added data."""
+        from app.etl.pipeline import run_pipeline
+
+        mock_result = {"status": "no_new_data", "records_added": 0}
+
+        with patch("app.etl.pipeline.run_istac_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline.run_ine_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline.run_ckan_microdata_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline.run_cabildo_pipeline", return_value=mock_result), \
+             patch("app.etl.pipeline._trigger_retraining") as mock_retrain:
+            results = run_pipeline()
+
         mock_retrain.assert_not_called()
 
 
