@@ -55,11 +55,27 @@ def _store_predictions(db: Session, model_name: str, indicator: str,
     )
 
     now = datetime.now(timezone.utc).isoformat()
-    count = 0
-    for i, period in enumerate(forecast.periods):
+    records = [
+        {
+            "model": model_name,
+            "indicator": indicator,
+            "geo": geo_code,
+            "period": period,
+            "value": float(forecast.values[i]),
+            "ci_lo80": float(forecast.ci_lower_80[i]),
+            "ci_hi80": float(forecast.ci_upper_80[i]),
+            "ci_lo95": float(forecast.ci_lower_95[i]),
+            "ci_hi95": float(forecast.ci_upper_95[i]),
+            "trained_at": now,
+            "version": next_version,
+        }
+        for i, period in enumerate(forecast.periods)
+    ]
+
+    if records:
         db.execute(
             text("""
-                INSERT INTO predictions
+                INSERT OR REPLACE INTO predictions
                     (model, indicator, geo_code, period, value_predicted,
                      ci_lower_80, ci_upper_80, ci_lower_95, ci_upper_95,
                      trained_at, version, is_current)
@@ -67,23 +83,10 @@ def _store_predictions(db: Session, model_name: str, indicator: str,
                         :ci_lo80, :ci_hi80, :ci_lo95, :ci_hi95,
                         :trained_at, :version, 1)
             """),
-            {
-                "model": model_name,
-                "indicator": indicator,
-                "geo": geo_code,
-                "period": period,
-                "value": float(forecast.values[i]),
-                "ci_lo80": float(forecast.ci_lower_80[i]),
-                "ci_hi80": float(forecast.ci_upper_80[i]),
-                "ci_lo95": float(forecast.ci_lower_95[i]),
-                "ci_hi95": float(forecast.ci_upper_95[i]),
-                "trained_at": now,
-                "version": next_version,
-            },
+            records,
         )
-        count += 1
 
-    return count
+    return len(records)
 
 
 def _store_metrics(db: Session, metrics: dict, indicator: str, geo_code: str,

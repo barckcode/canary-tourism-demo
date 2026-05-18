@@ -88,6 +88,10 @@ class Prediction(Base):
     is_current = Column(Boolean, default=True, server_default="1")
 
     __table_args__ = (
+        UniqueConstraint(
+            "model", "indicator", "geo_code", "period", "version",
+            name="uq_prediction",
+        ),
         Index("ix_pred_model_indicator_geo", "model", "indicator", "geo_code"),
         Index("ix_pred_period", "period"),
         Index("ix_pred_is_current", "is_current"),
