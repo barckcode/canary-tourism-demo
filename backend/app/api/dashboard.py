@@ -98,7 +98,26 @@ def get_kpis(
     """
     _validate_period(period, "period")
 
-    kpis = {}
+    kpis = {
+        "latest_arrivals": None,
+        "latest_period": None,
+        "yoy_change": None,
+        "occupancy_rate": None,
+        "adr": None,
+        "revpar": None,
+        "avg_stay": None,
+        "daily_spend": None,
+        "daily_spend_yoy": None,
+        "avg_stay_ine": None,
+        "avg_stay_ine_yoy": None,
+        "employment_total": None,
+        "employment_total_yoy": None,
+        "employment_services": None,
+        "employment_services_yoy": None,
+        "iph_index": None,
+        "iph_variation": None,
+        "last_updated": None,
+    }
 
     # Latest arrivals
     latest = _latest_value(db, "turistas", "ES709", period=period)
@@ -121,7 +140,7 @@ def get_kpis(
         kpis["occupancy_rate"] = occ.value
 
     # ADR
-    adr = _latest_value(db, "alojatur_ingresos_habitacion", "ES709", period=period)
+    adr = _latest_value(db, "alojatur_adr", "ES709", period=period)
     if adr:
         kpis["adr"] = adr.value
 
@@ -131,7 +150,7 @@ def get_kpis(
         kpis["revpar"] = revpar.value
 
     # Average stay
-    avg_stay = _latest_value(db, "alojatur_estancias_medias", "ES709", period=period)
+    avg_stay = _latest_value(db, "alojatur_estancia_media", "ES709", period=period)
     if avg_stay:
         kpis["avg_stay"] = avg_stay.value
 
@@ -204,7 +223,7 @@ def get_kpis(
     last_fetched = db.query(func.max(TimeSeries.fetched_at)).scalar()
     kpis["last_updated"] = last_fetched
 
-    if not kpis or "latest_arrivals" not in kpis:
+    if kpis.get("latest_arrivals") is None:
         return {
             "latest_arrivals": None,
             "latest_period": None,

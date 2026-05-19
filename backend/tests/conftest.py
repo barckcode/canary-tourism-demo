@@ -90,7 +90,7 @@ def _seed_test_data(session: Session) -> None:
         "alojatur_habitaciones_ocupacion": 72.5,
         "alojatur_ingresos_habitacion": 85.0,
         "alojatur_ingresos": 62.0,
-        "alojatur_estancias_medias": 7.2,
+        "alojatur_estancia_media": 7.2,
         "alojatur_ocupacion": 68.0,
         "alojatur_adr": 90.0,
         "alojatur_revpar": 65.0,
