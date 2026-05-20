@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
 import {
@@ -28,71 +28,6 @@ interface LinkData {
   source: number;
   target: number;
   value: number;
-}
-
-// Mock data: Country → Zone → Accommodation
-function getMockSankeyData(): { nodes: NodeData[]; links: LinkData[] } {
-  return {
-    nodes: [
-      // Countries (0-4)
-      { id: 0, name: "United Kingdom", category: "country" },
-      { id: 1, name: "Germany", category: "country" },
-      { id: 2, name: "Sweden", category: "country" },
-      { id: 3, name: "Spain", category: "country" },
-      { id: 4, name: "France", category: "country" },
-      // Zones (5-8)
-      { id: 5, name: "Adeje", category: "zone" },
-      { id: 6, name: "Arona", category: "zone" },
-      { id: 7, name: "Puerto de la Cruz", category: "zone" },
-      { id: 8, name: "Santa Cruz", category: "zone" },
-      // Accommodation (9-12)
-      { id: 9, name: "4-5\u2605 Hotel", category: "accommodation" },
-      { id: 10, name: "3\u2605 Hotel", category: "accommodation" },
-      { id: 11, name: "Apartment", category: "accommodation" },
-      { id: 12, name: "Villa/Rural", category: "accommodation" },
-    ],
-    links: [
-      // UK → zones
-      { source: 0, target: 5, value: 45 },
-      { source: 0, target: 6, value: 35 },
-      { source: 0, target: 7, value: 12 },
-      { source: 0, target: 8, value: 8 },
-      // Germany → zones
-      { source: 1, target: 5, value: 30 },
-      { source: 1, target: 6, value: 25 },
-      { source: 1, target: 7, value: 28 },
-      { source: 1, target: 8, value: 7 },
-      // Sweden → zones
-      { source: 2, target: 5, value: 18 },
-      { source: 2, target: 6, value: 20 },
-      { source: 2, target: 7, value: 5 },
-      // Spain → zones
-      { source: 3, target: 7, value: 15 },
-      { source: 3, target: 8, value: 25 },
-      { source: 3, target: 5, value: 8 },
-      // France → zones
-      { source: 4, target: 5, value: 10 },
-      { source: 4, target: 6, value: 8 },
-      { source: 4, target: 7, value: 7 },
-      // Zones → accommodation
-      { source: 5, target: 9, value: 55 },
-      { source: 5, target: 10, value: 25 },
-      { source: 5, target: 11, value: 20 },
-      { source: 5, target: 12, value: 11 },
-      { source: 6, target: 9, value: 40 },
-      { source: 6, target: 10, value: 20 },
-      { source: 6, target: 11, value: 25 },
-      { source: 6, target: 12, value: 3 },
-      { source: 7, target: 10, value: 30 },
-      { source: 7, target: 11, value: 22 },
-      { source: 7, target: 9, value: 10 },
-      { source: 7, target: 12, value: 5 },
-      { source: 8, target: 10, value: 15 },
-      { source: 8, target: 11, value: 18 },
-      { source: 8, target: 9, value: 5 },
-      { source: 8, target: 12, value: 2 },
-    ],
-  };
 }
 
 const categoryColors: Record<string, string> = {
@@ -129,11 +64,12 @@ function convertApiData(apiData: {
 
 export default function SankeyFlow({ width, height, loading = false, data: apiData }: SankeyFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [isMockData, setIsMockData] = useState(false);
   const { t } = useTranslation();
 
+  const hasData = apiData != null && apiData.nodes.length > 0;
+
   useEffect(() => {
-    if (!svgRef.current || width <= 0 || height <= 0) return;
+    if (!svgRef.current || width <= 0 || height <= 0 || !hasData) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -148,10 +84,7 @@ export default function SankeyFlow({ width, height, loading = false, data: apiDa
       .append("g")
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
 
-    // Use API data if available, otherwise fall back to mock
-    const useApiData = apiData && apiData.nodes.length > 0;
-    const data = useApiData ? convertApiData(apiData) : getMockSankeyData();
-    setIsMockData(!useApiData);
+    const data = convertApiData(apiData!);
 
     // Filter out orphan nodes -- keep only nodes referenced in at least one link
     const connectedNodeIds = new Set<number>();
@@ -261,7 +194,7 @@ export default function SankeyFlow({ width, height, loading = false, data: apiDa
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [width, height, apiData, t]);
+  }, [width, height, apiData, hasData, t]);
 
   if (loading) {
     return (
@@ -278,14 +211,20 @@ export default function SankeyFlow({ width, height, loading = false, data: apiDa
     );
   }
 
+  if (!hasData) {
+    return (
+      <div
+        className="flex items-center justify-center text-gray-400"
+        style={{ width, height }}
+      >
+        <p className="text-sm">{t('profiles.noFlowData')}</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <svg ref={svgRef} className="overflow-visible" role="img" aria-label={t('accessibility.sankeyFlow')} />
-      {isMockData && (
-        <span className="text-xs text-amber-400/70 bg-amber-400/10 px-2 py-0.5 rounded inline-block mt-1">
-          {t('common.sampleData', 'Datos de ejemplo')}
-        </span>
-      )}
     </div>
   );
 }

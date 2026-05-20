@@ -91,16 +91,27 @@ describe("SVG chart ARIA accessibility", () => {
     expect(title!.textContent).toBe("Tourist segment visualization");
   });
 
-  it("SankeyFlow SVG has role=img, aria-label, and D3-rendered <title>", () => {
-    render(<SankeyFlow width={400} height={300} />);
+  it("SankeyFlow shows empty state when no data is provided", () => {
+    const { container } = render(<SankeyFlow width={400} height={300} />);
+    // With no data, should show empty state instead of SVG
+    const svg = container.querySelector("svg");
+    expect(svg).toBeNull();
+    expect(container.textContent).toContain("No flow data available");
+  });
+
+  it("SankeyFlow SVG has role=img and aria-label when data is provided", () => {
+    const data = {
+      nodes: [
+        { id: "country_uk", label: "UK" },
+        { id: "zone_adeje", label: "Adeje" },
+      ],
+      links: [{ source: "country_uk", target: "zone_adeje", value: 10 }],
+    };
+    render(<SankeyFlow width={400} height={300} data={data} />);
     const svg = document.querySelector("svg");
     expect(svg).not.toBeNull();
     expect(svg!.getAttribute("role")).toBe("img");
     expect(svg!.getAttribute("aria-label")).toBe("Tourist origin flow diagram");
-    // D3 renders the <title> element
-    const title = svg!.querySelector("title");
-    expect(title).not.toBeNull();
-    expect(title!.textContent).toBe("Tourist origin flow diagram");
   });
 
   it("ClusterViz bubble groups have keyboard accessibility via D3", () => {

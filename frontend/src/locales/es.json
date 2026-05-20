@@ -165,7 +165,8 @@
     "marketTrendsSubtitle": "Evolucion trimestral de visitantes por nacionalidad",
     "quarter": "Trimestre",
     "couldNotLoadTrends": "No se pudieron cargar las tendencias de mercado.",
-    "noTrendsData": "No hay datos de tendencias disponibles"
+    "noTrendsData": "No hay datos de tendencias disponibles",
+    "noFlowData": "No hay datos de flujo disponibles"
   },
   "dataExplorer": {
     "title": "Explorador de datos",

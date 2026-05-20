@@ -165,7 +165,8 @@
     "marketTrendsSubtitle": "Quarterly visitor count evolution by nationality",
     "quarter": "Quarter",
     "couldNotLoadTrends": "Could not load market trends.",
-    "noTrendsData": "No trends data available"
+    "noTrendsData": "No trends data available",
+    "noFlowData": "No flow data available"
   },
   "dataExplorer": {
     "title": "Data Explorer",

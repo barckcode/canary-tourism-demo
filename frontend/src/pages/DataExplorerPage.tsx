@@ -42,14 +42,6 @@ const COMPARISON_INDICATORS = [
 
 const DISPLAY_PERIODS = 12;
 
-const fallbackIndicators = [
-  { id: "turistas", source: "istac", available_from: "2010-01", available_to: "2026-01", total_points: 193 },
-  { id: "turistas_extranjeros", source: "istac", available_from: "2010-01", available_to: "2026-01", total_points: 193 },
-  { id: "alojatur_ocupacion", source: "istac", available_from: "2009-01", available_to: "2026-01", total_points: 205 },
-  { id: "alojatur_adr", source: "istac", available_from: "2009-01", available_to: "2026-01", total_points: 205 },
-  { id: "alojatur_revpar", source: "istac", available_from: "2009-01", available_to: "2026-01", total_points: 205 },
-  { id: "alojatur_pernoctaciones", source: "istac", available_from: "2009-01", available_to: "2026-01", total_points: 205 },
-];
 
 function useMultiTimeSeries(indicators: string[], geo: string) {
   const ts0 = useTimeSeries(indicators[0] || "", geo);
@@ -84,7 +76,7 @@ export default function DataExplorerPage() {
 
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>(initialIndicators);
   const [selectedGeo, setSelectedGeo] = useState("ES709");
-  const { data: apiIndicators, error: indicatorsError, refetch: refetchIndicators } = useIndicators();
+  const { data: apiIndicators, loading: indicatorsLoading, error: indicatorsError, refetch: refetchIndicators } = useIndicators();
 
   // Sync selected indicators to URL
   useEffect(() => {
@@ -100,7 +92,7 @@ export default function DataExplorerPage() {
 
   const { results: tsResults, loading: tsLoading, errors: tsErrors } = useMultiTimeSeries(selectedIndicators, selectedGeo);
 
-  const indicators = apiIndicators || fallbackIndicators;
+  const indicators = apiIndicators || [];
 
   const toggleIndicator = useCallback((id: string) => {
     setSelectedIndicators((prev) => {
@@ -238,6 +230,13 @@ export default function DataExplorerPage() {
       <motion.div variants={fadeUp}>
         <Panel title={t("dataExplorer.availableIndicators")}>
           {indicatorsError ? (
+            <ErrorState message={t("dataExplorer.couldNotLoadIndicators")} onRetry={refetchIndicators} />
+          ) : indicatorsLoading ? (
+            <div className="h-48 flex items-center justify-center" role="status" aria-live="polite" aria-busy="true">
+              <div className="w-8 h-8 border-2 border-ocean-500 border-t-transparent rounded-full animate-spin" />
+              <span className="sr-only">{t("common.loading")}</span>
+            </div>
+          ) : indicators.length === 0 ? (
             <ErrorState message={t("dataExplorer.couldNotLoadIndicators")} onRetry={refetchIndicators} />
           ) : (
           <>
