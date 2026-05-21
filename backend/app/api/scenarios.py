@@ -53,7 +53,7 @@ class ScenarioRequest(BaseModel):
     occupancy_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
     adr_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
     foreign_ratio_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
-    horizon: int = Field(12, ge=1, le=60)
+    horizon: int = Field(12, ge=1, le=24)
 
 
 class SaveScenarioRequest(BaseModel):
@@ -61,7 +61,7 @@ class SaveScenarioRequest(BaseModel):
     occupancy_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
     adr_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
     foreign_ratio_change_pct: float = Field(0.0, ge=-50.0, le=50.0)
-    horizon: int = Field(12, ge=1, le=60)
+    horizon: int = Field(12, ge=1, le=24)
 
 
 class CompareRequest(BaseModel):

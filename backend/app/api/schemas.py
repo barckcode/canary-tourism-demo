@@ -369,6 +369,7 @@ class ScenarioResponse(BaseModel):
     scenario_forecast: list[ScenarioForecastPoint]
     impact_summary: ImpactSummary | dict = Field(default_factory=dict)
     params: ScenarioParams | dict = Field(default_factory=dict)
+    warning: str | None = None
 
 
 class SavedScenarioSummary(BaseModel):

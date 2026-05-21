@@ -331,7 +331,7 @@ class ScenarioEngine:
                 new_row[col_name] = _safe_numeric(ext_df[col_name].iloc[-1])
             ext_df.loc[period_str] = new_row
 
-        return {
+        result = {
             "baseline_forecast": baseline,
             "scenario_forecast": scenario,
             "impact_summary": self._compute_impact(baseline, scenario),
@@ -341,3 +341,9 @@ class ScenarioEngine:
                 "foreign_ratio_change_pct": foreign_ratio_change_pct,
             },
         }
+        if horizon > 12:
+            result["warning"] = (
+                "Forecasts beyond 12 months have higher uncertainty "
+                "due to static accommodation features"
+            )
+        return result

@@ -45,7 +45,7 @@ def get_predictions(
     request: Request,
     indicator: str = Query("turistas", description="Indicator to forecast"),
     geo: str = Query("ES709", description="Geographic code"),
-    horizon: int = Query(12, ge=1, le=60, description="Forecast horizon in months"),
+    horizon: int = Query(12, ge=1, le=24, description="Forecast horizon in months"),
     model: str = Query("ensemble", description="Model name"),
     db: Session = Depends(get_db),
 ):
@@ -103,7 +103,7 @@ def compare_models(
     request: Request,
     indicator: str = Query("turistas"),
     geo: str = Query("ES709"),
-    horizon: int = Query(12, ge=1, le=60),
+    horizon: int = Query(12, ge=1, le=24),
     db: Session = Depends(get_db),
 ):
     """Compare forecasts from all available models.
