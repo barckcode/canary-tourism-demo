@@ -232,6 +232,23 @@ export default function DashboardPage() {
             </div>
           </Panel>
 
+          <Panel title={t('dashboard.occupancyTrend')} subtitle={t('dashboard.last12Months')}>
+            <div aria-busy={!summary && !summaryError}>
+            {summaryError ? (
+              <ErrorState message={t('dashboard.couldNotLoadTrend')} onRetry={refetchSummary} />
+            ) : summary?.occupancy_trend_12m?.length ? (
+              <SparklineChart
+                data={summary.occupancy_trend_12m}
+                height={120}
+              />
+            ) : (
+              <div className="h-[120px] flex items-center justify-center">
+                <div className="h-[80px] w-full bg-gray-800/50 rounded animate-pulse" />
+              </div>
+            )}
+            </div>
+          </Panel>
+
           <Panel title={t('dashboard.topMarkets')}>
             <div className="space-y-3" aria-busy={marketsLoading}>
               {marketsError ? (

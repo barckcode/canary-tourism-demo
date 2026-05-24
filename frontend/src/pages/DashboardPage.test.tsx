@@ -229,7 +229,8 @@ describe("DashboardPage", () => {
       refetch: vi.fn(),
     });
     render(<DashboardPage />);
-    expect(screen.getByText("Could not load trend data.")).toBeInTheDocument();
+    const trendErrors = screen.getAllByText("Could not load trend data.");
+    expect(trendErrors.length).toBe(2);
   });
 
   it("shows error state when markets API fails", () => {
@@ -266,7 +267,8 @@ describe("DashboardPage", () => {
 
   it("renders the sparkline chart when summary data is available", () => {
     render(<DashboardPage />);
-    expect(screen.getByTestId("sparkline-chart")).toBeInTheDocument();
+    const sparklines = screen.getAllByTestId("sparkline-chart");
+    expect(sparklines.length).toBe(2);
   });
 
   it("renders top markets with country names and percentages", () => {

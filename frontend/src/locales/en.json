@@ -75,7 +75,9 @@
     "employmentServices": "Services Employment",
     "iphIndex": "Hotel Price Index",
     "dataAsOf": "Data as of: {{period}}",
-    "viewingPeriod": "Viewing period"
+    "viewingPeriod": "Viewing period",
+    "occupancyTrend": "Occupancy Trend",
+    "last12Months": "Last 12 months"
   },
   "forecast": {
     "title": "Prediction Engine",

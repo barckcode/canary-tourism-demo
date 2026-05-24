@@ -75,7 +75,9 @@
     "employmentServices": "Empleo Servicios",
     "iphIndex": "Índice Precios Hoteleros",
     "dataAsOf": "Datos hasta: {{period}}",
-    "viewingPeriod": "Periodo visualizado"
+    "viewingPeriod": "Periodo visualizado",
+    "occupancyTrend": "Tendencia Ocupacion",
+    "last12Months": "Ultimos 12 meses"
   },
   "forecast": {
     "title": "Motor de Prediccion",
