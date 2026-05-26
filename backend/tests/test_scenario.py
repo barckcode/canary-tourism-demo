@@ -368,3 +368,90 @@ def test_scenario_extreme_inputs_non_negative():
         for key in ("ci_lower_80", "ci_lower_95"):
             if key in point:
                 assert point[key] >= 0, f"Negative baseline CI: {key}={point[key]}"
+
+
+# ---------- Bug #852: Scenario propagation across months ----------
+
+
+def test_scenario_propagates_scenario_not_baseline():
+    """Scenario features for month N should use scenario predictions from N-1.
+
+    With a non-zero change, the absolute difference between baseline and
+    scenario should generally grow (compound) over a multi-month horizon,
+    not stay constant or shrink. We check that the last month's absolute
+    difference is at least as large as the first month's.
+    """
+    engine = _make_fitted_engine()
+    result = engine.predict_scenario(
+        db=MagicMock(),
+        occupancy_change_pct=20.0,
+        adr_change_pct=15.0,
+        foreign_ratio_change_pct=10.0,
+        horizon=12,
+    )
+
+    diffs = [
+        abs(s["value"] - b["value"])
+        for b, s in zip(result["baseline_forecast"], result["scenario_forecast"])
+    ]
+    # The scenario effect should compound: later months should show at least
+    # as much divergence as earlier months. We compare the average of the last
+    # 3 months vs the first 3 months.
+    avg_first_3 = np.mean(diffs[:3])
+    avg_last_3 = np.mean(diffs[-3:])
+    assert avg_last_3 >= avg_first_3, (
+        f"Scenario effects should compound over time: "
+        f"avg first 3 diffs={avg_first_3:.0f}, avg last 3 diffs={avg_last_3:.0f}"
+    )
+
+
+def test_scenario_uses_separate_dataframes():
+    """Verify baseline and scenario use independent extension DataFrames.
+
+    With a large scenario change, the scenario prediction for month 2+
+    should differ from what it would be if baseline values were used
+    for feature building. We verify this indirectly: a positive occupancy
+    change should make scenario diverge more from baseline over time
+    compared to a single-month scenario.
+    """
+    engine = _make_fitted_engine()
+
+    # Single month: no propagation possible
+    result_1m = engine.predict_scenario(
+        db=MagicMock(),
+        occupancy_change_pct=30.0,
+        adr_change_pct=0.0,
+        foreign_ratio_change_pct=0.0,
+        horizon=1,
+    )
+    diff_1m = abs(
+        result_1m["scenario_forecast"][0]["value"]
+        - result_1m["baseline_forecast"][0]["value"]
+    )
+
+    # Multi-month: propagation should amplify the effect
+    result_12m = engine.predict_scenario(
+        db=MagicMock(),
+        occupancy_change_pct=30.0,
+        adr_change_pct=0.0,
+        foreign_ratio_change_pct=0.0,
+        horizon=12,
+    )
+    # The last month's diff should be >= the first month's diff
+    # (first month is identical between 1m and 12m runs)
+    diff_first = abs(
+        result_12m["scenario_forecast"][0]["value"]
+        - result_12m["baseline_forecast"][0]["value"]
+    )
+    diff_last = abs(
+        result_12m["scenario_forecast"][-1]["value"]
+        - result_12m["baseline_forecast"][-1]["value"]
+    )
+    assert diff_first == diff_1m, (
+        "First month should be identical regardless of horizon"
+    )
+    # With compounding, later months should diverge at least as much
+    assert diff_last >= diff_first, (
+        f"Scenario should compound: month 1 diff={diff_first}, "
+        f"month 12 diff={diff_last}"
+    )

@@ -287,17 +287,20 @@ class ScenarioEngine:
         scenario: list[dict] = []
         residual_std = self._residual_std
 
-        ext_df = df.copy()
+        ext_df_base = df.copy()
+        ext_df_sc = df.copy()
         for h, period in enumerate(future_periods, start=1):
             period_str = str(period)
 
-            feat = self._build_period_features(ext_df, period)
+            # Build features from their respective DataFrames
+            feat_base = self._build_period_features(ext_df_base, period)
+            feat_sc_raw = self._build_period_features(ext_df_sc, period)
 
             # Standard error grows with the square root of horizon
             se = residual_std * np.sqrt(h) if residual_std > 0 else 0.0
 
             # Baseline prediction (clamped to non-negative: arrivals cannot be negative)
-            X_base = pd.DataFrame([feat], columns=self.feature_names).fillna(0)
+            X_base = pd.DataFrame([feat_base], columns=self.feature_names).fillna(0)
             base_pred = max(0.0, float(self.model.predict(X_base)[0]))
             base_point: dict = {"period": period_str, "value": round(base_pred)}
             if se > 0:
@@ -307,9 +310,9 @@ class ScenarioEngine:
                 base_point["ci_upper_95"] = round(base_pred + 1.96 * se)
             baseline.append(base_point)
 
-            # Scenario prediction
+            # Scenario prediction using scenario features + adjustments
             feat_sc = self._apply_scenario(
-                feat, occupancy_change_pct, adr_change_pct, foreign_ratio_change_pct
+                feat_sc_raw, occupancy_change_pct, adr_change_pct, foreign_ratio_change_pct
             )
             X_sc = pd.DataFrame([feat_sc], columns=self.feature_names).fillna(0)
             sc_pred = max(0.0, float(self.model.predict(X_sc)[0]))
@@ -321,15 +324,34 @@ class ScenarioEngine:
                 sc_point["ci_upper_95"] = round(sc_pred + 1.96 * se)
             scenario.append(sc_point)
 
-            # Extend for next iteration
-            last_foreign_ratio = feat["foreign_ratio"]
-            new_row: dict = {
+            # Extend baseline df with baseline predictions
+            last_foreign_ratio_base = feat_base["foreign_ratio"]
+            new_row_base: dict = {
                 "arrivals": base_pred,
-                "foreign": base_pred * last_foreign_ratio,
+                "foreign": base_pred * last_foreign_ratio_base,
             }
             for col_name in ACCOM_INDICATORS.values():
-                new_row[col_name] = _safe_numeric(ext_df[col_name].iloc[-1])
-            ext_df.loc[period_str] = new_row
+                new_row_base[col_name] = _safe_numeric(ext_df_base[col_name].iloc[-1])
+            ext_df_base.loc[period_str] = new_row_base
+
+            # Extend scenario df with scenario predictions and adjusted features
+            last_foreign_ratio_sc = feat_sc_raw["foreign_ratio"]
+            new_row_sc: dict = {
+                "arrivals": sc_pred,
+                "foreign": sc_pred * last_foreign_ratio_sc,
+            }
+            for col_name in ACCOM_INDICATORS.values():
+                new_row_sc[col_name] = _safe_numeric(ext_df_sc[col_name].iloc[-1])
+            # Propagate scenario adjustments to accommodation values
+            if occupancy_change_pct:
+                for occ_col in ("room_occ", "bed_occ"):
+                    if occ_col in ACCOM_INDICATORS.values():
+                        new_row_sc[occ_col] = _safe_numeric(new_row_sc.get(occ_col)) * (1 + occupancy_change_pct / 100)
+            if adr_change_pct:
+                for adr_col in ("adr", "total_revenue"):
+                    if adr_col in ACCOM_INDICATORS.values():
+                        new_row_sc[adr_col] = _safe_numeric(new_row_sc.get(adr_col)) * (1 + adr_change_pct / 100)
+            ext_df_sc.loc[period_str] = new_row_sc
 
         result = {
             "baseline_forecast": baseline,
