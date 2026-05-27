@@ -165,12 +165,13 @@ def train_profiler(db: Session, n_clusters: int = 4) -> dict:
     profiler = TouristProfiler(n_clusters=n_clusters)
     labels = profiler.fit(raw_jsons, auto_k=True)
 
-    # Update microdata with cluster assignments
+    # Update microdata with cluster assignments (batch via executemany)
     ids = db.execute(text("SELECT id FROM microdata ORDER BY id")).fetchall()
-    for row_id, label in zip(ids, labels):
+    params = [{"cid": int(label), "id": row_id[0]} for row_id, label in zip(ids, labels)]
+    if params:
         db.execute(
             text("UPDATE microdata SET cluster_id=:cid WHERE id=:id"),
-            {"cid": int(label), "id": row_id[0]},
+            params,
         )
 
     # Store profiles
