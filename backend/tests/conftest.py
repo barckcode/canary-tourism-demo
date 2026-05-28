@@ -97,7 +97,7 @@ def _seed_test_data(session: Session) -> None:
         "alojatur_pernoctaciones": 2500000.0,
         # Needed by ScenarioEngine
         "alojatur_plazas_ocupacion": 65.0,
-        "alojatur_tarifa_adr": 88.0,
+        "alojatur_ingresos": 88.0,
     }
     for ind, base_val in indicators_data.items():
         for year in range(2022, 2026):

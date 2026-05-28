@@ -43,7 +43,7 @@ def _safe_numeric(value: object, default: float = 0.0) -> float:
 ACCOM_INDICATORS = {
     "alojatur_habitaciones_ocupacion": "room_occ",
     "alojatur_plazas_ocupacion": "bed_occ",
-    "alojatur_tarifa_adr": "adr",
+    "alojatur_adr": "adr",
     "alojatur_ingresos": "total_revenue",
     "alojatur_pernoctaciones": "overnight_stays",
 }
