@@ -218,7 +218,7 @@ export default function DashboardPage() {
             <div aria-busy={!summary && !summaryError}>
             {summaryError ? (
               <ErrorState message={t('dashboard.couldNotLoadTrend')} onRetry={refetchSummary} />
-            ) : summary?.arrivals_trend_24m ? (
+            ) : summary?.arrivals_trend_24m?.length ? (
               <SparklineChart
                 data={summary.arrivals_trend_24m}
                 forecast={summary.forecast}
