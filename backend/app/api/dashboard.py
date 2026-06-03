@@ -135,7 +135,7 @@ def get_kpis(
                 )
 
     # Occupancy rate
-    occ = _latest_value(db, "alojatur_habitaciones_ocupacion", "ES709", period=period)
+    occ = _latest_value(db, "alojatur_ocupacion", "ES709", period=period)
     if occ:
         kpis["occupancy_rate"] = occ.value
 
@@ -277,7 +277,7 @@ def get_summary(request: Request, db: Session = Depends(get_db)):
     occupancy = (
         db.query(TimeSeries.period, TimeSeries.value)
         .filter(
-            TimeSeries.indicator == "alojatur_habitaciones_ocupacion",
+            TimeSeries.indicator == "alojatur_ocupacion",
             TimeSeries.geo_code == "ES709",
             TimeSeries.measure == "ABSOLUTE",
         )

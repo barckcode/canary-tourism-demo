@@ -87,17 +87,14 @@ def _seed_test_data(session: Session) -> None:
 
     # --- Time Series: occupancy, ADR, RevPAR, avg_stay and others ---
     indicators_data = {
-        "alojatur_habitaciones_ocupacion": 72.5,
+        "alojatur_ocupacion": 72.5,
         "alojatur_ingresos_habitacion": 85.0,
         "alojatur_ingresos": 62.0,
         "alojatur_estancia_media": 7.2,
-        "alojatur_ocupacion": 68.0,
         "alojatur_adr": 90.0,
         "alojatur_revpar": 65.0,
         "alojatur_pernoctaciones": 2500000.0,
-        # Needed by ScenarioEngine
-        "alojatur_plazas_ocupacion": 65.0,
-        "alojatur_ingresos": 88.0,
+        "alojatur_ocupacion_plazas": 65.0,
     }
     for ind, base_val in indicators_data.items():
         for year in range(2022, 2026):
