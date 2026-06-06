@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.etl.sources.ine import INE_SERIES
 from app.utils.parsing import (
     PLACEHOLDER_CODES,
     INE_MONTHLY_PERIOD,
@@ -20,6 +21,8 @@ from app.utils.parsing import (
     safe_float,
     safe_int,
 )
+
+_INE_INDICATOR_BY_ID = {sid: name for sid, name, _geo in INE_SERIES}
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +83,15 @@ def seed_ine_timeseries(db: Session, data_dir: Path) -> int:
             data = json.load(f)
 
         for series_id, series_info in data.items():
-            description = series_info.get("description", series_id)
-            indicator = (
-                description.lower()
-                .replace(".", "")
-                .replace(" ", "_")[:100]
-            )
+            if series_id in _INE_INDICATOR_BY_ID:
+                indicator = _INE_INDICATOR_BY_ID[series_id]
+            else:
+                description = series_info.get("description", series_id)
+                indicator = (
+                    description.lower()
+                    .replace(".", "")
+                    .replace(" ", "_")[:100]
+                )
 
             for rec in series_info.get("records", []):
                 valor = rec.get("Valor")
