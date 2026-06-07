@@ -405,6 +405,78 @@ def test_scenario_propagates_scenario_not_baseline():
     )
 
 
+def test_occupancy_change_alone_affects_prediction():
+    """Changing only occupancy_change_pct should produce a different prediction than baseline."""
+    # Build an engine where occupancy features drive predictions so that
+    # modifying room_occ_lag1 / bed_occ_lag1 via occupancy_change_pct
+    # produces a measurably different forecast.
+    periods = pd.period_range("2022-01", periods=24, freq="M")
+    period_strs = [str(p) for p in periods]
+
+    np.random.seed(99)
+    room_occ = np.random.uniform(50, 90, size=24)
+    bed_occ = room_occ * 0.8
+    arrivals = room_occ * 5000 + np.random.normal(0, 1000, size=24)
+    foreign = arrivals * 0.7
+
+    data = {"arrivals": arrivals, "foreign": foreign}
+    for col_name in ACCOM_INDICATORS.values():
+        data[col_name] = np.random.uniform(10, 100, size=24)
+    data["room_occ"] = room_occ
+    data["bed_occ"] = bed_occ
+
+    df = pd.DataFrame(data, index=period_strs)
+
+    feature_names = []
+    for lag in [1, 3, 6, 12]:
+        feature_names.append(f"y_lag{lag}")
+    feature_names.extend(["rolling_3m", "rolling_12m", "foreign_ratio"])
+    for col_name in ACCOM_INDICATORS.values():
+        feature_names.append(f"{col_name}_lag1")
+    feature_names.extend(["month", "month_sin", "month_cos"])
+
+    n_features = len(feature_names)
+    n_train = 200
+    room_idx = feature_names.index("room_occ_lag1")
+    bed_idx = feature_names.index("bed_occ_lag1")
+    # Use realistic value ranges so the GBR learns meaningful splits
+    X_train = np.random.rand(n_train, n_features) * 100
+    y_train = (
+        X_train[:, room_idx] * 5_000
+        + X_train[:, bed_idx] * 3_000
+        + np.random.normal(0, 500, size=n_train)
+    )
+
+    model = GradientBoostingRegressor(n_estimators=100, max_depth=4, random_state=42)
+    model.fit(X_train, y_train)
+
+    engine = ScenarioEngine()
+    engine.model = model
+    engine.feature_names = feature_names
+    engine.latest_df = df
+    engine.latest_features = pd.DataFrame(
+        np.random.rand(24, n_features),
+        index=period_strs,
+        columns=feature_names,
+    )
+    engine.is_fitted = True
+
+    result = engine.predict_scenario(
+        db=MagicMock(),
+        occupancy_change_pct=20.0,
+        adr_change_pct=0.0,
+        foreign_ratio_change_pct=0.0,
+        horizon=6,
+    )
+    impact = result["impact_summary"]
+    assert impact["avg_change_pct"] != 0, (
+        "occupancy_change_pct=20 should produce a non-zero avg_change_pct"
+    )
+    assert impact["avg_scenario"] != impact["avg_baseline"], (
+        "occupancy_change_pct=20 should make avg_scenario differ from avg_baseline"
+    )
+
+
 def test_scenario_uses_separate_dataframes():
     """Verify baseline and scenario use independent extension DataFrames.
 
