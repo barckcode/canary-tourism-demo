@@ -24,6 +24,13 @@ from app.utils.parsing import (
 
 _INE_INDICATOR_BY_ID = {sid: name for sid, name, _geo in INE_SERIES}
 
+_ISTAC_NAME_FIXES = {
+    "alojatur_habitaciones_ocupacion": "alojatur_ocupacion",
+    "alojatur_plazas_ocupacion": "alojatur_ocupacion_plazas",
+    "alojatur_tarifa_adr": "alojatur_adr",
+    "alojatur_estancias_medias": "alojatur_estancia_media",
+}
+
 logger = logging.getLogger(__name__)
 
 # Backward-compatible aliases for internal use
@@ -38,6 +45,7 @@ def seed_istac_timeseries(db: Session, data_dir: Path) -> int:
 
     for csv_path in sorted(istac_dir.glob("*_tenerife.csv")):
         indicator_name = csv_path.stem.replace("_tenerife", "").lower()
+        indicator_name = _ISTAC_NAME_FIXES.get(indicator_name, indicator_name)
         logger.info("Loading ISTAC: %s", csv_path.name)
 
         with open(csv_path, encoding="utf-8") as f:
@@ -47,6 +55,9 @@ def seed_istac_timeseries(db: Session, data_dir: Path) -> int:
                 if value is None:
                     continue
 
+                raw_indicator = row.get("indicator", indicator_name).lower()
+                resolved_indicator = _ISTAC_NAME_FIXES.get(raw_indicator, raw_indicator)
+
                 db.execute(
                     text("""
                         INSERT OR REPLACE INTO time_series
@@ -55,7 +66,7 @@ def seed_istac_timeseries(db: Session, data_dir: Path) -> int:
                     """),
                     {
                         "source": "istac",
-                        "indicator": row.get("indicator", indicator_name).lower(),
+                        "indicator": resolved_indicator,
                         "geo_code": row.get("geo_code", "ES709"),
                         "period": row.get("time", ""),
                         "measure": row.get("measure", "ABSOLUTE"),
