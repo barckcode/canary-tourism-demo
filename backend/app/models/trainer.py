@@ -230,9 +230,16 @@ class ModelTrainer:
     def train_all(self, db: Session):
         """Train all models and store predictions."""
         results = {}
-        results["forecaster"] = train_forecaster(db)
-        results["profiler"] = train_profiler(db)
-        results["scenario_engine"] = train_scenario_engine(db)
+        for name, fn in [
+            ("forecaster", train_forecaster),
+            ("profiler", train_profiler),
+            ("scenario_engine", train_scenario_engine),
+        ]:
+            try:
+                results[name] = fn(db)
+            except Exception:
+                logger.exception("Training %s failed", name)
+                results[name] = {"status": "error"}
         return results
 
 
