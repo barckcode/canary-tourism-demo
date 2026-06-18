@@ -161,11 +161,32 @@ def _parse_period(record: dict[str, Any]) -> str | None:
     return None
 
 
+_PERCENTAGE_KEYWORDS = {"ocupacion"}
+_RATE_KEYWORDS = {"estancia_media", "adr", "revpar"}
+
+
+def _get_measure(indicator: str) -> str:
+    """Return the correct measure type for an INE indicator name.
+
+    - Indicators containing 'ocupacion' → PERCENTAGE_RATE
+    - Indicators containing 'estancia_media', 'adr', or 'revpar' → RATE
+    - Everything else → ABSOLUTE
+    """
+    for keyword in _PERCENTAGE_KEYWORDS:
+        if keyword in indicator:
+            return "PERCENTAGE_RATE"
+    for keyword in _RATE_KEYWORDS:
+        if keyword in indicator:
+            return "RATE"
+    return "ABSOLUTE"
+
+
 def _parse_series_records(
     data: list[dict[str, Any]], indicator: str, geo_code: str
 ) -> list[dict[str, Any]]:
     """Parse INE JSON array into TimeSeries-compatible records."""
     records: list[dict[str, Any]] = []
+    measure = _get_measure(indicator)
 
     for rec in data:
         valor = rec.get("Valor")
@@ -182,7 +203,7 @@ def _parse_series_records(
                 "indicator": indicator,
                 "geo_code": geo_code,
                 "period": period,
-                "measure": "ABSOLUTE",
+                "measure": measure,
                 "value": float(valor),
             }
         )
