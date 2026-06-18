@@ -4,6 +4,7 @@ Fetches tourism indicators (FRONTUR arrivals, accommodation metrics)
 from the ISTAC REST API at datos.canarias.es.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -226,6 +227,9 @@ async def fetch_indicators(
 ) -> list[dict[str, Any]]:
     """Fetch ISTAC indicator data for specified codes.
 
+    Uses bounded concurrency (semaphore) with asyncio.gather() to fetch
+    multiple indicators in parallel, similar to the INE connector pattern.
+
     Args:
         indicator_codes: List of indicator codes to fetch. If None,
             fetches all configured indicators.
@@ -235,19 +239,30 @@ async def fetch_indicators(
     """
     codes = indicator_codes or INDICATOR_CODES
     all_records: list[dict[str, Any]] = []
+    sem = asyncio.Semaphore(5)
 
-    async with httpx.AsyncClient() as client:
-        for code in codes:
+    async def _fetch_one(
+        client: httpx.AsyncClient, code: str
+    ) -> list[dict[str, Any]]:
+        async with sem:
             logger.info("Fetching ISTAC indicator: %s", code)
             data = await _fetch_indicator_data(client, code)
             if data is None:
-                continue
-
+                return []
             records = _parse_observations(data, code)
             logger.info(
                 "ISTAC %s: parsed %d observations.", code, len(records)
             )
-            all_records.extend(records)
+            return records
+
+    async with httpx.AsyncClient() as client:
+        tasks = [_fetch_one(client, code) for code in codes]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error("ISTAC fetch failed: %s", result)
+                continue
+            all_records.extend(result)
 
     logger.info("ISTAC fetch complete: %d total records.", len(all_records))
     return all_records
