@@ -19,7 +19,7 @@ from app.db.models import TrainingRun
 from app.models.forecaster import Forecaster
 from app.models.profiler import TouristProfiler
 from app.models.scenario_engine import ScenarioEngine
-from app.utils.queries import load_arrivals_series
+from app.utils.queries import get_forecastable_indicators, load_arrivals_series
 
 logger = logging.getLogger(__name__)
 
@@ -116,39 +116,105 @@ def _store_metrics(db: Session, metrics: dict, indicator: str, geo_code: str,
     logger.info("Stored metrics for %d models.", len(metrics))
 
 
-def train_forecaster(db: Session, horizon: int = 12) -> dict:
-    """Train SARIMA + HW + Naive forecaster and store predictions."""
-    logger.info("Loading arrivals time series...")
-    series = load_arrivals_series(db)
-    logger.info("Loaded %d monthly observations (%s to %s).",
-                len(series), series.index[0], series.index[-1])
+def _train_single_indicator(
+    db: Session, indicator: str, geo_code: str, horizon: int,
+) -> dict:
+    """Train forecaster for a single indicator and store predictions.
+
+    Args:
+        db: Active SQLAlchemy session.
+        indicator: Indicator name to forecast.
+        geo_code: Geographic code.
+        horizon: Number of months to forecast.
+
+    Returns:
+        Dict mapping model name to number of stored predictions.
+    """
+    series = load_arrivals_series(db, indicator=indicator, geo_code=geo_code)
+    logger.info(
+        "Indicator '%s': loaded %d monthly observations (%s to %s).",
+        indicator, len(series), series.index[0], series.index[-1],
+    )
 
     forecaster = Forecaster()
     forecaster.fit(series, exclude_covid=True)
 
-    # Evaluate accuracy on held-out test set (last 12 non-COVID months)
+    # Evaluate accuracy on held-out test set
     metrics = forecaster.evaluate(test_size=12)
-    _store_metrics(db, metrics, "turistas", "ES709", test_size=12)
+    _store_metrics(db, metrics, indicator, geo_code, test_size=12)
 
     # Generate forecasts from all models
-    results = {}
+    indicator_results = {}
     for name, method in [
         ("sarima", forecaster.predict_sarima),
         ("holt_winters", forecaster.predict_hw),
         ("seasonal_naive", forecaster.predict_naive),
         ("ensemble", forecaster.predict),
     ]:
-        fc = method(horizon)
-        count = _store_predictions(db, name, "turistas", "ES709", fc)
-        results[name] = count
-        logger.info("Stored %d predictions for model '%s'.", count, name)
+        try:
+            fc = method(horizon)
+            count = _store_predictions(db, name, indicator, geo_code, fc)
+            indicator_results[name] = count
+            logger.info(
+                "Stored %d predictions for model '%s' indicator '%s'.",
+                count, name, indicator,
+            )
+        except RuntimeError as exc:
+            logger.warning(
+                "Model '%s' unavailable for indicator '%s': %s",
+                name, indicator, exc,
+            )
+            indicator_results[name] = 0
+
+    return indicator_results
+
+
+def train_forecaster(db: Session, horizon: int = 12) -> dict:
+    """Train SARIMA + HW + Naive forecaster and store predictions for all indicators.
+
+    Iterates over all indicators in the database that have at least 36 monthly
+    observations and trains a separate forecaster for each one. Indicators with
+    insufficient data are skipped with a warning.
+    """
+    geo_code = "ES709"
+    indicators = get_forecastable_indicators(db, geo_code=geo_code, min_observations=36)
+    logger.info("Found %d forecastable indicators: %s", len(indicators), indicators)
+
+    if not indicators:
+        logger.warning("No indicators with sufficient data found for forecasting.")
+        return {}
+
+    results = {}
+    forecaster_to_save = None
+
+    for indicator in indicators:
+        try:
+            indicator_results = _train_single_indicator(
+                db, indicator, geo_code, horizon,
+            )
+            results[indicator] = indicator_results
+
+            # Keep the 'turistas' forecaster for backward-compatible disk save
+            if indicator == "turistas":
+                forecaster_to_save = Forecaster()
+                series = load_arrivals_series(db, indicator="turistas", geo_code=geo_code)
+                forecaster_to_save.fit(series, exclude_covid=True)
+        except Exception:
+            logger.exception(
+                "Training forecaster for indicator '%s' failed; skipping.",
+                indicator,
+            )
+            results[indicator] = {"status": "error"}
 
     db.commit()
 
-    # Save model to disk
-    model_path = settings.models_dir / "forecaster.pkl"
-    joblib.dump(forecaster, model_path)
-    logger.info("Saved forecaster to %s", model_path)
+    # Save the primary forecaster to disk (for backward compatibility)
+    if forecaster_to_save is not None:
+        model_path = settings.models_dir / "forecaster.pkl"
+        joblib.dump(forecaster_to_save, model_path)
+        logger.info("Saved forecaster to %s", model_path)
+    else:
+        logger.warning("No 'turistas' indicator found; forecaster.pkl not saved.")
 
     return results
 
