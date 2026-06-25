@@ -45,7 +45,7 @@ def _get_engine(db: Session) -> ScenarioEngine:
         if _engine is not None and _engine.is_fitted:
             return _engine
         _engine = ScenarioEngine()
-        _engine.predict_scenario(db=db, horizon=1)  # triggers lazy load from pkl
+        _engine._ensure_fitted(db)  # load from pkl or train; no wasted prediction
     return _engine
 
 

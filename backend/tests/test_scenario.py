@@ -286,14 +286,13 @@ def test_singleton_thread_safety():
     mock_db = MagicMock()
     errors = []
 
-    def fake_predict_scenario(self, **kwargs):
+    def fake_ensure_fitted(self, db):
         """Mark engine as fitted without doing real work."""
         self.is_fitted = True
         self.model = MagicMock()
         self.feature_names = ["f1"]
         self.latest_df = pd.DataFrame()
         self.latest_features = pd.DataFrame()
-        return {"baseline_forecast": [], "scenario_forecast": [], "impact_summary": {}}
 
     def get_engine_thread():
         try:
@@ -302,7 +301,7 @@ def test_singleton_thread_safety():
             errors.append(e)
 
     with patch.object(ScenarioEngine, "__init__", counting_init), \
-         patch.object(ScenarioEngine, "predict_scenario", fake_predict_scenario):
+         patch.object(ScenarioEngine, "_ensure_fitted", fake_ensure_fitted):
         threads = [threading.Thread(target=get_engine_thread) for _ in range(10)]
         for t in threads:
             t.start()
