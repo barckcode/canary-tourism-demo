@@ -2,6 +2,9 @@
 
 Reads CSV/JSON files from the raw data directory and populates
 the time_series and microdata tables. Idempotent via INSERT OR REPLACE.
+
+Uses batch inserts (executemany) for performance instead of
+individual INSERT statements.
 """
 
 import csv
@@ -37,11 +40,42 @@ logger = logging.getLogger(__name__)
 _safe_int = safe_int
 _safe_float = safe_float
 
+# Batch sizes for bulk inserts
+_TIMESERIES_BATCH_SIZE = 1000
+_MICRODATA_BATCH_SIZE = 5000
+
+_TIMESERIES_INSERT_SQL = text("""
+    INSERT OR REPLACE INTO time_series
+        (source, indicator, geo_code, period, measure, value)
+    VALUES (:source, :indicator, :geo_code, :period, :measure, :value)
+""")
+
+_MICRODATA_INSERT_SQL = text("""
+    INSERT OR REPLACE INTO microdata
+        (quarter, cuestionario, isla, aeropuerto, sexo, edad,
+         nacionalidad, pais_residencia, proposito, noches,
+         aloj_categ, gasto_euros, coste_vuelos_euros,
+         coste_aloj_euros, satisfaccion, raw_json)
+    VALUES (:quarter, :cuestionario, :isla, :aeropuerto, :sexo,
+            :edad, :nacionalidad, :pais_residencia, :proposito,
+            :noches, :aloj_categ, :gasto_euros,
+            :coste_vuelos_euros, :coste_aloj_euros,
+            :satisfaccion, :raw_json)
+""")
+
+
+def _flush_batch(db: Session, stmt: text, batch: list[dict]) -> None:
+    """Execute a batch insert and clear the batch list."""
+    if batch:
+        db.execute(stmt, batch)
+        batch.clear()
+
 
 def seed_istac_timeseries(db: Session, data_dir: Path) -> int:
     """Load ISTAC *_tenerife.csv files into time_series table."""
     istac_dir = data_dir / "istac"
     count = 0
+    batch: list[dict] = []
 
     for csv_path in sorted(istac_dir.glob("*_tenerife.csv")):
         indicator_name = csv_path.stem.replace("_tenerife", "").lower()
@@ -58,23 +92,20 @@ def seed_istac_timeseries(db: Session, data_dir: Path) -> int:
                 raw_indicator = row.get("indicator", indicator_name).lower()
                 resolved_indicator = _ISTAC_NAME_FIXES.get(raw_indicator, raw_indicator)
 
-                db.execute(
-                    text("""
-                        INSERT OR REPLACE INTO time_series
-                            (source, indicator, geo_code, period, measure, value)
-                        VALUES (:source, :indicator, :geo_code, :period, :measure, :value)
-                    """),
-                    {
-                        "source": "istac",
-                        "indicator": resolved_indicator,
-                        "geo_code": row.get("geo_code", "ES709"),
-                        "period": row.get("time", ""),
-                        "measure": row.get("measure", "ABSOLUTE"),
-                        "value": value,
-                    },
-                )
+                batch.append({
+                    "source": "istac",
+                    "indicator": resolved_indicator,
+                    "geo_code": row.get("geo_code", "ES709"),
+                    "period": row.get("time", ""),
+                    "measure": row.get("measure", "ABSOLUTE"),
+                    "value": value,
+                })
                 count += 1
 
+                if len(batch) >= _TIMESERIES_BATCH_SIZE:
+                    _flush_batch(db, _TIMESERIES_INSERT_SQL, batch)
+
+    _flush_batch(db, _TIMESERIES_INSERT_SQL, batch)
     db.commit()
     logger.info("ISTAC time series: %d records loaded.", count)
     return count
@@ -84,6 +115,7 @@ def seed_ine_timeseries(db: Session, data_dir: Path) -> int:
     """Load INE JSON files into time_series table."""
     ine_dir = data_dir / "ine"
     count = 0
+    batch: list[dict] = []
 
     for json_path in sorted(ine_dir.glob("*.json")):
         if "summary" in json_path.name:
@@ -120,23 +152,20 @@ def seed_ine_timeseries(db: Session, data_dir: Path) -> int:
                 else:
                     continue
 
-                db.execute(
-                    text("""
-                        INSERT OR REPLACE INTO time_series
-                            (source, indicator, geo_code, period, measure, value)
-                        VALUES (:source, :indicator, :geo_code, :period, :measure, :value)
-                    """),
-                    {
-                        "source": "ine",
-                        "indicator": indicator,
-                        "geo_code": "ES709",
-                        "period": period,
-                        "measure": "ABSOLUTE",
-                        "value": float(valor),
-                    },
-                )
+                batch.append({
+                    "source": "ine",
+                    "indicator": indicator,
+                    "geo_code": "ES709",
+                    "period": period,
+                    "measure": "ABSOLUTE",
+                    "value": float(valor),
+                })
                 count += 1
 
+                if len(batch) >= _TIMESERIES_BATCH_SIZE:
+                    _flush_batch(db, _TIMESERIES_INSERT_SQL, batch)
+
+    _flush_batch(db, _TIMESERIES_INSERT_SQL, batch)
     db.commit()
     logger.info("INE time series: %d records loaded.", count)
     return count
@@ -146,6 +175,7 @@ def seed_microdata(db: Session, data_dir: Path) -> int:
     """Load EGT microdata CSVs into microdata table."""
     micro_dir = data_dir / "cabildo" / "istac_extra"
     count = 0
+    batch: list[dict] = []
 
     for csv_path in sorted(micro_dir.glob("microdatos_gasto_turistico_*.csv")):
         # Extract quarter from filename: microdatos_gasto_turistico_2024q3.csv -> 2024Q3
@@ -197,24 +227,15 @@ def seed_microdata(db: Session, data_dir: Path) -> int:
                     if record[key] in PLACEHOLDER_CODES:
                         record[key] = None
 
-                db.execute(
-                    text("""
-                        INSERT OR REPLACE INTO microdata
-                            (quarter, cuestionario, isla, aeropuerto, sexo, edad,
-                             nacionalidad, pais_residencia, proposito, noches,
-                             aloj_categ, gasto_euros, coste_vuelos_euros,
-                             coste_aloj_euros, satisfaccion, raw_json)
-                        VALUES (:quarter, :cuestionario, :isla, :aeropuerto, :sexo,
-                                :edad, :nacionalidad, :pais_residencia, :proposito,
-                                :noches, :aloj_categ, :gasto_euros,
-                                :coste_vuelos_euros, :coste_aloj_euros,
-                                :satisfaccion, :raw_json)
-                    """),
-                    record,
-                )
+                batch.append(record)
                 count += 1
 
-        # Commit after each file to avoid huge transactions
+                if len(batch) >= _MICRODATA_BATCH_SIZE:
+                    _flush_batch(db, _MICRODATA_INSERT_SQL, batch)
+                    db.commit()
+
+        # Flush remaining records after each file
+        _flush_batch(db, _MICRODATA_INSERT_SQL, batch)
         db.commit()
 
     logger.info("Microdata: %d records loaded.", count)
@@ -225,6 +246,7 @@ def seed_spending_profiles(db: Session, data_dir: Path) -> int:
     """Load ISTAC spending/profile CSVs from cabildo/istac_extra."""
     extra_dir = data_dir / "cabildo" / "istac_extra"
     count = 0
+    batch: list[dict] = []
 
     for csv_path in sorted(extra_dir.glob("*.csv")):
         if "microdatos" in csv_path.name:
@@ -264,24 +286,20 @@ def seed_spending_profiles(db: Session, data_dir: Path) -> int:
                 geo = row.get(territory_col, "ES70")
                 measure = row.get(measure_col, "ABSOLUTE")
 
-                db.execute(
-                    text("""
-                        INSERT OR REPLACE INTO time_series
-                            (source, indicator, geo_code, period, measure, value)
-                        VALUES (:source, :indicator, :geo_code, :period,
-                                :measure, :value)
-                    """),
-                    {
-                        "source": "istac",
-                        "indicator": indicator,
-                        "geo_code": geo,
-                        "period": period_raw,
-                        "measure": measure,
-                        "value": value,
-                    },
-                )
+                batch.append({
+                    "source": "istac",
+                    "indicator": indicator,
+                    "geo_code": geo,
+                    "period": period_raw,
+                    "measure": measure,
+                    "value": value,
+                })
                 count += 1
 
+                if len(batch) >= _TIMESERIES_BATCH_SIZE:
+                    _flush_batch(db, _TIMESERIES_INSERT_SQL, batch)
+
+    _flush_batch(db, _TIMESERIES_INSERT_SQL, batch)
     db.commit()
     logger.info("Spending/profile data: %d records loaded.", count)
     return count
