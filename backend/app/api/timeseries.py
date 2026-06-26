@@ -125,7 +125,6 @@ def list_indicators(request: Request, db: Session = Depends(get_db)):
             func.count(TimeSeries.id).label("total_points"),
             func.max(TimeSeries.fetched_at).label("last_updated"),
         )
-        .filter(TimeSeries.measure == "ABSOLUTE")
         .group_by(TimeSeries.indicator, TimeSeries.source)
         .all()
     )
