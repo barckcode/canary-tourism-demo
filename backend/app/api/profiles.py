@@ -170,9 +170,18 @@ def get_nationality_profiles(
 
 @router.get("/flows", response_model=FlowsResponse)
 @limiter.limit("60/minute")
-def get_flows(request: Request, db: Session = Depends(get_db)):
-    """Return Sankey flow data: Country -> Accommodation type."""
-    flows = (
+def get_flows(
+    request: Request,
+    from_quarter: str | None = Query(None, description="Start quarter inclusive (e.g., '2025-Q1')"),
+    to_quarter: str | None = Query(None, description="End quarter inclusive (e.g., '2026-Q2')"),
+    db: Session = Depends(get_db),
+):
+    """Return Sankey flow data: Country -> Accommodation type.
+
+    Optionally filter by quarter range using from_quarter and to_quarter
+    parameters. Without filters, all available data is aggregated.
+    """
+    query = (
         db.query(
             Microdata.nacionalidad,
             Microdata.aloj_categ,
@@ -182,6 +191,15 @@ def get_flows(request: Request, db: Session = Depends(get_db)):
             Microdata.nacionalidad.isnot(None),
             Microdata.aloj_categ.isnot(None),
         )
+    )
+
+    if from_quarter:
+        query = query.filter(Microdata.quarter >= from_quarter)
+    if to_quarter:
+        query = query.filter(Microdata.quarter <= to_quarter)
+
+    flows = (
+        query
         .group_by(Microdata.nacionalidad, Microdata.aloj_categ)
         .having(func.count(Microdata.id) >= 10)
         .limit(100)
